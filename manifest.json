@@ -79,17 +79,6 @@
 			],
 			"all_frames": true,
 			"run_at": "document_start"
-		},
-		{
-			"matches": [
-				"https://www.twitch.tv/*",
-				"https://m.twitch.tv/*"
-			],
-			"js": [
-				"betterttv.js"
-			],
-			"all_frames": true,
-			"run_at": "document_start"
 		}
 	],
 	"declarative_net_request": {
