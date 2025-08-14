@@ -44,7 +44,21 @@ async function insertThirdPartyExtensions(tabId, frameId) {
             }
         }
 
-        
+        if (bttvEnabled) {
+            chrome.scripting.executeScript({
+                target: { tabId: tabId, frameIds: [frameId] },
+                files: ['betterttv.js'], // Inject local BTTV script
+                world: 'MAIN' // Inject into main world
+            }).then(() => console.log('BTTV injection initiated.'));
+        }
+
+        if (ffzEnabled) {
+            chrome.scripting.executeScript({
+                target: { tabId: tabId, frameIds: [frameId] },
+                files: ['avalon.js'], // Inject local FFZ script
+                world: 'MAIN' // Inject into main world
+            }).then(() => console.log('FFZ injection initiated.'));
+        }
 
     } catch (error) {
         console.error('Error in insertThirdPartyExtensions:', error);
