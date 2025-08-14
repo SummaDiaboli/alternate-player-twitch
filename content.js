@@ -520,39 +520,12 @@ function ждатьЗагрузкуСтраницы() {
 
 function вставитьСторонниеРасширения() {
 	chrome.runtime.sendMessage({
-		сЗапрос: 'ВставитьСторонниеРасширения'
-	}, оСообщение => {
+		request: 'InsertThirdPartyExtensions'
+	}, response => {
 		if (chrome.runtime.lastError) {
-			м_Журнал.Окак(`[content.js] Не удалось послать запрос на вставку сторонних расширений: ${chrome.runtime.lastError.message}`);
-			return;
-		}
-		//! оСообщение.сСторонниеРасширения contains a limited set of known browser extensions that are currently
-		//! installed and enabled in the browser. See обработатьСообщениеЧата() in player.js. Load those
-		//! extensions into <iframe>. Chrome itself cannot load installed extensions into another extension.
-		//! See https://bugs.chromium.org/p/chromium/issues/detail?id=599167
-				if (оСообщение.сСторонниеРасширения.includes('BTTV ')) {
-			ждатьЗагрузкуСтраницы().then(() => {
-				
-				//! BetterTTV browser extension
-				//! https://betterttv.com/
-				//! https://chrome.google.com/webstore/detail/ajopnjidmegmdimjlfnijceegpefgped
-				const script = document.createElement('script');
-				script.id = 'betterttv';
-				script.src = 'https://cdn.betterttv.net/betterttv.js';
-				document.head.appendChild(script);
-			});
-		}
-		if (оСообщение.сСторонниеРасширения.includes('FFZ ')) {
-			ждатьЗагрузкуДомика().then(() => {
-				
-				//! FrankerFaceZ browser extension
-				//! https://www.frankerfacez.com/
-				//! https://chrome.google.com/webstore/detail/fadndhdgpmmaapbmfcknlfgcflmmmieb
-				const script = document.createElement('script');
-				script.id = 'ffz_script';
-				script.src = 'https://cdn.frankerfacez.com/script/script.min.js';
-				document.head.appendChild(script);
-			});
+			console.error(`[content.js] Failed to send request for third-party extensions: ${chrome.runtime.lastError.message}`);
+		} else {
+			console.log(response.status); // e.g., "Injections started."
 		}
 	});
 }

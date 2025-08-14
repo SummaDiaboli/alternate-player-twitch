@@ -12,6 +12,8 @@
 	"default_locale": "en",
 	"incognito": "split",
 	"permissions": [
+		"activeTab",
+		"scripting",
 		"storage",
 		"cookies",
 		"declarativeNetRequest",
@@ -26,10 +28,9 @@
 		"*://*.jtvnw.net/*",
 		"*://*.live-video.net/*",
 		"*://*.akamaized.net/*",
-		"*://*.cloudfront.net/*"
-	],
-	"optional_permissions": [
-		"contentSettings"
+		"*://*.cloudfront.net/*",
+		"*://*.betterttv.net/*",
+		"*://*.frankerfacez.com/*"
 	],
 	"web_accessible_resources": [
 		{
@@ -75,6 +76,28 @@
 			"js": [
 				"common.js",
 				"content.js"
+			],
+			"all_frames": true,
+			"run_at": "document_start"
+		},
+		{
+			"matches": [
+				"https://www.twitch.tv/*",
+				"https://m.twitch.tv/*"
+			],
+			"js": [
+				"avalon.js"
+			],
+			"all_frames": true,
+			"run_at": "document_start"
+		},
+		{
+			"matches": [
+				"https://www.twitch.tv/*",
+				"https://m.twitch.tv/*"
+			],
+			"js": [
+				"betterttv.js"
 			],
 			"all_frames": true,
 			"run_at": "document_start"
