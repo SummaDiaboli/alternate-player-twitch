@@ -33,16 +33,23 @@ async function insertThirdPartyExtensions(tabId, frameId) {
         let bttvEnabled = false;
         let ffzEnabled = false;
 
+        // Debug: log all enabled extensions
+        console.log('All extensions:', extensions.filter(e => e.enabled).map(e => ({name: e.name, id: e.id})));
+
         for (const ext of extensions) {
             if (ext.enabled) {
                 if (ext.name.includes('BetterTTV') || ext.id === 'ajopnjidmegmdimjlfnijceegpefgped') {
                     bttvEnabled = true;
+                    console.log('Detected BTTV:', ext.name, ext.id);
                 }
                 if (ext.name.includes('FrankerFaceZ') || ext.id === 'fadndhdgpmmaapbmfcknlfgcflmmmieb') {
                     ffzEnabled = true;
+                    console.log('Detected FFZ:', ext.name, ext.id);
                 }
             }
         }
+
+        console.log('BTTV enabled:', bttvEnabled, 'FFZ enabled:', ffzEnabled);
 
         if (bttvEnabled) {
             chrome.scripting.executeScript({
@@ -87,7 +94,5 @@ function stopKeepAlive() {
 // Start keep alive when service worker starts
 startKeepAlive();
 
-// Clean up on service worker termination
-self.addEventListener('beforeunload', () => {
-	stopKeepAlive();
-});
+// Note: Service workers don't have 'beforeunload' event
+// Keep-alive will be cleaned up when service worker is terminated naturally

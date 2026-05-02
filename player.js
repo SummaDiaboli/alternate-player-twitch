@@ -6160,6 +6160,9 @@ const м_Twitch = (() => {
 			if (chrome.runtime.lastError) {
 				throw new Error(`Не удалось получить список расширений: ${chrome.runtime.lastError.message}`);
 			}
+			//! Debug: log all enabled extensions
+			console.log('[player.js] All enabled extensions:', моРасширения.filter(e => e.enabled).map(e => ({name: e.name, id: e.id})));
+			
 			//! Send to content script a list of known browser extensions that are currently installed and enabled in the browser.
 			//! These extensions will be loaded into <iframe>. See вставитьСторонниеРасширения() in content.js.
 			//! Chrome itself cannot load installed extensions into another extension.
@@ -6167,6 +6170,7 @@ const м_Twitch = (() => {
 						оСообщение.сСторонниеРасширения = '';
 			for (let оРасширение of моРасширения) {
 				if (оРасширение.enabled) {
+					console.log('[player.js] Checking extension:', оРасширение.name, оРасширение.id);
 					switch (оРасширение.id) {
 					  case /*! Chrome */ 'ajopnjidmegmdimjlfnijceegpefgped':
 					  case /*! Opera  */ 'deofbbdfofnmppcjbhjibgodpcdchjii':
