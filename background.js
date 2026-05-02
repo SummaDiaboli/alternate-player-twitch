@@ -34,23 +34,23 @@ async function insertThirdPartyExtensions(tabId, frameId) {
         let ffzEnabled = false;
 
         // Debug: log all extensions (enabled and disabled)
-        console.log('All extensions (enabled):', extensions.filter(e => e.enabled).map(e => ({name: e.name, id: e.id})));
-        console.log('All extensions (disabled):', extensions.filter(e => !e.enabled).map(e => ({name: e.name, id: e.id})));
+        // console.log('All extensions (enabled):', extensions.filter(e => e.enabled).map(e => ({name: e.name, id: e.id})));
+        // console.log('All extensions (disabled):', extensions.filter(e => !e.enabled).map(e => ({name: e.name, id: e.id})));
 
         for (const ext of extensions) {
             if (ext.enabled) {
                 if (ext.name.includes('BetterTTV') || ext.id === 'ajopnjidmegmdimjlfnijceegpefgped') {
                     bttvEnabled = true;
-                    console.log('Detected BTTV:', ext.name, ext.id);
+                    // console.log('Detected BTTV:', ext.name, ext.id);
                 }
                 if (ext.name.includes('FrankerFaceZ') || ext.id === 'fadndhdgpmmaapbmfcknlfgcflmmmieb') {
                     ffzEnabled = true;
-                    console.log('Detected FFZ:', ext.name, ext.id);
+                    // console.log('Detected FFZ:', ext.name, ext.id);
                 }
             }
         }
 
-        console.log('BTTV enabled:', bttvEnabled, 'FFZ enabled:', ffzEnabled);
+        // console.log('BTTV enabled:', bttvEnabled, 'FFZ enabled:', ffzEnabled);
 
         if (bttvEnabled) {
             chrome.scripting.executeScript({

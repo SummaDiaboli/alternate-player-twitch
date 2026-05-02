@@ -6149,12 +6149,12 @@ const м_Twitch = (() => {
 		return оСписокВариантов;
 	}
 	const обработатьСообщениеЧата = ДобавитьОбработчикИсключений((оСообщение, оОтправитель, фОтветить) => {
-		console.log('[player.js] Message received:', оСообщение, 'Sender:', оОтправитель);
+		// console.log('[player.js] Message received:', оСообщение, 'Sender:', оОтправитель);
 		if (оСообщение.сЗапрос !== 'ВставитьСторонниеРасширения') {
 			return false;
 		}
 		if ((оОтправитель.tab ? оОтправитель.tab.id : chrome.tabs.TAB_ID_NONE) !== получитьТекущуюВкладку.чИдВкладки) {
-			console.log('[player.js] Tab ID mismatch, ignoring');
+			// console.log('[player.js] Tab ID mismatch, ignoring');
 			return false;
 		}
 		м_Журнал.Вот('[Twitch] Получен запрос на вставку сторонних расширений');
@@ -6162,9 +6162,9 @@ const м_Twitch = (() => {
 			if (chrome.runtime.lastError) {
 				throw new Error(`Не удалось получить список расширений: ${chrome.runtime.lastError.message}`);
 			}
-			//! Debug: log all extensions (enabled and disabled)
-			console.log('[player.js] All extensions (enabled):', моРасширения.filter(e => e.enabled).map(e => ({name: e.name, id: e.id})));
-			console.log('[player.js] All extensions (disabled):', моРасширения.filter(e => !e.enabled).map(e => ({name: e.name, id: e.id})));
+		//! Debug: log all extensions (enabled and disabled)
+			// console.log('[player.js] All extensions (enabled):', моРасширения.filter(e => e.enabled).map(e => ({name: e.name, id: e.id})));
+			// console.log('[player.js] All extensions (disabled):', моРасширения.filter(e => !e.enabled).map(e => ({name: e.name, id: e.id})));
 			
 			//! Send to content script a list of known browser extensions that are currently installed and enabled in the browser.
 			//! These extensions will be loaded into <iframe>. See вставитьСторонниеРасширения() in content.js.
@@ -6173,7 +6173,7 @@ const м_Twitch = (() => {
 						оСообщение.сСторонниеРасширения = '';
 			for (let оРасширение of моРасширения) {
 				if (оРасширение.enabled) {
-					console.log('[player.js] Checking extension:', оРасширение.name, оРасширение.id);
+					// console.log('[player.js] Checking extension:', оРасширение.name, оРасширение.id);
 					switch (оРасширение.id) {
 					  case /*! Chrome */ 'ajopnjidmegmdimjlfnijceegpefgped':
 					  case /*! Opera  */ 'deofbbdfofnmppcjbhjibgodpcdchjii':
