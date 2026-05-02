@@ -522,42 +522,11 @@ function вставитьСторонниеРасширения() {
 	}, response => {
 		if (chrome.runtime.lastError) {
 			console.error(`[content.js] Failed to send request for third-party extensions: ${chrome.runtime.lastError.message}`);
-		} else {
-			console.log(response.status);
-			// BTTV v7.7.3 injects an emote menu overlay that breaks UI
-			// Use MutationObserver to catch and remove it immediately
-			var observer = new MutationObserver(function(mutations) {
-				for (var m = 0; m < mutations.length; m++) {
-					var mutation = mutations[m];
-					for (var n = 0; n < mutation.addedNodes.length; n++) {
-						var node = mutation.addedNodes[n];
-						if (node.nodeType === 1) { // Element node
-							// Check if this is a BTTV emote menu host element
-							var classAttr = node.getAttribute ? node.getAttribute('class') : '';
-							if (classAttr && classAttr.indexOf('bttv-EmoteMenu') !== -1) {
-								node.remove();
-								console.log('[content.js] Removed BTTV emote menu (by class)');
-							}
-							// Check for elements with UUID-like tag names (custom elements from BTTV)
-							if (node.tagName && node.tagName.length > 30 && node.tagName.indexOf('-') !== -1) {
-								var template = node.querySelector ? node.querySelector('template') : null;
-								if (template) {
-									node.remove();
-									console.log('[content.js] Removed BTTV shadow DOM host');
-								}
-							}
-						}
-					}
-				}
-			});
-			// Start observing
-			observer.observe(document.body || document.documentElement, {
-				childList: true,
-				subtree: true
-			});
-			// Disconnect after 10 seconds - by then BTTV should have initialized
-			setTimeout(function() { observer.disconnect(); }, 10000);
-		}
+	} else {
+		console.log(response.status);
+		// BTTV/FFZ scripts are now injected - they handle their own UI
+		// No need to remove elements - BTTV emotes work via FFZ integration
+	}
 	});
 }
 

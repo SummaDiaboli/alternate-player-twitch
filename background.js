@@ -53,15 +53,11 @@ async function insertThirdPartyExtensions(tabId, frameId) {
         // console.log('BTTV enabled:', bttvEnabled, 'FFZ enabled:', ffzEnabled);
 
         if (bttvEnabled) {
-            // BTTV emotes now work via FFZ integration (ffzap-bttv addon)
-            // Injecting betterttv.js causes UI issues with emote menu overlay
-            console.log('BTTV detected but skipping injection - using FFZ integration instead');
-            // If you want standalone BTTV, uncomment below:
-            // chrome.scripting.executeScript({
-            //     target: { tabId: tabId, frameIds: [frameId] },
-            //     files: ['betterttv.js'],
-            //     world: 'MAIN'
-            // }).then(() => console.log('BTTV injection initiated.'));
+            chrome.scripting.executeScript({
+                target: { tabId: tabId, frameIds: [frameId] },
+                files: ['betterttv.js'],
+                world: 'MAIN'
+            }).then(() => console.log('BTTV injection initiated.'));
         }
 
         if (ffzEnabled) {
