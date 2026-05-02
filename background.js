@@ -33,8 +33,9 @@ async function insertThirdPartyExtensions(tabId, frameId) {
         let bttvEnabled = false;
         let ffzEnabled = false;
 
-        // Debug: log all enabled extensions
-        console.log('All extensions:', extensions.filter(e => e.enabled).map(e => ({name: e.name, id: e.id})));
+        // Debug: log all extensions (enabled and disabled)
+        console.log('All extensions (enabled):', extensions.filter(e => e.enabled).map(e => ({name: e.name, id: e.id})));
+        console.log('All extensions (disabled):', extensions.filter(e => !e.enabled).map(e => ({name: e.name, id: e.id})));
 
         for (const ext of extensions) {
             if (ext.enabled) {

@@ -6160,8 +6160,9 @@ const м_Twitch = (() => {
 			if (chrome.runtime.lastError) {
 				throw new Error(`Не удалось получить список расширений: ${chrome.runtime.lastError.message}`);
 			}
-			//! Debug: log all enabled extensions
-			console.log('[player.js] All enabled extensions:', моРасширения.filter(e => e.enabled).map(e => ({name: e.name, id: e.id})));
+			//! Debug: log all extensions (enabled and disabled)
+			console.log('[player.js] All extensions (enabled):', моРасширения.filter(e => e.enabled).map(e => ({name: e.name, id: e.id})));
+			console.log('[player.js] All extensions (disabled):', моРасширения.filter(e => !e.enabled).map(e => ({name: e.name, id: e.id})));
 			
 			//! Send to content script a list of known browser extensions that are currently installed and enabled in the browser.
 			//! These extensions will be loaded into <iframe>. See вставитьСторонниеРасширения() in content.js.
