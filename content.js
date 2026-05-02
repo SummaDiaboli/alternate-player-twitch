@@ -560,28 +560,6 @@ function вставитьСторонниеРасширения() {
 		}
 	});
 }
-							// Also check for the weird custom element with UUID-like tag
-							if (node.tagName && node.tagName.length === 36 && node.tagName.includes('-')) {
-								const inner = node.querySelector('template[shadowrootmode]');
-								if (inner) {
-									node.remove();
-									console.log('[content.js] Removed BTTV shadow DOM template host');
-								}
-							}
-						}
-					}
-				}
-			});
-			// Start observing
-			observer.observe(document.body || document.documentElement, {
-				childList: true,
-				subtree: true
-			});
-			// Disconnect after 10 seconds - by then BTTV should have initialized
-			setTimeout(() => observer.disconnect(), 10000);
-		}
-	});
-}
 
 function разрешитьРаботуЧата() {
 	const fGetItem = Storage.prototype.getItem;
