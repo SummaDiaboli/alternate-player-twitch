@@ -35,10 +35,8 @@ function задатьАдресСтраницы(сАдрес, лЗаменить
 }
 
 function вставитьНаСтраницу(фВставить) {
-	const узСкрипт = document.createElement('script');
-	узСкрипт.textContent = `\n\t\t'use strict';\n\t\t(${фВставить})();\n\t`;
-	(document.head || document.documentElement).appendChild(узСкрипт);
-	узСкрипт.remove();
+	// MV3 fix: Call function directly instead of injecting inline script (CSP violation)
+	фВставить();
 }
 
 function этотАдресМожноПеренаправлять(оАдрес) {

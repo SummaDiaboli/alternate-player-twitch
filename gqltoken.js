@@ -24,11 +24,6 @@
 			return обещание;
 		};
 	}
-	function вставитьНаСтраницу(функция) {
-		const скрипт = document.createElement('script');
-		скрипт.textContent = `\n\t\t'use strict';\n\t\t(${функция})();\n\t`;
-		(document.head || document.documentElement).appendChild(скрипт);
-		скрипт.remove();
-	}
-	вставитьНаСтраницу(перехватитьФункцию);
+	// MV3 fix: Call function directly instead of injecting inline script (CSP violation)
+	перехватитьФункцию();
 }
