@@ -57,7 +57,26 @@ async function insertThirdPartyExtensions(tabId, frameId) {
                 target: { tabId: tabId, frameIds: [frameId] },
                 files: ['betterttv.js'],
                 world: 'MAIN'
-            }).then(() => console.log('BTTV injection initiated.'));
+            }).then(() => {
+                // Inject CSS to hide BTTV emote menu overlay that blocks clicks
+                chrome.scripting.executeScript({
+                    target: { tabId: tabId, frameIds: [frameId] },
+                    func: () => {
+                        const style = document.createElement('style');
+                        style.textContent = `
+                            /* Hide BTTV emote menu overlay - blocks clicks */
+                            div[class*="bttv-EmoteMenu-module__emoteMenu-"] { display: none !important; }
+                            div[class*="bttv-EmoteMenu-module__header-"] { display: none !important; }
+                            div[class*="bttv-Sidebar-module__sidebar-"] { display: none !important; }
+                            template[shadowrootmode] { display: none !important; }
+                        `;
+                        (document.head || document.documentElement).appendChild(style);
+                        console.log('[BTTV] Injected CSS to hide emote menu overlay');
+                    },
+                    world: 'MAIN'
+                });
+                console.log('BTTV injection initiated.');
+            });
         }
 
         if (ffzEnabled) {
