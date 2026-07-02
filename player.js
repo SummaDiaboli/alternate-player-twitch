@@ -3846,6 +3846,7 @@ const м_Проигрыватель = (() => {
 		_оПоведение = _оПрямаяТрансляция;
 		_oMediaSourceBuffer = null;
 		_лНужнаПеремотка = false;
+		СоздатьMediaSource();
 		подключитьMediaSourceКMediaElement();
 	}
 	function СледитьЗаОшибками() {
@@ -4296,8 +4297,7 @@ const м_Проигрыватель = (() => {
 		_oMediaElement.src = URL.createObjectURL(_oMediaSource);
 		м_Аудиоустройство.запустить(_oMediaElement);
 	}
-	function Запустить() {
-		Проверить(!_oMediaElement);
+	function СоздатьMediaSource() {
 		try {
 			_oMediaSource = new MediaSource();
 		} catch (пИсключение) {
@@ -4309,6 +4309,10 @@ const м_Проигрыватель = (() => {
 		_oMediaSource.addEventListener('sourceclose', СледитьЗаСобытиямиMediaSource);
 		_oMediaSource.sourceBuffers.addEventListener('addsourcebuffer', СледитьЗаСобытиямиMediaSource);
 		_oMediaSource.sourceBuffers.addEventListener('removesourcebuffer', СледитьЗаСобытиямиMediaSource);
+	}
+	function Запустить() {
+		Проверить(!_oMediaElement);
+		СоздатьMediaSource();
 		_oMediaElement = document.getElementById('глаз');
 		ПрименитьГромкость();
 		м_КартинкаВКартинке.запустить(_oMediaElement);
@@ -4423,9 +4427,10 @@ const м_Список = (() => {
 				м_Отладка.СохранитьСписокСегментов(сРезультат);
 				const оСписокСегментов = РазобратьСписок(false, оВыбранныйВариант.сАбсолютныйАдресСпискаСегментов, сРезультат);
 					if (оСписокСегментов.лFMP4) {
-						if (!г_лFMP4) {
+						const сНовыеКодекиFMP4 = `video/mp4;codecs="${оВыбранныйВариант.сКодеки}"`;
+						if (!г_лFMP4 || г_сКодекиFMP4 !== сНовыеКодекиFMP4) {
 							г_лFMP4 = true;
-							г_сКодекиFMP4 = `video/mp4;codecs="${оВыбранныйВариант.сКодеки}"`;
+							г_сКодекиFMP4 = сНовыеКодекиFMP4;
 							г_лЕстьВидеоFMP4 = /avc1|avc3|hvc1|hev1|av01|vp09/i.test(оВыбранныйВариант.сКодеки);
 							г_лЕстьЗвукFMP4 = /mp4a|ac-3|ec-3|opus|flac/i.test(оВыбранныйВариант.сКодеки);
 							м_Журнал.Окак(`[Список] Обнаружен fMP4 поток Кодеки=${г_сКодекиFMP4}`);
@@ -5883,7 +5888,7 @@ const м_Twitch = (() => {
 			} else {
 				Проверить(_сИдКанала === String(оТокен.channel_id));
 			}
-			let сАдрес = `${лБезHttps ? 'http' : 'https'}://usher.ttvnw.net/api/channel/hls/${encodeURIComponent(_сКодКанала)}.m3u8` + '?allow_source=true' + '&allow_audio_only=true' + '&cdm=wv' + '&fast_bread=true' + '&platform=web' + '&player_backend=mediaplayer' + '&playlist_include_framerate=true' + '&reassignments_supported=true' + '&supported_codecs=h264' + '&transcode_mode=cbr_v1' + `&p=${Math.floor(Math.random() * 9999999)}` + `&token=${encodeURIComponent(сТокен)}` + `&sig=${encodeURIComponent(сПодпись)}`;
+			let сАдрес = `${лБезHttps ? 'http' : 'https'}://usher.ttvnw.net/api/channel/hls/${encodeURIComponent(_сКодКанала)}.m3u8` + '?allow_source=true' + '&allow_audio_only=true' + '&cdm=wv' + '&fast_bread=true' + '&platform=web' + '&player_backend=mediaplayer' + '&playlist_include_framerate=true' + '&reassignments_supported=true' + '&supported_codecs=av1,h265,h264' + '&transcode_mode=cbr_v1' + `&p=${Math.floor(Math.random() * 9999999)}` + `&token=${encodeURIComponent(сТокен)}` + `&sig=${encodeURIComponent(сПодпись)}`;
 			if (!лБезРекламы) {
 				_sPlaySessionID = создатьУникальныйИдентификатор(32);
 				сАдрес += `&play_session_id=${_sPlaySessionID}`;
