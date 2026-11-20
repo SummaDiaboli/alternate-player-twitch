@@ -442,16 +442,22 @@ function вставитьНашуКнопкуЕслиНужно() {
 
 function вставитьНашуКнопкуВПервыйРаз() {
 	вставитьНашуКнопку();
-	if (г_оРазобранныйАдрес.лМобильнаяВерсия) {
-		new MutationObserver(моЗаписи => {
-			вставитьНашуКнопкуЕслиНужно();
-		}).observe(document.head || document.documentElement, {
-			childList: true,
-			subtree: true
-		});
-	} else {
-		window.addEventListener('tw5-изменензаголовок', вставитьНашуКнопкуЕслиНужно);
+	// Twitch builds/replaces its navigation asynchronously. A single attempt can
+	// run before the nav exists, so watch the DOM on desktop and mobile alike.
+	const узОсноваНаблюдения = document.documentElement;
+	if (!узОсноваНаблюдения) {
+		window.addEventListener('DOMContentLoaded', вставитьНашуКнопкуВПервыйРаз, { once: true });
+		return;
 	}
+	const чПовтор = setInterval(() => {
+		if (вставитьНашуКнопкуЕслиНужно()) {
+			clearInterval(чПовтор);
+		}
+	}, 500);
+	setTimeout(() => {
+		clearInterval(чПовтор);
+	}, 30000);
+	window.addEventListener('tw5-изменензаголовок', вставитьНашуКнопкуЕслиНужно);
 }
 
 function перехватитьФункции() {
@@ -601,9 +607,8 @@ function удалитьХвостыСтаройВерсии() {}
 		// Insert button for both chat page and main live stream page
 		const адрес = разобратьАдрес(location);
 		if (адрес.сСтраница === 'ЧАТ_КАНАЛА' || адрес.сСтраница === 'ВОЗМОЖНО_ПРЯМАЯ_ТРАНСЛЯЦИЯ') {
-			// For main live stream page, wait a bit for the DOM to be ready
 			if (адрес.сСтраница === 'ВОЗМОЖНО_ПРЯМАЯ_ТРАНСЛЯЦИЯ') {
-				setTimeout(() => вставитьНашуКнопкуВПервыйРаз(), 1000);
+				вставитьНашуКнопкуВПервыйРаз();
 			} else {
 				вставитьНашуКнопкуВПервыйРаз();
 			}
