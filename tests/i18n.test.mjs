@@ -48,6 +48,12 @@ test('every statically referenced message key exists in every locale', () => {
 	}
 });
 
+test('English developer descriptions contain no Russian text', () => {
+	for (const [key, entry] of Object.entries(localeFiles.en)) {
+		assert.doesNotMatch(entry.description ?? '', /[\u0400-\u04FF]/, `${key} has a Russian description`);
+	}
+});
+
 test('message lookup resolves and throws for unknown keys', () => {
 	const { i18n } = loadCommon();
 	assert.ok(i18n.GetMessage('M0001').length > 0);

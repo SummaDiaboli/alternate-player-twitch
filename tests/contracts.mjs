@@ -53,7 +53,7 @@ export const SETTING_DEFAULTS = {
 
 export const EXPECTED_SETTINGS_VERSION = 2;
 
-export const LOCALES = ['en', 'ru'];
+export const LOCALES = ['en', 'ru', 'fr', 'es', 'de'];
 
 export const TEST_EVENT = 'tw5-raid';
 

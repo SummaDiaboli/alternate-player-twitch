@@ -1,0 +1,1443 @@
+{
+	"M0001":
+	{
+		"message": "Reproductor alternativo de transmisiones en directo para el sitio web Twitch.tv.",
+		"description": "Short description of the extension. A copy of this string is also in AMO and Windows Store."
+	},
+	"M0010":
+	{
+		"message": "es",
+		"description": "Language code of this file in BCP 47 Language Tag format"
+	},
+	"J0100":
+	{
+		"message": "Transmisión finalizada"
+	},
+	"J0101":
+	{
+		"message": "\n\nHaz clic para abrir este canal en el sitio web de Twitch.tv:\n• Para ver esta transmisión o este vídeo en el reproductor estándar.\n• Para leer la descripción completa del canal.\n• Para realizar otras acciones que no están disponibles en el Reproductor Alternativo."
+	},
+	"J0102":
+	{
+		"message": "\n\nHaz clic para ver otras transmisiones y vídeos de esta categoría."
+	},
+	"J0103":
+	{
+		"message": "Sin título",
+		"description": "Broadcast title is not specified."
+	},
+	"J0104":
+	{
+		"message": "No especificado",
+		"description": "Category title is not specified."
+	},
+	"J0106":
+	{
+		"message": "Detener la transmisión y empezar a ver la repetición instantánea.\nLa tecla ESPACIO del teclado."
+	},
+	"J0107":
+	{
+		"message": "Seguir viendo la transmisión.\nLa tecla ESPACIO del teclado."
+	},
+	"J0108":
+	{
+		"message": "Silenciar el sonido.\nPulsa PAGE DOWN o la tecla M del teclado, o haz clic con la rueda del ratón (consulta la configuración del reproductor)."
+	},
+	"J0109":
+	{
+		"message": "Reactivar el sonido.\nPulsa PAGE UP o la tecla M del teclado, o haz clic con la rueda del ratón (consulta la configuración del reproductor)."
+	},
+	"J0112":
+	{
+		"message": "Pausar la repetición instantánea.\nPulsa la tecla K o 5 (teclado numérico)."
+	},
+	"J0113":
+	{
+		"message": "Reproducir la repetición instantánea.\nPulsa la tecla K o 5 (teclado numérico)."
+	},
+	"J0114":
+	{
+		"message": "Mbit/s"
+	},
+	"J0120":
+	{
+		"message": "Auto",
+		"description": "Text or HTML fragment. The word must be no longer than 5 characters. Means that the setting value is selected automatically."
+	},
+	"J0121":
+	{
+		"message": "Azul acero",
+		"description": "Theme name."
+	},
+	"J0122":
+	{
+		"message": "Dorado",
+		"description": "Theme name."
+	},
+	"J0123":
+	{
+		"message": "Personalizable",
+		"description": "Theme name. Copy of A0565."
+	},
+	"J0124":
+	{
+		"message": "Máximo",
+		"description": "The number in player settings is replaced with this word. The word must be no longer than 7 characters. Means no restrictions. Copy of A0534."
+	},
+	"J0125":
+	{
+		"message": "Blanco y negro",
+		"description": "Theme name."
+	},
+	"J0126":
+	{
+		"message": "Buena",
+		"description": "Connection quality name. Copy of A0581."
+	},
+	"J0127":
+	{
+		"message": "Moderada",
+		"description": "Connection quality name. Copy of A0581."
+	},
+	"J0128":
+	{
+		"message": "Mala",
+		"description": "Connection quality name. Copy of A0581."
+	},
+	"J0129":
+	{
+		"message": "Personalizable",
+		"description": "Connection quality name. Copy of A0581."
+	},
+	"J0133":
+	{
+		"message": "Configuración de la extensión Alternate Player for Twitch.tv settings.json"
+	},
+	"J0136":
+	{
+		"message": "Después de guardar la configuración, cierra esta ventana.",
+		"description": "HTML"
+	},
+	"J0138":
+	{
+		"message": "Incógnito",
+		"description": "Theme name."
+	},
+	"J0139":
+	{
+		"message": "(fuente)",
+		"description": "Part of a broadcast quality name. Copy of A0513."
+	},
+	"J0140":
+	{
+		"message": "fps",
+		"description": "Unit of measurement: frames per second"
+	},
+	"J0141":
+	{
+		"message": "Hz",
+		"description": "Unit of measurement: hertz"
+	},
+	"J0142":
+	{
+		"message": "can.",
+		"description": "Unit of measurement: channels"
+	},
+	"J0143":
+	{
+		"message": "kbit/s",
+		"description": "Unit of measurement: kilobits per second"
+	},
+	"J0144":
+	{
+		"message": "Solo audio",
+		"description": "Broadcast quality name"
+	},
+	"J0145":
+	{
+		"message": "Fuera de línea",
+		"description": "Broadcast type: ended (offline)"
+	},
+	"J0146":
+	{
+		"message": "En directo",
+		"description": "Broadcast type: live"
+	},
+	"J0147":
+	{
+		"message": "Repetición",
+		"description": "Broadcast type: rerun"
+	},
+	"J0148":
+	{
+		"message": "Traducir este texto"
+	},
+	"J0149":
+	{
+		"message": "Estás viendo una transmisión en directo. Usa el menú del reproductor para volver a verla.",
+		"description": "Copy of F0664"
+	},
+	"J0150":
+	{
+		"message": "Estás viendo un vídeo grabado anteriormente"
+	},
+	"J0200":
+	{
+		"message": "El navegador no ha podido reproducir el vídeo. Puede que haya asignado demasiada memoria RAM."
+	},
+	"J0201":
+	{
+		"message": "Tu navegador no puede reproducir el vídeo ni el audio. Si esto ocurre en todos los canales de Twitch.tv, es que tu navegador no admite H.264 ni AAC. En ese caso, desinstala la extensión «Alternate Player for Twitch.tv» de tu navegador."
+	},
+	"J0203":
+	{
+		"message": "El canal especificado no existe. Puede que hayas escrito una dirección incorrecta."
+	},
+	"J0204":
+	{
+		"message": "Esta versión de la extensión «Alternate Player for Twitch.tv» no funciona en tu navegador. Desinstala la extensión de tu navegador e instala la versión correcta.\n\nVersión para Google Chrome:\nhttps://chrome.google.com/webstore/detail/bhplkbgoehhhddaoolmakpocnenplmhf\n\nVersión para Mozilla Firefox:\nhttps://addons.mozilla.org/firefox/addon/twitch_5/\n\nVersión para Microsoft Edge:\nhttps://microsoftedge.microsoft.com/addons/detail/aojjiodaaogdbbcnbpjnojilccopgcbk"
+	},
+	"J0206":
+	{
+		"message": "Hay un problema con la reproducción del vídeo.\n\nPosibles causas:\n• El vídeo o el audio usan una compresión que tu navegador no admite.\n• El navegador no tiene suficiente RAM, o ha asignado demasiada RAM, o el navegador de 32 bits ha asignado demasiado espacio de direcciones (consulta el «Tamaño virtual» en la utilidad «Process Explorer»). Algunos navegadores de 64 bits no pueden asignar más de 4 GB de RAM por proceso. Todas las pestañas con el reproductor comparten un único proceso.\n• El vídeo estaba dañado.\n• Problemas del hardware del ordenador: sobrecalentamiento, overclocking, etc.\n• Errores en el software del ordenador.\n\nVuelve a cargar la página para seguir viendo la transmisión. Si el problema persiste en otros canales y no sabes cuál es la causa, sigue estos pasos uno por uno hasta que el error desaparezca:\n• Cierra varias pestañas del navegador (para liberar memoria).\n• Reinicia el navegador.\n• Reinicia el ordenador.\n• Desactiva la decodificación de vídeo por hardware.\n• Restablece la configuración del navegador.\n• Actualiza los controladores de la tarjeta gráfica.\n• Desinstala el «pack de códecs» (si tienes alguno)."
+	},
+	"J0208":
+	{
+		"message": "Hay un problema con la reproducción del vídeo. Prueba a volver a cargar esta página para seguir viéndolo."
+	},
+	"J0211":
+	{
+		"message": "Este canal ya está abierto en otra pestaña del navegador. Haz clic en el botón «Atrás» para volver a la página anterior."
+	},
+	"J0215":
+	{
+		"message": "La extensión «$FULL_EXTENSION_NAME$» necesita acceder a determinados sitios para reproducir la transmisión. Has eliminado el acceso a uno de esos sitios. Restablece la configuración de acceso a los sitios. Si no sabes cómo hacerlo, reinstala la extensión.\n\n¿Solo quieres desactivar el inicio automático del reproductor? Lee la ayuda integrada del reproductor.",
+		"placeholders":
+		{
+			"FULL_EXTENSION_NAME":
+			{
+				"content": "Alternate Player for Twitch.tv"
+			}
+		}
+	},
+	"J0216":
+	{
+		"message": "Una de las opciones de tu navegador impide que la extensión $FULL_EXTENSION_NAME$ funcione. Para solucionarlo, abre una pestaña con la dirección $ADDRESS$. En la página, pega «$NAME$» en el campo de búsqueda. El estado actual de esta opción aparecerá más abajo. Haz doble clic en él para cambiar el valor a «false».\n\nEn lugar de esta opción, activa la Protección total de cookies.\n\nPara ver los detalles técnicos, consulta https://bugzilla.mozilla.org/show_bug.cgi?id=1558467",
+		"placeholders":
+		{
+			"FULL_EXTENSION_NAME":
+			{
+				"content": "Alternate Player for Twitch.tv"
+			},
+			"ADDRESS":
+			{
+				"content": "about:config"
+			},
+			"NAME":
+			{
+				"content": "privacy.firstparty.isolate"
+			}
+		}
+	},
+	"J0217":
+	{
+		"message": "Esta transmisión no está disponible en tu región. Haz clic en el botón «Atrás» para volver a la página anterior."
+	},
+	"J0219":
+	{
+		"message": "Esta transmisión está cifrada. La extensión $FULL_EXTENSION_NAME$ no admite transmisiones cifradas. Haz clic en el botón «Atrás» para volver a la página anterior.",
+		"placeholders":
+		{
+			"FULL_EXTENSION_NAME":
+			{
+				"content": "Alternate Player for Twitch.tv"
+			}
+		}
+	},
+	"J0220":
+	{
+		"message": "La extensión $FULL_EXTENSION_NAME$ no es compatible con Shelblock.",
+		"placeholders":
+		{
+			"FULL_EXTENSION_NAME":
+			{
+				"content": "Alternate Player for Twitch.tv"
+			}
+		}
+	},
+	"J0221":
+	{
+		"message": "Se ha producido un error en la extensión del navegador $FULL_EXTENSION_NAME$. Prueba a volver a cargar esta página. Si el error aparece constantemente, la extensión no es compatible con tu navegador o con su configuración.",
+		"placeholders":
+		{
+			"FULL_EXTENSION_NAME":
+			{
+				"content": "Alternate Player for Twitch.tv"
+			}
+		}
+	},
+	"J0222":
+	{
+		"message": "Se ha detectado un cambio en tu estado de inicio de sesión en el sitio web de Twitch.tv. Vuelve a cargar la página para continuar."
+	},
+	"F0501":
+	{
+		"message": "Categoría:"
+	},
+	"F0502":
+	{
+		"message": "Espectadores:"
+	},
+	"A0503":
+	{
+		"message": "El número de personas que están viendo esta transmisión ahora, incluyéndote a ti y quizá al emisor. Este número se actualiza aproximadamente una vez por minuto."
+	},
+	"A0504":
+	{
+		"message": "Crear un clip.\nALT+X en el teclado.\n\nDebes haber iniciado sesión en el sitio web de Twitch.tv. Si pausas la transmisión, tienes menos de un minuto para crear un clip."
+	},
+	"F0505":
+	{
+		"message": "Desactivar",
+		"description": "Setting is disabled."
+	},
+	"A0506":
+	{
+		"message": "Cambiar el volumen.\nPulsa las flechas ARRIBA/ABAJO del teclado o gira la rueda del ratón (consulta la configuración del reproductor)."
+	},
+	"A0507":
+	{
+		"message": "La duración de esta transmisión.\nHaz clic para mostrar las estadísticas del reproductor.",
+		"description": "Copy of A0527."
+	},
+	"A0508":
+	{
+		"message": "¡Haz clic para ver las novedades de la extensión!"
+	},
+	"A0509":
+	{
+		"message": "Abrir o cerrar el chat. Este comando está disponible en modo de pantalla completa.\nLa tecla C del teclado."
+	},
+	"A0510":
+	{
+		"message": "Abrir o cerrar la configuración del reproductor.\nLa tecla V del teclado."
+	},
+	"A0511":
+	{
+		"message": "Activar o desactivar el modo de pantalla completa.\nPulsa ENTER o la tecla F del teclado, o haz doble clic en el área de vídeo."
+	},
+	"F0512":
+	{
+		"message": "Calidad del vídeo"
+	},
+	"A0513":
+	{
+		"message": "Puedes reducir la calidad si la velocidad de descarga o el rendimiento de tu ordenador no bastan para reproducir este vídeo sin interrupciones. No todos los canales permiten cambiar la calidad.\n\nFuente\u00A0— el vídeo original con la máxima calidad. Las demás opciones tienen menor calidad; el vídeo original se ha recomprimido en el servidor de Twitch.tv.\n\nSolo audio\u00A0— el vídeo no se descarga ni se muestra. Esto reduce el consumo de recursos (CPU, RAM, conexión a Internet) del reproductor. Ideal para escuchar música.",
+		"description": "Copy of J0139 J0144."
+	},
+	"F0514":
+	{
+		"message": "Descargas simultáneas"
+	},
+	"A0515":
+	{
+		"message": "El vídeo se descarga de la red en pequeñas partes: segmentos. Un valor de configuración superior a 1 permite descargar simultáneamente un número determinado de segmentos. Esto aumentará la velocidad total de descarga, pero solo si la velocidad de descarga de un segmento es inferior al ancho de banda de tu conexión a Internet, o si el «tiempo hasta el primer byte» supera los 0,5 segundos (consulta las estadísticas). De lo contrario, la situación empeorará: tendrás que aumentar el tamaño del búfer, lo que incrementará el retraso de la transmisión.\n\nUn valor superior a 1 puede retrasar ligeramente el inicio de la reproducción después de abrir el reproductor (consulta la descripción de la opción «Iniciar reproducción»). También puede alargar la interrupción de la reproducción causada por un error al descargar un segmento (consulta «Errores de descarga» en las estadísticas)."
+	},
+	"F0516":
+	{
+		"message": "Tamaño del búfer, segundos"
+	},
+	"A0517":
+	{
+		"message": "El vídeo descargado se acumula en el búfer. La reproducción comenzará en cuanto la duración del vídeo en el búfer sea al menos el valor especificado. Esto evita interrumpir la reproducción durante problemas breves de la red o del servidor.\n\nSi la reproducción se interrumpe con frecuencia (consulta «Desbordamientos inferiores del búfer» en las estadísticas), prueba a aumentar este valor.\n\nAumentar el tamaño del búfer incrementa el «retraso de la transmisión» (consulta las estadísticas), es decir, el tiempo entre la captura del vídeo en un ordenador remoto y su reproducción en tu ordenador. Un retraso bajo solo es importante para quienes usan el chat.\n\nNO recomiendo usar un búfer muy pequeño, porque cuando está poco lleno (menos de 1 segundo de vídeo, consulta «Llenado del búfer» en las estadísticas) pueden aparecer artefactos visuales molestos (saltos, pantallas negras, etc.)."
+	},
+	"F0518":
+	{
+		"message": "Iniciar reproducción, segundos"
+	},
+	"A0519":
+	{
+		"message": "A diferencia de la opción «Tamaño del búfer», esta opción afecta solo al primer inicio de la reproducción. Te permite empezar a ver la transmisión más rápido después de abrir el reproductor.\n\nCuándo resulta útil:\n\n• Quieres iniciar la reproducción lo antes posible.\n\n• No tienes problemas de velocidad de descarga, por lo que no hace falta esperar a que el búfer se llene.\n\n«Iniciar reproducción» puede ser mayor que «Tamaño del búfer», es decir, se pueden intercambiar. Esto resulta útil cuando «Iniciar reproducción» es grande (por ejemplo, más de 10 s) y si la «Velocidad de descarga» (consulta las estadísticas) no supera mucho la «Tasa de bits de la transmisión» (por ejemplo, como máximo el doble)."
+	},
+	"F0524":
+	{
+		"message": "Restablecer"
+	},
+	"A0525":
+	{
+		"message": "Restablecer la extensión a la configuración predeterminada"
+	},
+	"F0526":
+	{
+		"message": "Estadísticas"
+	},
+	"A0527":
+	{
+		"message": "Mostrar las estadísticas del reproductor.\nTambién puedes hacer clic en la hora en la esquina inferior izquierda del reproductor.",
+		"description": "Copy of A0507."
+	},
+	"F0528":
+	{
+		"message": "Enviar comentarios",
+		"description": "Menu item. Copy of F1510."
+	},
+	"A0529":
+	{
+		"message": "¿Has encontrado un error en la extensión Alternate Player for Twitch.tv? ¿Tienes ideas para mejorarla? Envía tus comentarios al desarrollador de la extensión."
+	},
+	"F0530":
+	{
+		"message": "Por favor, apoya",
+		"description": "Copy of F1000."
+	},
+	"A0531":
+	{
+		"message": "Si te ha gustado la extensión Alternate Player for Twitch.tv, puedes agradecer al desarrollador donándole algo de dinero. La donación también servirá como una gran motivación para seguir desarrollando la extensión."
+	},
+	"A0532":
+	{
+		"message": "Arrastra para cambiar el tamaño del chat.\nLas demás opciones del chat están en la configuración del reproductor."
+	},
+	"F0533":
+	{
+		"message": "Duración de la repetición instantánea, segundos"
+	},
+	"A0534":
+	{
+		"message": "El reproductor recuerda el número de segundos de transmisión especificado. En cualquier momento puedes pausar la transmisión para volver a verlos.\n\nCuanto mayor sea la duración, mayor será el consumo de memoria. En cualquier caso, el consumo máximo de memoria no superará los 150 megabytes en Chrome ni los 100 megabytes en Firefox.\n\nDuración máxima (haz clic en «+» o en «−» hasta que aparezca la palabra «Máximo») — elimina el límite de tiempo y deja solo el límite de memoria.",
+		"description": "Variant for Chrome and Firefox. A0578 for Edge."
+	},
+	"A0535":
+	{
+		"message": "Los últimos segundos de la transmisión. La duración se puede cambiar en la configuración.\nPara retroceder, haz clic con el botón izquierdo o pulsa J, SHIFT+J, FLECHA IZQUIERDA, SHIFT+FLECHA IZQUIERDA, L, SHIFT+L, FLECHA DERECHA o SHIFT+FLECHA DERECHA."
+	},
+	"A0536":
+	{
+		"message": "Cambiar la velocidad de reproducción.\nLas teclas del 0 al 9, MAS y MENOS del teclado.\nEs posible que el rendimiento de tu ordenador no baste para reproducir a la velocidad máxima."
+	},
+	"F0537":
+	{
+		"message": "Desbordamiento del búfer, segundos"
+	},
+	"A0538":
+	{
+		"message": "Si la duración del vídeo en el búfer supera la suma de «Tamaño del búfer» + «Desbordamiento del búfer», se eliminará parte del vídeo (consulta «Desbordamientos del búfer» en las estadísticas) y aparecerá el icono rojo de las tijeras en la esquina superior derecha del reproductor.\n\nDisminuye el valor para limitar el retraso máximo de la transmisión. Auméntalo para evitar que se omitan partes del vídeo."
+	},
+	"F0539":
+	{
+		"message": "Resolución",
+		"description": "Statistics parameter name."
+	},
+	"F0540":
+	{
+		"message": "Vídeo",
+		"description": "Statistics parameter name."
+	},
+	"F0541":
+	{
+		"message": "Audio",
+		"description": "Statistics parameter name."
+	},
+	"F0542":
+	{
+		"message": "Servidor",
+		"description": "Statistics parameter name."
+	},
+	"F0543":
+	{
+		"message": "Cola, s",
+		"description": "Statistics parameter name."
+	},
+	"F0544":
+	{
+		"message": "Lista de reproducción, s",
+		"description": "Statistics parameter name."
+	},
+	"F0545":
+	{
+		"message": "Intervalo de sondeo, s",
+		"description": "Statistics parameter name."
+	},
+	"F0546":
+	{
+		"message": "Segmentos añadidos",
+		"description": "Statistics parameter name."
+	},
+	"F0547":
+	{
+		"message": "Segundos añadidos",
+		"description": "Statistics parameter name."
+	},
+	"F0548":
+	{
+		"message": "Tasa de bits de la transmisión, Mbit/s",
+		"description": "Statistics parameter name."
+	},
+	"F0549":
+	{
+		"message": "Velocidad de descarga, Mbit/s",
+		"description": "Statistics parameter name."
+	},
+	"F0550":
+	{
+		"message": "Tiempo hasta el primer byte, s",
+		"description": "Statistics parameter name."
+	},
+	"F0551":
+	{
+		"message": "Remux, ms",
+		"description": "Statistics parameter name."
+	},
+	"F0552":
+	{
+		"message": "Retraso de la transmisión, s",
+		"description": "Statistics parameter name."
+	},
+	"F0554":
+	{
+		"message": "Duración de la visualización",
+		"description": "Statistics parameter name."
+	},
+	"F0555":
+	{
+		"message": "Total descargado, MB",
+		"description": "Statistics parameter name."
+	},
+	"F0556":
+	{
+		"message": "Fotogramas descartados",
+		"description": "Statistics parameter name."
+	},
+	"F0557":
+	{
+		"message": "Segmentos incompletos",
+		"description": "Statistics parameter name."
+	},
+	"F0558":
+	{
+		"message": "Errores de descarga",
+		"description": "Statistics parameter name."
+	},
+	"F0559":
+	{
+		"message": "Desbordamientos del búfer",
+		"description": "Statistics parameter name."
+	},
+	"F0560":
+	{
+		"message": "Desbordamientos inferiores del búfer",
+		"description": "Statistics parameter name."
+	},
+	"F0561":
+	{
+		"message": "Reproducción",
+		"description": "Settings group."
+	},
+	"F0562":
+	{
+		"message": "Colores",
+		"description": "Settings group."
+	},
+	"F0563":
+	{
+		"message": "Búfer",
+		"description": "Settings group."
+	},
+	"F0564":
+	{
+		"message": "Tema de color del reproductor"
+	},
+	"A0565":
+	{
+		"message": "Para establecer tus propios colores, selecciona el tema adecuado y abre el grupo de configuración «Colores». Todos los cambios se guardarán en el tema «Personalizable»."
+	},
+	"F0566":
+	{
+		"message": "Color de fondo"
+	},
+	"F0567":
+	{
+		"message": "Color de los botones"
+	},
+	"F0568":
+	{
+		"message": "Color de los encabezados"
+	},
+	"F0569":
+	{
+		"message": "Color de resaltado"
+	},
+	"F0570":
+	{
+		"message": "Transparencia, %"
+	},
+	"F0571":
+	{
+		"message": "Comprobar"
+	},
+	"A0572":
+	{
+		"message": "Comprueba la legibilidad de los elementos de la interfaz y del texto.\n\nPara dejar el fondo intacto, haz clic en este botón mientras mantienes pulsada la tecla SHIFT del teclado."
+	},
+	"F0573":
+	{
+		"message": "Llenado del búfer, s",
+		"description": "Statistics parameter name."
+	},
+	"F0574":
+	{
+		"message": "Cambiar el volumen con la rueda del ratón"
+	},
+	"A0575":
+	{
+		"message": "Al pulsar la rueda del ratón se silencia el sonido. Al girar la rueda (y a veces al desplazar verticalmente) se cambia el volumen en el porcentaje especificado.\n\nSolo silenciar: gestiona la pulsación de la rueda e ignora su giro.",
+		"description": "Copy of F0679."
+	},
+	"F0576":
+	{
+		"message": "No"
+	},
+	"F0577":
+	{
+		"message": "Sí"
+	},
+	"A0578":
+	{
+		"message": "El reproductor recuerda el número de segundos de transmisión especificado. En cualquier momento puedes pausar la transmisión para volver a verlos.\n\nCuanto mayor sea la duración, mayor será el consumo de memoria.",
+		"description": "Variant for Edge. A0534 for Chrome and Firefox."
+	},
+	"F0579":
+	{
+		"message": "Color del degradado"
+	},
+	"F0580":
+	{
+		"message": "Calidad de la conexión"
+	},
+	"A0581":
+	{
+		"message": "Buena\u00A0— la velocidad de descarga siempre basta para la calidad de vídeo seleccionada (consulta la descripción de la opción «Calidad del vídeo»). Elige esta opción para facilitar el uso del chat (consulta la descripción de la opción «Tamaño del búfer»).\n\nModerada\u00A0— a veces la velocidad de descarga baja del nivel deseado (consulta «Velocidad de descarga» en las estadísticas). Es la opción más universal.\n\nMala\u00A0— la velocidad de descarga baja del nivel deseado con frecuencia o algunos segmentos no se pueden descargar por errores de red (consulta «Errores de descarga» en las estadísticas). Elige esta opción para reducir el número de interrupciones de la reproducción.\n\nPersonalizable\u00A0— has cambiado las opciones del grupo «Búfer»."
+	},
+	"F0582":
+	{
+		"message": "Idioma de la transmisión:"
+	},
+	"F0583":
+	{
+		"message": "Seguidores:"
+	},
+	"F0585":
+	{
+		"message": "Canal creado:"
+	},
+	"F0588":
+	{
+		"message": "Equipo:"
+	},
+	"F0589":
+	{
+		"message": "Tú:"
+	},
+	"F0590":
+	{
+		"message": "debes <a href='https://www.twitch.tv/login' rel='noopener noreferrer'>iniciar sesión en el sitio web de Twitch.tv</a> para seguir canales, chatear, crear clips y ganar Puntos de Canal y Drops"
+	},
+	"F0591":
+	{
+		"message": "Seguir"
+	},
+	"A0592":
+	{
+		"message": "Haz clic para empezar a seguir este canal.\n\nPara llevar un control de los canales que sigues, cambiar rápidamente entre ellos y buscar nuevos canales, te recomiendo instalar la extensión de navegador «Twitch\u00A0Now»."
+	},
+	"F0593":
+	{
+		"message": "Dejar de seguir"
+	},
+	"A0594":
+	{
+		"message": "Haz clic para dejar de seguir este canal"
+	},
+	"A0595":
+	{
+		"message": "Marca la casilla para recibir novedades sobre la actividad de este canal, incluido cuando empiece a emitir en directo",
+		"description": "Text copied from the Twitch.tv website"
+	},
+	"A0597":
+	{
+		"message": "Abrir o cerrar la información sobre este canal.\nLa tecla I del teclado."
+	},
+	"A0599":
+	{
+		"message": "Mostrar información importante.\nLa tecla F1 del teclado."
+	},
+	"F0600":
+	{
+		"message": "El clic derecho alterna el inicio automático<br>del Reproductor Alternativo.&ensp;El clic<br>izquierdo inicia el Reproductor Alternativo."
+	},
+	"F0604":
+	{
+		"message": "Toda la configuración"
+	},
+	"F0605":
+	{
+		"message": "Exportar"
+	},
+	"A0606":
+	{
+		"message": "Guardar toda la configuración de la extensión en un archivo"
+	},
+	"F0607":
+	{
+		"message": "Importar"
+	},
+	"A0608":
+	{
+		"message": "Restaurar toda la configuración de la extensión desde el archivo"
+	},
+	"F0609":
+	{
+		"message": "Interfaz",
+		"description": "Settings group."
+	},
+	"F0610":
+	{
+		"message": "Tamaño de la interfaz, %"
+	},
+	"A0611":
+	{
+		"message": "Tamaño de la interfaz del reproductor: botones, texto, etc. No afecta al tamaño del vídeo."
+	},
+	"F0612":
+	{
+		"message": "Animación de la interfaz"
+	},
+	"A0613":
+	{
+		"message": "Puedes desactivar la animación de la interfaz del reproductor en un ordenador lento, como una tableta"
+	},
+	"F0614":
+	{
+		"message": "Tema de color del chat"
+	},
+	"A0615":
+	{
+		"message": "Te permite activar el modo oscuro en el chat. Esta opción solo afecta al chat integrado en el reproductor."
+	},
+	"F0616":
+	{
+		"message": "Claro"
+	},
+	"F0617":
+	{
+		"message": "Oscuro"
+	},
+	"A0618":
+	{
+		"message": "Desplázate hacia abajo para ver más contenido"
+	},
+	"F0619":
+	{
+		"message": "He leído y comprendido"
+	},
+	"A0620":
+	{
+		"message": "No mostrar esta noticia de nuevo.\n\nPara ver todas las noticias, haz clic en «Últimas noticias» en el menú del reproductor.",
+		"description": "Copy of A0620."
+	},
+	"F0621":
+	{
+		"message": "Lo leeré más tarde"
+	},
+	"A0622":
+	{
+		"message": "Cerrar temporalmente esta ventana"
+	},
+	"F0623":
+	{
+		"message": "Ubicación del chat"
+	},
+	"A0624":
+	{
+		"message": "Elige el lado de la ventana del navegador en el que quieres colocar el chat. Auto\u00A0— elegir automáticamente uno de los dos lados indicados, según la proporción de la ventana.\n\nCTRL+U en el teclado."
+	},
+	"F0625":
+	{
+		"message": "Ayuda",
+		"description": "Menu item. Copy of F1501."
+	},
+	"F0626":
+	{
+		"message": "Chat"
+	},
+	"F0627":
+	{
+		"message": "Ocultar tras la inactividad, s"
+	},
+	"A0628":
+	{
+		"message": "La interfaz del reproductor se ocultará si no mueves el ratón durante el tiempo especificado"
+	},
+	"F0629":
+	{
+		"message": "Chat cerrado",
+		"description": "Setting name. Copy of F1065."
+	},
+	"A0630":
+	{
+		"message": "Elige cómo quieres cerrar el chat. Si el chat se descarga:\n• No recibe mensajes.\n• No apareces en la lista de usuarios del chat.\n• Los cofres con puntos de bonificación no se abren.\n• Tarda más en volver a abrir el chat.\nSi el chat se oculta:\n• Sigue consumiendo una cantidad importante de recursos del ordenador (CPU y RAM).\n• Los cofres con puntos de bonificación se abren automáticamente.\n• Al iniciar el reproductor, tarda más en empezar a reproducir el vídeo."
+	},
+	"F0631":
+	{
+		"message": "Descargar"
+	},
+	"F0632":
+	{
+		"message": "Ocultar"
+	},
+	"F0633":
+	{
+		"message": "Notificar"
+	},
+	"F0634":
+	{
+		"message": "Salida de audio"
+	},
+	"A0635":
+	{
+		"message": "Selecciona el dispositivo para la salida de audio. Esta opción se oculta si solo hay disponible un dispositivo de audio."
+	},
+	"F0636":
+	{
+		"message": "Dar permiso"
+	},
+	"A0637":
+	{
+		"message": "Antes de seleccionar un dispositivo para la salida de audio, debes hacer clic en este botón y conceder a la extensión permiso adicional para cambiar la configuración del micrófono (la palabra «micrófono» se refiere tanto a la entrada como a la salida de audio)."
+	},
+	"F0640":
+	{
+		"message": "Descubrir"
+	},
+	"F0641":
+	{
+		"message": "Todas las categorías"
+	},
+	"F0642":
+	{
+		"message": "Siguiendo"
+	},
+	"F0643":
+	{
+		"message": "Canales seguidos"
+	},
+	"F0644":
+	{
+		"message": "Categorías seguidas"
+	},
+	"F0645":
+	{
+		"message": "Mis clips"
+	},
+	"F0646":
+	{
+		"message": "Configuración de notificaciones"
+	},
+	"A0647":
+	{
+		"message": "Haz clic para abrir la configuración de notificaciones en el sitio web de Twitch.tv"
+	},
+	"F0648":
+	{
+		"message": "Versión del chat"
+	},
+	"A0649":
+	{
+		"message": "Completa\u00A0— idéntica al chat emergente del sitio web de Twitch.tv. Los susurros todavía no funcionan en el chat. Si necesitas activar o desactivar el modo oscuro, hazlo en el sitio web de Twitch.tv.\n\nMenos funciones\u00A0— sin salas, sin opciones de moderación, sin incursiones, sin Bits; a veces tienes que confirmar el envío del primer mensaje. Usa esta versión si la completa no funciona como debería. Para activar los iconos de moderación en línea, marca la opción «Iconos de moderación» en la configuración del chat del sitio web de Twitch.tv."
+	},
+	"F0650":
+	{
+		"message": "Completa"
+	},
+	"F0651":
+	{
+		"message": "Menos funciones"
+	},
+	"F0652":
+	{
+		"message": "Menos funciones; modo oscuro"
+	},
+	"F0653":
+	{
+		"message": "Copiar dirección del canal"
+	},
+	"A0654":
+	{
+		"message": "Copia al portapapeles la dirección de este canal para compartirla con otras personas, crear un marcador en el navegador, etc."
+	},
+	"F0655":
+	{
+		"message": "Copiar dirección de la transmisión"
+	},
+	"A0656":
+	{
+		"message": "Copia al portapapeles la dirección de esta transmisión para verla en otro reproductor que admita HLS, por ejemplo Media Player Classic, VLC Media Player o MX Player. La dirección puede tardar varios segundos en obtenerse. La dirección copiada caduca en 20 minutos."
+	},
+	"F0657":
+	{
+		"message": "Ampliar vídeo pequeño"
+	},
+	"A0658":
+	{
+		"message": "Esta opción funciona cuando la resolución del vídeo (consulta las estadísticas) es menor que el tamaño del reproductor. Si está activada, el vídeo se ampliará al tamaño del reproductor (manteniendo la proporción). Si está desactivada, el vídeo con su tamaño original se colocará en el centro del reproductor y el espacio sobrante se rellenará con un fondo negro.\n\nSi la transmisión tiene mucho texto o detalles pequeños, puedes desactivar la ampliación para evitar que se borren.\n\nSi la página está ampliada, el navegador cambiará el tamaño del vídeo incluso con esta opción desactivada.\n\nCTRL+I en el teclado."
+	},
+	"A0660":
+	{
+		"message": "Abrir o cerrar el menú.\nLa tecla X o MENÚ del teclado."
+	},
+	"F0661":
+	{
+		"message": "Últimas noticias",
+		"description": "Menu item. Copy of A0620."
+	},
+	"A0662":
+	{
+		"message": "Últimas noticias sobre la extensión"
+	},
+	"F0663":
+	{
+		"message": "Cerrar",
+		"description": "Button that closes something, such as a window"
+	},
+	"F0664":
+	{
+		"message": "Volver a ver esta transmisión",
+		"description": "Menu item. Copy of J0149 F1058."
+	},
+	"A0665":
+	{
+		"message": "Enlace a la grabación de esta transmisión. Úsalo para seguir viéndola más tarde o para compartir un momento interesante con otras personas. También puedes hacer clic derecho en este enlace."
+	},
+	"A0666":
+	{
+		"message": "Cerrar"
+	},
+	"A0667":
+	{
+		"message": "Mover"
+	},
+	"F0668":
+	{
+		"message": "<strong>La versión instalada de la extensión Alternate Player for Twitch.tv está obsoleta.</strong> Si has visto este mensaje antes, es probable que la actualización automática de la extensión no funcione."
+	},
+	"F0669":
+	{
+		"message": "Ocultando anuncios"
+	},
+	"F0670":
+	{
+		"message": "Anuncios ocultados"
+	},
+	"A0671":
+	{
+		"message": "El número de anuncios de Twitch ocultados por el reproductor.\n[ Duración de los anuncios en segundos, el último anuncio a la derecha <Elapsed time between ads> ]"
+	},
+	"A0672":
+	{
+		"message": "Activar o desactivar el modo imagen en imagen.\nSHIFT+ENTER en el teclado."
+	},
+	"F0679":
+	{
+		"message": "Solo silenciar",
+		"description": "Copy of A0575."
+	},
+	"F0680":
+	{
+		"message": "Permitir volumen superior al 100%"
+	},
+	"A0681":
+	{
+		"message": "Amplía el control de volumen hasta el 200%. Útil para transmisiones con volumen bajo. Los valores superiores al 100% se amplifican en el navegador y pueden sonar distorsionados."
+	},
+	"F0682":
+	{
+		"message": "Seguir las incursiones"
+	},
+	"A0683":
+	{
+		"message": "Cuando el canal que estás viendo haga una incursión en otro canal, cambia el reproductor al canal de destino. Requiere que el panel del chat esté cargado."
+	},
+	"F0700":
+	{
+		"message": "Enviar mensaje al desarrollador de la extensión <cite>Alternate Player for Twitch.tv</cite>",
+		"description": "Title of the feedback form."
+	},
+	"F0701":
+	{
+		"message": "Si quieres informar de un problema de reproducción, inicia primero el reproductor estándar de Twitch.tv (vuelve a cargar esta página y haz clic en el título de la transmisión en la esquina superior izquierda). Si el problema continúa, no hace falta que lo informes. El desarrollador de la extensión <cite>Alternate Player for Twitch.tv</cite> no está asociado a los propietarios de <cite>Twitch.tv</cite> y no puede influir en el funcionamiento de su sitio web ni en la calidad de las transmisiones."
+	},
+	"F0702":
+	{
+		"message": "¿Qué quieres informar? Escribe con todo detalle; las frases «el chat no funciona» y «el vídeo no es fluido» no sirven de nada. Si has encontrado un problema, indica los pasos que ​permitirán reproducirlo en mi ordenador. Si quieres añadir una nueva función a la extensión, explica sus ventajas."
+	},
+	"F0703":
+	{
+		"message": "Puedes introducir tu dirección de correo electrónico para que el desarrollador pueda responderte (por ejemplo, para pedirte más información, lo cual ocurre bastante a menudo). Si no quieres facilitar tu dirección, deja este campo en blanco."
+	},
+	"F0704":
+	{
+		"message": "Junto con el texto que has escrito, se enviarán los datos de depuración."
+	},
+	"F0705":
+	{
+		"message": "Mostrar datos de depuración"
+	},
+	"F0706":
+	{
+		"message": "Política de privacidad"
+	},
+	"F0707":
+	{
+		"message": "Enviar",
+		"description": "Button to send data."
+	},
+	"F0708":
+	{
+		"message": "Enviar informe de error al desarrollador de la extensión <cite>Alternate Player for Twitch.tv</cite>",
+		"description": "Title of the error report form."
+	},
+	"F0710":
+	{
+		"message": "<strong>Asegúrate de tener la última versión de la extensión.</strong> Tampoco desactives las actualizaciones del navegador: las nuevas versiones mejoran constantemente la reproducción de vídeo. Los errores frecuentes pueden deberse a una configuración incorrecta del hardware o del software (primero revisa la configuración del navegador)."
+	},
+	"F0712":
+	{
+		"message": "Se ha producido un error en la extensión. Envía los datos de depuración al desarrollador de la extensión para que pueda corregirlo. Si es necesario, se añadirán unos segundos del vídeo a los datos de depuración."
+	},
+	"F0715":
+	{
+		"message": "Si conoces la causa o la secuencia de acciones que provocaron el error, descríbelas brevemente."
+	},
+	"F0717":
+	{
+		"message": "Enviando datos",
+		"description": "The <progress> element next to this text shows sending progress."
+	},
+	"F0718":
+	{
+		"message": "Cancelar",
+		"description": "Button to cancel or interrupt data sending."
+	},
+	"F0719":
+	{
+		"message": "Error al enviar los datos <b>:(</b>"
+	},
+	"F0720":
+	{
+		"message": "Reintentar",
+		"description": "Button to resend data."
+	},
+	"F0723":
+	{
+		"message": "Si la traducción al inglés es incorrecta o falta, escribe la variante correcta abajo. También puedes <a href='https://coolcmd.github.io/tw5/translate.html' target='_blank' rel='noopener noreferrer'>hacerlo tú mismo</a>, sin la ayuda del desarrollador de la extensión."
+	},
+	"F0726":
+	{
+		"message": "El chat integrado lo desarrolla Twitch.tv. La extensión solo inserta el chat en su reproductor. Este chat tiene algunas limitaciones en comparación con la versión del sitio web de Twitch.tv. Los servidores que prestan el chat pueden dejar de funcionar por motivos ajenos al control del desarrollador de la extensión. Esto ocurre con relativa poca frecuencia (al menos en mi ciudad)."
+	},
+	"F0727":
+	{
+		"message": "La extensión, sobre todo el chat, puede verse afectada por: opciones del navegador (cookies), otras extensiones del navegador, bloqueadores de anuncios, cortafuegos y antivirus. Para diagnosticar un problema, prueba a desactivar temporalmente todo lo anterior."
+	},
+	"F0728":
+	{
+		"message": "<b>Si no recibes respuesta en mucho tiempo, busca en la carpeta de correo no deseado el mensaje con el asunto «Alternate Player for Twitch.tv».</b>"
+	},
+	"F0729":
+	{
+		"message": "Los datos han sido rechazados. ¡La versión de la extensión instalada está obsoleta! Actualiza la extensión."
+	},
+	"F0730":
+	{
+		"message": "Los datos han sido rechazados. ¡Tu navegador ya no es compatible con la extensión! Actualiza el navegador o desinstala la extensión."
+	},
+	"J0731":
+	{
+		"message": "Ver esta transmisión en el sitio web de Twitch.tv"
+	},
+	"F1000":
+	{
+		"message": "<p>La extensión de navegador <cite>Alternate Player for Twitch.tv</cite> fue creada por el desarrollador independiente <cite>Alexander Choporov (CoolCmd)</cite>, y esto le ha llevado mucho tiempo libre. La extensión es gratuita. Si te ha gustado, puedes agradecer al desarrollador donándole algo de dinero. La donación también servirá como una gran motivación para seguir desarrollando la extensión.</p><p>Para hacer una donación, haz clic en <a href='https://coolcmd.github.io/tw5/donate.html' target='_blank' rel='noopener noreferrer'>este enlace</a>.</p>",
+		"description": "News item."
+	},
+	"J1003":
+	{
+		"message": "¡Por favor, apoya!",
+		"description": "News title."
+	},
+	"J1010":
+	{
+		"message": "Cambios en la nueva versión de la extensión",
+		"description": "News title."
+	},
+	"F1011":
+	{
+		"message": "<p>Se ha añadido al reproductor la posibilidad de <a href='https://help.twitch.tv/customer/en/portal/articles/2442508-how-to-use-clips' target='_blank' rel='noopener noreferrer'>crear y compartir clips</a>. Antes de hacer clic en el botón correspondiente, lee su información emergente.</p>",
+		"description": "News item."
+	},
+	"F1012":
+	{
+		"message": "<p>En la configuración del reproductor puedes elegir los colores de su interfaz. Hasta ahora solo hay dos temas disponibles. Para aumentar su número, lee la información emergente.</p>",
+		"description": "News item."
+	},
+	"F1013":
+	{
+		"message": "<p>Ahora la extensión <cite>FrankerFaceZ</cite> funciona en el chat. También se ha corregido el problema con la extensión <cite>BetterTTV</cite> en <cite>Chrome</cite>.</p>",
+		"description": "News item."
+	},
+	"F1014":
+	{
+		"message": "<p>Ahora el reproductor se inicia desde el sitio web de Twitch.tv solo en los canales en directo.</p><p>Se ha añadido la posibilidad de aumentar la velocidad de reproducción de la repetición instantánea.</p><p>Se ha añadido la posibilidad de silenciar el sonido y cambiar el volumen con la rueda del ratón. Puedes desactivar esta función en la configuración del reproductor.</p><p>Se ha añadido la posibilidad de reproducir o pausar la repetición instantánea haciendo clic en el área de vídeo.</p><p>Se han añadido atajos de teclado que activan o desactivan el silencio y cambian secuencialmente la velocidad de reproducción de la repetición instantánea.</p><p>Se han cambiado los atajos de teclado de algunos comandos para que sean más fáciles de usar en portátiles. Los atajos se indican en las informaciones emergentes.</p><p>Y la mala noticia. Debido a los cambios en el servidor de Twitch, la extensión ya no «resucita» el audio de las transmisiones pasadas.</p>",
+		"description": "News item."
+	},
+	"F1017":
+	{
+		"message": "<p><a href='https://microsoftedge.microsoft.com/addons/detail/aojjiodaaogdbbcnbpjnojilccopgcbk' target='_blank' rel='noopener noreferrer'>Instala</a>, valora y escribe una reseña. :)</p><p>También se ha añadido el tema de color «Blanco y negro».</p>",
+		"description": "News item."
+	},
+	"F1018":
+	{
+		"message": "<p>Se ha añadido una opción para seleccionar rápidamente la calidad de la conexión a Internet.</p><p>Se ha añadido una opción para cambiar el color del degradado.</p><p><cite>Chrome</cite>: se ha añadido compatibilidad con la extensión <a href='https://chrome.google.com/webstore/detail/aiimboljphncldaakcnapfolgnjonlea' target='_blank' rel='noopener noreferrer'><cite>FFZ Add-On Pack</cite></a>.</p>",
+		"description": "News item."
+	},
+	"F1020":
+	{
+		"message": "<p>Se ha añadido información breve sobre el canal que estás viendo, con la posibilidad de seguirlo o dejar de seguirlo. Para ver esta información, haz clic en el icono de la esquina superior derecha del reproductor o pulsa la tecla <kbd>I</kbd>. Para llevar un control de los canales que sigues, así como explorar otros nuevos, te recomiendo instalar la extensión de navegador <a href='https://chrome.google.com/webstore/detail/nlmbdmpjmlijibeockamioakdpmhjnpk' target='_blank' rel='noopener noreferrer'><cite>Twitch\u00A0Now</cite></a>.</p><p>Se ha añadido un indicador de repetición: el icono en la esquina superior izquierda del reproductor.</p><p>Al tocar la pantalla táctil se muestra la interfaz del reproductor.</p>",
+		"description": "News item."
+	},
+	"F1023":
+	{
+		"message": "<p>Se ha añadido el indicador de transmisión en directo en la esquina superior izquierda del reproductor. Haz clic en él para ver la transmisión desde el principio. Esta función no está disponible en todos los canales.</p>",
+		"description": "News item."
+	},
+	"J1030":
+	{
+		"message": "Crea clips y compártelos con cualquiera",
+		"description": "News title."
+	},
+	"J1031":
+	{
+		"message": "Personaliza el reproductor a tu gusto",
+		"description": "News title."
+	},
+	"J1035":
+	{
+		"message": "La extensión «Alternate Player for Twitch.tv» está disponible para el navegador Microsoft Edge",
+		"description": "News title."
+	},
+	"J1036":
+	{
+		"message": "Arreglando el chat",
+		"description": "News title."
+	},
+	"F1037":
+	{
+		"message": "<p>Puedes mover el chat al lado izquierdo del reproductor.</p>",
+		"description": "News item."
+	},
+	"F1038":
+	{
+		"message": "<p>Chrome 62 (y sus versiones derivadas) no es totalmente compatible con Windows 10: después de minimizar la ventana o cambiar de pestaña, puede producirse un error de reproducción de vídeo. En ese caso, te recomiendo desactivar la decodificación de vídeo por hardware hasta que Google corrija el problema.</p>",
+		"description": "News item."
+	},
+	"J1039":
+	{
+		"message": "Ahora la extensión es compatible con futuras versiones de Firefox",
+		"description": "News title."
+	},
+	"F1040":
+	{
+		"message": "<p>Algunas desventajas de este cambio:</p><ul><li>La dirección del reproductor ha cambiado (revisa tus marcadores). La dirección del reproductor cambiará después de cada reinstalación de la extensión.<li>Es posible que se haya perdido la configuración del reproductor.<li>Puede haber nuevos errores.</ul>",
+		"description": "News item."
+	},
+	"J1041":
+	{
+		"message": "El nombre de la extensión ha cambiado",
+		"description": "News title."
+	},
+	"F1042":
+	{
+		"message": "<p>Hace algún tiempo, Google eliminó la extensión de su tienda web porque a los propietarios del sitio web de Twitch.tv no les gustaba el nombre de la extensión. Por ello, decidí cambiar el nombre de la extensión de <cite>Twitch\u00A05</cite> a <cite>Alternate Player for Twitch.tv</cite>. No se ha cambiado nada más. La extensión sigue siendo desarrollada por <cite>Alexander Choporov (CoolCmd)</cite>. La extensión está disponible en la tienda web de Google en la <a href='https://chrome.google.com/webstore/detail/bhplkbgoehhhddaoolmakpocnenplmhf' target='_blank' rel='noopener noreferrer'>nueva dirección</a>.</p>",
+		"description": "News item."
+	},
+	"F1043":
+	{
+		"message": "<p>Se ha añadido la posibilidad de exportar e importar la configuración de la extensión a un archivo. Ahora no perderás la configuración al reinstalar la extensión o cambiar de navegador. Además, podrás compartir tu configuración con otras personas.</p>",
+		"description": "News item."
+	},
+	"F1044":
+	{
+		"message": "<p>Se han añadido opciones para cambiar el tamaño de la interfaz y desactivar la animación.</p><p>Al hacer clic en la duración de la transmisión se muestran las estadísticas del reproductor.</p><p>En el sitio web de Twitch.tv, dos botones se han unificado en uno, que sigue en la esquina superior derecha del sitio web. El clic derecho en el botón alterna el inicio automático del reproductor. El clic izquierdo inicia el reproductor (si es posible).</p><p>Se ha añadido compatibilidad con el <a href='https://m.twitch.tv/' target='_blank' rel='noopener noreferrer'>sitio web para dispositivos móviles</a>. Por ahora, solo <a href='https://play.google.com/store/apps/details?id=org.mozilla.firefox' target='_blank' rel='noopener noreferrer'>Firefox para Android</a> puede ejecutar mi extensión. La compatibilidad con pantallas táctiles todavía no es ideal. En cualquier caso, en las tabletas la gente ve las transmisiones en la aplicación de Twitch, no en el navegador (creo).</p>",
+		"description": "News item."
+	},
+	"F1046":
+	{
+		"message": "<p>Se ha añadido una opción para activar el modo oscuro en el chat. Esta opción solo afecta al chat integrado en el reproductor.</p><p>Además, en Firefox se ha corregido el error de que apareciera una página blanca en lugar del chat.</p>",
+		"description": "News item."
+	},
+	"F1047":
+	{
+		"message": "<p>Se ha añadido una opción para colocar el chat: puedes fijarlo en cualquier lado de la ventana del navegador.</p><p>Se ha añadido una opción para cerrar el chat: descargarlo u ocultarlo. Las diferencias se describen en la información emergente.</p><p>Se ha añadido una opción para el tiempo de ocultado automático de la interfaz. Además, ahora la interfaz se oculta de inmediato si el ratón sale del área del reproductor.</p><p>Se ha corregido la extensión de navegador <cite>FFZ Add-On Pack</cite> en Chrome. Se ha corregido el ocultado del chat fijado en la parte inferior en Firefox.</p>",
+		"description": "News item."
+	},
+	"F1048":
+	{
+		"message": "<p>El chat integrado lo desarrolla Twitch.tv. La extensión solo inserta el chat en su reproductor. Recientemente, Twitch.tv ha sustituido el antiguo chat integrado por uno nuevo. El nuevo chat es una versión ligeramente recortada del chat de su sitio web. Las optimizaciones del chat que añadí recientemente a la extensión todavía no funcionan con el nuevo chat. Además, otras extensiones del navegador, como <cite>BetterTTV</cite> y <cite>FrankerFaceZ</cite>, pueden no ser totalmente compatibles con el nuevo chat integrado. Casi no he probado el nuevo chat debido a problemas de Internet en mi país (y a la falta de criterio de los políticos).</p>",
+		"description": "News item."
+	},
+	"F1049":
+	{
+		"message": "<p>Se ha añadido un chat completo, idéntico al chat emergente del sitio web de Twitch.tv. Ahora están disponibles estas funciones: salas, moderación, incursiones, Bits, ventana emergente y no hace falta confirmar el envío del primer mensaje. Los susurros todavía no funcionan en el chat. Si necesitas activar o desactivar el modo oscuro, hazlo en el sitio web de Twitch.tv. El chat completo no está disponible en Microsoft Edge.</p><p>Ahora en el chat (por ejemplo, fijado en la parte inferior o superior de la ventana) hay sitio para muchos más <a href='https://coolcmd.github.io/img/tw5/messages.png' target='_blank' rel='noopener noreferrer'>mensajes</a> y <a href='https://coolcmd.github.io/img/tw5/emotes.png' target='_blank' rel='noopener noreferrer'>emoticonos</a>. Esta optimización es compatible con las versiones actuales de las extensiones de navegador <cite>BetterTTV</cite> y <cite>FrankerFaceZ</cite>. Esta optimización no está disponible en Microsoft Edge.</p><p>Se ha añadido el tema de color del reproductor «Incógnito». Se ha añadido una opción para seleccionar la versión del chat.</p>",
+		"description": "News item."
+	},
+	"J1054":
+	{
+		"message": "Información importante",
+		"description": "News title for the first launch of the player."
+	},
+	"J1055":
+	{
+		"message": "La versión de la extensión para el navegador Firefox for Android es experimental",
+		"description": "News title for tablets."
+	},
+	"F1056":
+	{
+		"message": "<p>La extensión no ha sido probada lo suficiente en este navegador. La extensión no admite del todo las pantallas táctiles: las informaciones emergentes no son visibles. El navegador contiene algunos errores molestos.</p>",
+		"description": "News item for tablets."
+	},
+	"F1057":
+	{
+		"message": "<p>Se ha añadido un menú con enlaces y comandos. Uno de los comandos te permite ver la transmisión en otro reproductor, por ejemplo <cite>Media Player Classic</cite>, <cite>VLC Media Player</cite> o <cite>MX Player</cite>.</p><p>Al pulsar la tecla <kbd>Esc</kbd> se oculta la interfaz del reproductor, incluidas las ventanas y los menús.</p><p>Se ha añadido una opción para desactivar la ampliación de los vídeos pequeños al tamaño del reproductor.</p><p>Se ha añadido una opción para seleccionar el dispositivo de salida de audio: altavoces, auriculares, televisión, etc. Esta opción se oculta si el navegador solo tiene disponible un dispositivo de audio. Debido a un error del navegador, esta opción todavía no está disponible en el modo incógnito. Esta opción no está disponible en Firefox (pero puede añadirse este año) ni en Microsoft Edge.</p>",
+		"description": "News item."
+	},
+	"F1058":
+	{
+		"message": "<p>El chat está disponible en modo de pantalla completa.</p><p>Se ha añadido el enlace «Volver a ver esta transmisión» al menú del reproductor. Úsalo para seguir viendo esta transmisión más tarde o para compartir un momento interesante con otras personas.</p>",
+		"description": "News item."
+	},
+	"F1059":
+	{
+		"message": "<p>Tu estado de inicio de sesión en Twitch.tv vuelve a ser visible en el reproductor (para que puedas crear clips). Para ello, se ha concedido a la extensión permiso para leer las cookies del sitio web.</p>",
+		"description": "News item."
+	},
+	"F1060":
+	{
+		"message": "<p>Se ha mejorado la compatibilidad con pantallas táctiles: ahora puedes cambiar el tamaño del chat, mover las estadísticas y aumentar o reducir rápidamente las opciones. Sin embargo, sigues necesitando un ratón para leer las informaciones emergentes.</p>",
+		"description": "News item."
+	},
+	"F1062":
+	{
+		"message": "<p>Se ha añadido la calidad de vídeo «Solo audio». En este modo, el vídeo no se descarga ni se muestra. Esto reduce el consumo de recursos (CPU, RAM, conexión a Internet) del reproductor. Ideal para escuchar música.</p><p>Se ha mejorado la opción para cambiar el volumen con la rueda del ratón. Ahora puedes ajustar el paso del cambio de volumen.</p>",
+		"description": "News item."
+	},
+	"F1063":
+	{
+		"message": "<p>En algunos casos se mostraban anuncios en las transmisiones. Ahora estos anuncios se bloquearán.</p>",
+		"description": "News item."
+	},
+	"F1064":
+	{
+		"message": "<p>Se ha añadido compatibilidad con <a href='https://help.twitch.tv/s/article/channel-points-guide' target='_blank' rel='noopener noreferrer'>los Puntos de Canal</a>. Debes haber iniciado sesión en el sitio web de Twitch.tv para ganarlos. Comprueba tu estado de inicio de sesión haciendo clic en el icono del canal en la esquina superior derecha de mi reproductor.</p>",
+		"description": "News item."
+	},
+	"F1065":
+	{
+		"message": "<p>La extensión abre automáticamente los cofres con puntos de bonificación. Esto ocurre tanto en el chat del reproductor como en el sitio web. Ya no necesitas instalar una extensión aparte para hacerlo. Lee la información emergente de la opción «Chat cerrado» para saber cómo abrir los cofres incluso cuando el chat está cerrado.</p>",
+		"description": "News item. Copy of F0629."
+	},
+	"J1066":
+	{
+		"message": "Sobre los anuncios",
+		"description": "News title."
+	},
+	"F1067":
+	{
+		"message": "<p>En septiembre, Twitch empezó a combatir a los bloqueadores de anuncios, incluida mi extensión. La extensión usa trucos especiales para bloquear los anuncios. A su vez, Twitch bloquea cada truco que detecta. Después de eso, necesito unos días para encontrar un truco nuevo. Además, tienes que esperar a que se publique la nueva versión de la extensión en la tienda. Google y Microsoft requieren hasta 7 días; Mozilla, 1 día. Todo ese tiempo ves anuncios en el reproductor de la extensión.</p><p>El número de trucos es limitado y, en este momento, Twitch ha bloqueado casi todo. Por eso, en la próxima versión de la extensión añadiré un método más fiable, aunque menos eficaz, para ocultar los anuncios. Durante los anuncios, la reproducción puede pausarse unos segundos y verás el mensaje «Omitiendo anuncios».</p><p>Por desgracia, Twitch casi no muestra anuncios en mi región, así que no puedo probar por mi cuenta la función de ocultar anuncios. Necesito voluntarios para probar las versiones beta de la extensión. Deben: saber pensar lógicamente, ver anuncios con frecuencia en la extensión, instalar extensiones que no procedan de la tienda (daré instrucciones) y describir los resultados de las pruebas con detalle. Si quieres ayudarme en este trabajo tedioso pero importante, haz clic en «Enviar comentarios» en el menú del reproductor y házmelo saber. ¡Gracias!</p>",
+		"description": "News item. Copy of F0528."
+	},
+	"F1068":
+	{
+		"message": "<p>Se ha añadido un botón para activar o desactivar el modo imagen en imagen. También puedes pulsar <kbd>Shift</kbd>+<kbd>Enter</kbd>. La pausa en esta ventana todavía no está disponible.</p>",
+		"description": "News item. See also F1584."
+	},
+	"F1069":
+	{
+		"message": "<p>Se ha mejorado la opción del reproductor «Intervalo de sondeo». Te recomiendo cambiar su valor a «Auto» (que es el valor predeterminado). Esta opción se eliminará en una futura versión de la extensión.</p>",
+		"description": "News item."
+	},
+	"F1070":
+	{
+		"message": "<p>Se ha mejorado el ocultado de anuncios: ahora, durante los anuncios, en lugar de una pantalla negra verás la transmisión en baja resolución. Además, se ha reducido la frecuencia de los anuncios: ahora verás anuncios en la extensión con la misma frecuencia que en el sitio web de twitch.tv (no se ha probado mucho).</p>",
+		"description": "News item."
+	},
+	"F1072":
+	{
+		"message": "El futuro de esta extensión",
+		"description": "News title."
+	},
+	"F1073":
+	{
+		"message": "<p>A partir de junio de 2024, el navegador Chrome <a href='https://developer.chrome.com/docs/extensions/develop/migrate/mv2-deprecation-timeline' target='_blank' rel='noopener noreferrer'>empezará</a> a desactivar automáticamente mi extensión y a impedir su instalación desde la tienda web de Chrome. Durante un tiempo, podrás activar la extensión manualmente.</p><p>Para que la extensión funcione en el navegador Chrome, tendré que modificarla en profundidad. Esto tardará varios meses. La nueva versión de la extensión solo funcionará en <b>versiones modernas</b> de los navegadores.</p>",
+		"description": "News item."
+	},
+	"F1074":
+	{
+		"message": "<ul><li>Se ha corregido la obtención de Puntos de Canal y Drops.<li>Se ha corregido parcialmente el ocultado de anuncios.<li>Se han corregido el seguimiento y el abandono de canales y la creación de clips.<li>Se ha corregido el inicio automático del reproductor.<li>Se ha mejorado la opción para cambiar el volumen con la rueda del ratón.<li>Se han cambiado algunos atajos de teclado.<li>El botón de estadísticas se ha movido al menú. Se ha añadido un botón de menú al panel inferior del reproductor.<li>El tamaño del texto del panel superior del reproductor cambia dinámicamente.<li>Otras varias correcciones y mejoras.</ul>",
+		"description": "News item."
+	},
+	"F1076":
+	{
+		"message": "<p>Se ha corregido un error que impedía ver las transmisiones en algunos canales (Twitch usa una CDN nueva). Por eso, esta versión de la extensión requiere permisos nuevos.</p>",
+		"description": "News item."
+	},
+	"F1077":
+	{
+		"message": "<p>Se ha corregido el comando «Copiar dirección de grabación» en el menú del reproductor. Además, se ha renombrado a «Volver a ver esta transmisión» y se ha convertido en un enlace normal para mayor comodidad. Usa este enlace en lugar del que se eliminó recientemente en la esquina superior izquierda.</p><p>Se ha corregido la carga del chat durante una incursión.</p><p>Si no puedes activar el modo oscuro en el chat, prueba a <b>desactivarlo y volver a activarlo</b> en el sitio web de Twitch.tv.</p>",
+		"description": "News item."
+	},
+	"F1078":
+	{
+		"message": "<p>Se ha corregido la creación de clips.</p>",
+		"description": "News item."
+	},
+	"J1500":
+	{
+		"message": "Información útil",
+		"description": "Help section."
+	},
+	"F1501":
+	{
+		"message": "<p>Para ver la ayuda, haz clic en el botón del menú en la esquina inferior derecha y, en el menú, haz clic en «Ayuda». Además, la mayoría de los elementos de la interfaz del reproductor (botones, enlaces, menús, etc.) tienen <strong>informaciones emergentes</strong>, que te recomiendo leer. Estas informaciones aparecen automáticamente bajo el cursor del ratón cuando este está quieto.</p>",
+		"description": "Part of the help, part of the feedback form, and a news item for the first launch of the player."
+	},
+	"F1502":
+	{
+		"message": "<p>Para abrir el canal o la categoría en el sitio web de Twitch.tv, haz clic en el título de la transmisión o de la categoría en la parte superior del reproductor. Encontrarás otros enlaces en el menú del reproductor.</p>",
+		"description": "Part of the help."
+	},
+	"F1503":
+	{
+		"message": "<p>En el sitio web de Twitch.tv, en la esquina superior derecha, está el logotipo de la extensión «5». El clic derecho en el logotipo alterna el inicio automático del reproductor. El clic izquierdo inicia el reproductor (si es posible). El inicio automático está desactivado en los canales con transmisiones cifradas.</p>",
+		"description": "Part of the help."
+	},
+	"F1504":
+	{
+		"message": "<p>Los comandos de uso frecuente, como <i>silenciar</i>, se ejecutan más fácilmente pulsando teclas del teclado. Las teclas se indican en las informaciones emergentes.</p>",
+		"description": "Part of the help."
+	},
+	"F1506":
+	{
+		"message": "<p data-image=\"svg-fail\">Las siguientes funciones del sitio web de Twitch.tv no están disponibles en el reproductor: reproducción de vídeos, reproducción de transmisiones cifradas, susurros, extensiones de Twitch (que no deben confundirse con las extensiones del navegador) y subtítulos.</p>",
+		"description": "Part of the help."
+	},
+	"F1507":
+	{
+		"message": "<p>Para abrir el reproductor en su propia ventana, haz clic en la pestaña del reproductor y arrástrala fuera de la barra de pestañas.</p>",
+		"description": "Part of the help."
+	},
+	"F1509":
+	{
+		"message": "<p>Para reducir el retraso de la transmisión (y facilitar el uso del chat), prueba a cambiar la «Calidad de la conexión» a «Buena» en la configuración del reproductor.</p>",
+		"description": "Part of the help."
+	},
+	"F1510":
+	{
+		"message": "<p>Si tienes problemas con la extensión <cite>Alternate Player for Twitch.tv</cite>, envía tus comentarios al desarrollador de la extensión. Para hacerlo, haz clic en «Enviar comentarios» en el menú del reproductor.</p>",
+		"description": "Part of the help. Copy of F0528 and description_xx.txt."
+	},
+	"F1511":
+	{
+		"message": "<p>El icono rojo de las tijeras en la esquina superior derecha del reproductor significa que se han omitido varios segundos de la transmisión por algún motivo. Consulta la descripción de la opción «Desbordamiento del búfer».</p>",
+		"description": "Part of the help."
+	},
+	"J1513":
+	{
+		"message": "Solución de problemas",
+		"description": "Help section."
+	},
+	"F1514":
+	{
+		"message": "<p>Algunos usuarios me piden que añada la posibilidad de ver anuncios en la extensión porque quieren apoyar al emisor o reducir la frecuencia de los anuncios. Pero eso no tiene sentido, porque Twitch registra las visualizaciones de anuncios a partir de los datos que la extensión envía a Twitch. La extensión envía siempre estos datos, incluso cuando estás viendo la transmisión en baja resolución en lugar de los anuncios. El formato de los datos no está documentado y puede cambiar de vez en cuando, así que no puedo garantizar que Twitch siempre confíe en ellos.</p>",
+		"description": "Part of the help."
+	},
+	"F1515":
+	{
+		"message": "<p>Si necesitas de verdad los emoticonos de <b>7TV</b> en el chat de la extensión, haz lo siguiente. Desinstala la extensión de navegador <cite>7TV</cite>. Instala la extensión de navegador <cite>FrankerFaceZ</cite>. En la configuración de la extensión <cite>FrankerFaceZ</cite>, activa el complemento <cite>7TV</cite>. Del mismo modo, puedes activar los emoticonos de BetterTTV.</p>",
+		"description": "Part of the help and a news item."
+	},
+	"F1570":
+	{
+		"message": "<p>El chat integrado lo desarrolla Twitch.tv. La extensión solo inserta el chat en su reproductor (y optimiza la <a href='https://coolcmd.github.io/img/tw5/messages.png' target='_blank' rel='noopener noreferrer'>altura</a> del <a href='https://coolcmd.github.io/img/tw5/emotes.png' target='_blank' rel='noopener noreferrer'>contenido</a>). Este chat tiene algunas limitaciones en comparación con la versión del sitio web de Twitch.tv. Consulta la descripción de la versión del chat en la configuración del reproductor.</p>",
+		"description": "Part of the help for Chrome and Firefox."
+	},
+	"F1571":
+	{
+		"message": "<p>Si tienes problemas con el chat, prueba lo siguiente:</p><ul><li>Abre la configuración de tu navegador y permite guardar y leer datos de cookies, incluidos los datos de cookies de terceros.<li>Ve al sitio web de <a href='https://www.twitch.tv/' rel='noopener noreferrer'>Twitch.tv</a> y elimina sus cookies.<li>Selecciona otra versión del chat en la configuración del reproductor.<li>El chat puede verse afectado por: otras extensiones del navegador, bloqueadores de anuncios, cortafuegos y antivirus. Para diagnosticar un problema, prueba a desactivar temporalmente todo lo anterior. Aquí tienes la <a href='https://coolcmd.github.io/img/tw5/privacy%20badger%20options.png' target='_blank' rel='noopener noreferrer'>configuración de la extensión Privacy Badger</a>, que no interfiere con el chat.</ul>",
+		"description": "Part of the help for Chrome."
+	},
+	"F1572":
+	{
+		"message": "<p>Debido a las limitaciones del navegador, solo las extensiones de navegador <cite>BetterTTV</cite> y <cite>FrankerFaceZ</cite> pueden funcionar en el chat. Durante su instalación, la extensión <cite>Alternate Player for Twitch.tv</cite> te pidió permiso para <b>leer</b> la lista de extensiones instaladas. Esto es necesario para cargar en el chat solo las extensiones que has instalado y activado en tu navegador.</p>",
+		"description": "Part of the help for Chrome. Copy of description_xx.txt."
+	},
+	"F1573":
+	{
+		"message": "<p>Si necesitas activar o desactivar el modo oscuro en la versión «completa» del chat, hazlo en el sitio web de Twitch.tv.</p>",
+		"description": "Part of the help for Chrome and Firefox."
+	},
+	"F1574":
+	{
+		"message": "<p>Para activar los iconos de moderación en línea en la versión «con menos funciones» del chat, marca la opción <a href='https://discuss.dev.twitch.tv/uploads/default/original/2X/f/f3049202b1456ee758ea81487a193ee540c84e7e.gif' target='_blank' rel='noopener noreferrer'>Iconos de moderación</a> en la configuración del chat del sitio web de Twitch.tv.</p>",
+		"description": "Part of the help for Chrome and Firefox."
+	},
+	"F1575":
+	{
+		"message": "<p>Para llevar un control de los canales que sigues, cambiar rápidamente entre ellos y buscar nuevos canales, te recomiendo instalar la extensión de navegador <a href='https://chrome.google.com/webstore/detail/nlmbdmpjmlijibeockamioakdpmhjnpk' target='_blank' rel='noopener noreferrer'><cite>Twitch\u00A0Now</cite></a>.</p>",
+		"description": "Part of the help for Chrome."
+	},
+	"F1581":
+	{
+		"message": "<p>Si tienes problemas con el chat, prueba lo siguiente:</p><ul><li>En la configuración de tu navegador, no bloquees las cookies de terceros ni las cookies de sitios no visitados, o añade la dirección <b>https://twitch.tv</b> a las excepciones.<li>Ve al sitio web de <a href='https://www.twitch.tv/' rel='noopener noreferrer'>Twitch.tv</a> y elimina sus cookies (haz clic en el icono de la barra de direcciones).<li>Selecciona otra versión del chat en la configuración del reproductor.<li>Abre una pestaña con la dirección <b>about:config</b>, busca la opción <b>privacy.firstparty.isolate</b> y asegúrate de que su valor es <b>false</b>.<li>El chat puede verse afectado por: otras extensiones del navegador, bloqueadores de anuncios, cortafuegos y antivirus. Para diagnosticar un problema, prueba a desactivar temporalmente todo lo anterior. Aquí tienes la <a href='https://coolcmd.github.io/img/tw5/privacy%20badger%20options.png' target='_blank' rel='noopener noreferrer'>configuración de la extensión Privacy Badger</a>, que no interfiere con el chat.</ul>",
+		"description": "Part of the help for Firefox."
+	},
+	"F1582":
+	{
+		"message": "<p>No debes bloquear JavaScript en el sitio web de Twitch.tv, por ejemplo en la extensión <cite>NoScript</cite>. Tampoco debes bloquear la carga de vídeo HTML5, por ejemplo en la extensión <cite>Flashblock</cite>.</p>",
+		"description": "Part of the help for Firefox."
+	},
+	"F1583":
+	{
+		"message": "<p>Para llevar un control de los canales que sigues, cambiar rápidamente entre ellos y buscar nuevos canales, te recomiendo instalar la extensión de navegador <a href='https://addons.mozilla.org/firefox/addon/twitch-now/' target='_blank' rel='noopener noreferrer'><cite>Twitch\u00A0Now</cite></a>.</p>",
+		"description": "Part of the help for Firefox."
+	},
+	"F1584":
+	{
+		"message": "<p>Para activar el <a href='https://support.mozilla.org/kb/about-picture-picture-firefox' target='_blank'>modo imagen en imagen</a>, haz clic en el icono correspondiente situado en el lado derecho de la barra de direcciones del navegador, o mantén pulsada la tecla <kbd>Shift</kbd>, haz clic derecho en el área de vídeo y, en el menú del navegador, haz clic en la opción correspondiente. También puedes pulsar <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> en el teclado con la distribución en inglés. Puedes abrir varias ventanas de imagen en imagen al mismo tiempo. La pausa en esta ventana todavía no está disponible.</p>",
+		"description": "Part of the help for Firefox. See also F1068."
+	},
+	"F1590":
+	{
+		"message": "<p>El chat integrado lo desarrolla Twitch.tv. La extensión solo inserta el chat en su reproductor. Este chat tiene las siguientes limitaciones: sin opciones de moderación, sin incursiones, sin Bits; a veces tienes que confirmar el envío del primer mensaje.</p>",
+		"description": "Part of the help for Edge."
+	},
+	"F1591":
+	{
+		"message": "<p>Debido a las limitaciones del navegador, las extensiones del navegador que mejoran el chat, como <cite>BetterTTV</cite> y <cite>FrankerFaceZ</cite>, no funcionan en el reproductor.</p>",
+		"description": "Part of the help for Edge."
+	},
+	"F1592":
+	{
+		"message": "<p>Para activar los iconos de moderación en línea en el chat del reproductor, marca la opción <a href='https://discuss.dev.twitch.tv/uploads/default/original/2X/f/f3049202b1456ee758ea81487a193ee540c84e7e.gif' target='_blank' rel='noopener noreferrer'>Iconos de moderación</a> en la configuración del chat del sitio web de Twitch.tv.</p>",
+		"description": "Part of the help for Edge."
+	}
+}
