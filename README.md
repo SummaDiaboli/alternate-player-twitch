@@ -24,6 +24,7 @@ When you visit a Twitch channel page, the extension detects whether the channel 
 - **Chat integration**: floating or panel chat with configurable position, size, and behaviour; links open in new tabs
 - **FFZ (FrankerFaceZ) support**: automatically injects FFZ into the chat frame when the FFZ extension is installed
 - **BTTV (BetterTTV) support**: works via FFZ's ffzap-bttv addon when both are installed, avoiding double-injection conflicts
+- **Volume boost**: optional setting to raise the volume above 100% (up to 200%) for quiet streams
 - **Theming**: multiple built-in colour presets for the player UI
 - **Statistics overlay**: detailed real-time stats including video/audio codec, bitrate, segment info, buffer health, stream delay, and dropped frames
 - **Settings import/export**: save and restore your configuration
