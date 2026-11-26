@@ -1,1443 +1,1207 @@
 {
-	"M0001":
-	{
+	"M0001": {
 		"message": "Lecteur alternatif des diffusions en direct pour le site Web de Twitch.tv.",
 		"description": "Short description of the extension. A copy of this string is also in AMO and Windows Store."
 	},
-	"M0010":
-	{
+	"M0010": {
 		"message": "fr",
 		"description": "Language code of this file in BCP 47 Language Tag format"
 	},
-	"J0100":
-	{
+	"J0100": {
 		"message": "Diffusion terminée"
 	},
-	"J0101":
-	{
+	"J0101": {
 		"message": "\n\nCliquez pour ouvrir cette chaîne sur le site Web de Twitch.tv :\n• Pour regarder cette diffusion ou cette vidéo dans le lecteur standard.\n• Pour lire la description complète de la chaîne.\n• Pour effectuer d'autres actions qui ne sont pas disponibles dans le lecteur alternatif."
 	},
-	"J0102":
-	{
+	"J0102": {
 		"message": "\n\nCliquez pour regarder d'autres diffusions et vidéos de cette catégorie."
 	},
-	"J0103":
-	{
+	"J0103": {
 		"message": "Sans titre",
 		"description": "Broadcast title is not specified."
 	},
-	"J0104":
-	{
+	"J0104": {
 		"message": "Non spécifié",
 		"description": "Category title is not specified."
 	},
-	"J0106":
-	{
+	"J0106": {
 		"message": "Arrêtez la diffusion et commencez à regarder le replay instantané.\nLa touche ESPACE du clavier."
 	},
-	"J0107":
-	{
+	"J0107": {
 		"message": "Continuez à regarder la diffusion.\nLa touche ESPACE du clavier."
 	},
-	"J0108":
-	{
+	"J0108": {
 		"message": "Coupez le son.\nAppuyez sur la touche PAGE DOWN ou M du clavier, ou cliquez sur la molette de la souris (voir les paramètres du lecteur)."
 	},
-	"J0109":
-	{
+	"J0109": {
 		"message": "Réactivez le son.\nAppuyez sur la touche PAGE UP ou M du clavier, ou cliquez sur la molette de la souris (voir les paramètres du lecteur)."
 	},
-	"J0112":
-	{
+	"J0112": {
 		"message": "Mettez en pause le replay instantané.\nAppuyez sur la touche K ou 5 (pavé numérique) du clavier."
 	},
-	"J0113":
-	{
+	"J0113": {
 		"message": "Lisez le replay instantané.\nAppuyez sur la touche K ou 5 (pavé numérique) du clavier."
 	},
-	"J0114":
-	{
+	"J0114": {
 		"message": "Mbit/s"
 	},
-	"J0120":
-	{
+	"J0120": {
 		"message": "Auto",
 		"description": "Text or HTML fragment. The word must be no longer than 5 characters. Means that the setting value is selected automatically."
 	},
-	"J0121":
-	{
+	"J0121": {
 		"message": "Bleu acier",
 		"description": "Theme name."
 	},
-	"J0122":
-	{
+	"J0122": {
 		"message": "Doré",
 		"description": "Theme name."
 	},
-	"J0123":
-	{
+	"J0123": {
 		"message": "Personnalisable",
 		"description": "Theme name. Copy of A0565."
 	},
-	"J0124":
-	{
+	"J0124": {
 		"message": "Maximal",
 		"description": "The number in player settings is replaced with this word. The word must be no longer than 7 characters. Means no restrictions. Copy of A0534."
 	},
-	"J0125":
-	{
+	"J0125": {
 		"message": "Noir et blanc",
 		"description": "Theme name."
 	},
-	"J0126":
-	{
+	"J0126": {
 		"message": "Bon",
 		"description": "Connection quality name. Copy of A0581."
 	},
-	"J0127":
-	{
+	"J0127": {
 		"message": "Modéré",
 		"description": "Connection quality name. Copy of A0581."
 	},
-	"J0128":
-	{
+	"J0128": {
 		"message": "Mauvais",
 		"description": "Connection quality name. Copy of A0581."
 	},
-	"J0129":
-	{
+	"J0129": {
 		"message": "Personnalisable",
 		"description": "Connection quality name. Copy of A0581."
 	},
-	"J0133":
-	{
+	"J0133": {
 		"message": "settings.json des paramètres de l'extension Alternate Player for Twitch.tv"
 	},
-	"J0136":
-	{
+	"J0136": {
 		"message": "Après avoir enregistré les paramètres, fermez cette fenêtre.",
 		"description": "HTML"
 	},
-	"J0138":
-	{
+	"J0138": {
 		"message": "Incognito",
 		"description": "Theme name."
 	},
-	"J0139":
-	{
+	"J0139": {
 		"message": "(source)",
 		"description": "Part of a broadcast quality name. Copy of A0513."
 	},
-	"J0140":
-	{
+	"J0140": {
 		"message": "ips",
 		"description": "Unit of measurement: frames per second"
 	},
-	"J0141":
-	{
+	"J0141": {
 		"message": "Hz",
 		"description": "Unit of measurement: hertz"
 	},
-	"J0142":
-	{
+	"J0142": {
 		"message": "chaînes",
 		"description": "Unit of measurement: channels"
 	},
-	"J0143":
-	{
+	"J0143": {
 		"message": "kbit/s",
 		"description": "Unit of measurement: kilobits per second"
 	},
-	"J0144":
-	{
+	"J0144": {
 		"message": "Audio uniquement",
 		"description": "Broadcast quality name"
 	},
-	"J0145":
-	{
+	"J0145": {
 		"message": "Hors ligne",
 		"description": "Broadcast type: ended (offline)"
 	},
-	"J0146":
-	{
+	"J0146": {
 		"message": "En direct",
 		"description": "Broadcast type: live"
 	},
-	"J0147":
-	{
+	"J0147": {
 		"message": "Rediffusion",
 		"description": "Broadcast type: rerun"
 	},
-	"J0148":
-	{
+	"J0148": {
 		"message": "Traduire ce texte"
 	},
-	"J0149":
-	{
+	"J0149": {
 		"message": "Vous regardez une diffusion en direct. Utilisez le menu du lecteur pour la revoir.",
 		"description": "Copy of F0664"
 	},
-	"J0150":
-	{
+	"J0150": {
 		"message": "Vous regardez une vidéo enregistrée auparavant"
 	},
-	"J0200":
-	{
+	"J0200": {
 		"message": "Le navigateur n'a pas pu lire la vidéo. Il a peut-être alloué trop de mémoire vive."
 	},
-	"J0201":
-	{
+	"J0201": {
 		"message": "Votre navigateur ne peut pas lire la vidéo ou l'audio. Si cela se produit sur toutes les chaînes Twitch.tv, votre navigateur ne prend pas en charge H.264 ou AAC. Dans ce cas, veuillez supprimer l'extension « Alternate Player for Twitch.tv » de votre navigateur."
 	},
-	"J0203":
-	{
+	"J0203": {
 		"message": "La chaîne indiquée n'existe pas. Vous avez peut-être saisi une mauvaise adresse."
 	},
-	"J0204":
-	{
+	"J0204": {
 		"message": "Cette version de l'extension « Alternate Player for Twitch.tv » ne fonctionne pas dans votre navigateur. Veuillez supprimer l'extension de votre navigateur et installer la version appropriée.\n\nVersion pour Google Chrome :\nhttps://chrome.google.com/webstore/detail/bhplkbgoehhhddaoolmakpocnenplmhf\n\nVersion pour Mozilla Firefox :\nhttps://addons.mozilla.org/firefox/addon/twitch_5/\n\nVersion pour Microsoft Edge :\nhttps://microsoftedge.microsoft.com/addons/detail/aojjiodaaogdbbcnbpjnojilccopgcbk"
 	},
-	"J0206":
-	{
+	"J0206": {
 		"message": "Un problème survient lors de la lecture de la vidéo.\n\nCauses possibles :\n• La vidéo ou l'audio utilise une compression non prise en charge par votre navigateur.\n• Le navigateur ne dispose pas de suffisamment de mémoire vive, ou il a alloué trop de mémoire vive, ou encore le navigateur 32 bits a alloué trop d'espace d'adressage (voir la « taille virtuelle » du navigateur dans l'utilitaire « Process Explorer »). Certains navigateurs 64 bits ne peuvent pas allouer plus de 4 Go de mémoire vive par processus. Tous les onglets contenant le lecteur partagent un seul processus.\n• La vidéo est corrompue.\n• Problèmes matériels : surchauffe, overclocking, etc.\n• Bogues dans les logiciels de l'ordinateur.\n\nVeuillez recharger la page pour continuer à regarder la diffusion. Si le problème persiste sur d'autres chaînes et que vous en ignorez la cause, suivez ces étapes une par une jusqu'à ce que l'erreur disparaisse :\n• Fermez plusieurs onglets du navigateur (pour libérer de la mémoire).\n• Redémarrez le navigateur.\n• Redémarrez l'ordinateur.\n• Désactivez le décodage vidéo matériel.\n• Réinitialisez les paramètres du navigateur.\n• Mettez à jour les pilotes de la carte vidéo.\n• Désinstallez le « pack de codecs » (le cas échéant)."
 	},
-	"J0208":
-	{
+	"J0208": {
 		"message": "Un problème survient lors de la lecture de la vidéo. Essayez de recharger cette page pour continuer à regarder."
 	},
-	"J0211":
-	{
+	"J0211": {
 		"message": "Cette chaîne est déjà ouverte dans un autre onglet du navigateur. Cliquez sur le bouton « Retour » pour revenir à la page précédente."
 	},
-	"J0215":
-	{
+	"J0215": {
 		"message": "L'extension « $FULL_EXTENSION_NAME$ » nécessite l'accès à certains sites pour lire la diffusion. Vous avez supprimé l'accès à l'un de ces sites. Veuillez réinitialiser les paramètres d'accès aux sites. Si vous ne savez pas comment procéder, réinstallez l'extension.\n\nVous souhaitez simplement désactiver le démarrage automatique du lecteur ? Consultez l'aide intégrée au lecteur.",
-		"placeholders":
-		{
-			"FULL_EXTENSION_NAME":
-			{
+		"placeholders": {
+			"FULL_EXTENSION_NAME": {
 				"content": "Alternate Player for Twitch.tv"
 			}
 		}
 	},
-	"J0216":
-	{
+	"J0216": {
 		"message": "L'un des paramètres de votre navigateur empêche l'extension $FULL_EXTENSION_NAME$ de fonctionner. Pour corriger le problème, ouvrez un onglet à l'adresse $ADDRESS$. Sur la page, collez « $NAME$ » dans le champ de recherche. L'état actuel de ce paramètre s'affichera ci-dessous. Double-cliquez dessus pour remplacer la valeur par « false ».\n\nAu lieu de ce paramètre, activez la protection totale des cookies (Total Cookie Protection).\n\nPour les détails techniques, voir https://bugzilla.mozilla.org/show_bug.cgi?id=1558467",
-		"placeholders":
-		{
-			"FULL_EXTENSION_NAME":
-			{
+		"placeholders": {
+			"FULL_EXTENSION_NAME": {
 				"content": "Alternate Player for Twitch.tv"
 			},
-			"ADDRESS":
-			{
+			"ADDRESS": {
 				"content": "about:config"
 			},
-			"NAME":
-			{
+			"NAME": {
 				"content": "privacy.firstparty.isolate"
 			}
 		}
 	},
-	"J0217":
-	{
+	"J0217": {
 		"message": "Cette diffusion n'est pas disponible dans votre région. Cliquez sur le bouton « Retour » pour revenir à la page précédente."
 	},
-	"J0219":
-	{
+	"J0219": {
 		"message": "Cette diffusion est chiffrée. L'extension $FULL_EXTENSION_NAME$ ne prend pas en charge les diffusions chiffrées. Cliquez sur le bouton « Retour » pour revenir à la page précédente.",
-		"placeholders":
-		{
-			"FULL_EXTENSION_NAME":
-			{
+		"placeholders": {
+			"FULL_EXTENSION_NAME": {
 				"content": "Alternate Player for Twitch.tv"
 			}
 		}
 	},
-	"J0220":
-	{
+	"J0220": {
 		"message": "L'extension $FULL_EXTENSION_NAME$ n'est pas compatible avec Shelblock.",
-		"placeholders":
-		{
-			"FULL_EXTENSION_NAME":
-			{
+		"placeholders": {
+			"FULL_EXTENSION_NAME": {
 				"content": "Alternate Player for Twitch.tv"
 			}
 		}
 	},
-	"J0221":
-	{
+	"J0221": {
 		"message": "Une erreur s'est produite dans l'extension de navigateur $FULL_EXTENSION_NAME$. Essayez de recharger cette page. Si cette erreur apparaît en permanence, l'extension n'est pas compatible avec votre navigateur ou ses paramètres.",
-		"placeholders":
-		{
-			"FULL_EXTENSION_NAME":
-			{
+		"placeholders": {
+			"FULL_EXTENSION_NAME": {
 				"content": "Alternate Player for Twitch.tv"
 			}
 		}
 	},
-	"J0222":
-	{
+	"J0222": {
 		"message": "Une modification de votre état de connexion au site Twitch.tv a été détectée. Rechargez la page pour continuer."
 	},
-	"F0501":
-	{
+	"F0501": {
 		"message": "Catégorie :"
 	},
-	"F0502":
-	{
+	"F0502": {
 		"message": "Spectateurs :"
 	},
-	"A0503":
-	{
+	"A0503": {
 		"message": "Le nombre de personnes qui regardent cette diffusion en ce moment, y compris vous et peut-être le diffuseur. Ce nombre est mis à jour environ une fois par minute."
 	},
-	"A0504":
-	{
+	"A0504": {
 		"message": "Créer un clip.\nLa combinaison ALT+X du clavier.\n\nVous devez être connecté au site Twitch.tv. Si vous mettez la diffusion en pause, vous disposez de moins d'une minute pour créer un clip."
 	},
-	"F0505":
-	{
+	"F0505": {
 		"message": "Désactiver",
 		"description": "Setting is disabled."
 	},
-	"A0506":
-	{
+	"A0506": {
 		"message": "Modifier le volume.\nAppuyez sur les flèches HAUT/BAS du clavier ou faites tourner la molette de la souris (voir les paramètres du lecteur)."
 	},
-	"A0507":
-	{
+	"A0507": {
 		"message": "La durée de cette diffusion.\nCliquez pour afficher les statistiques du lecteur.",
 		"description": "Copy of A0527."
 	},
-	"A0508":
-	{
+	"A0508": {
 		"message": "Cliquez pour voir les nouveautés de l'extension !"
 	},
-	"A0509":
-	{
+	"A0509": {
 		"message": "Ouvrir ou fermer le chat. Cette commande est disponible en mode plein écran.\nLa touche C du clavier."
 	},
-	"A0510":
-	{
+	"A0510": {
 		"message": "Ouvrir ou fermer les paramètres du lecteur.\nLa touche V du clavier."
 	},
-	"A0511":
-	{
+	"A0511": {
 		"message": "Activer ou désactiver le mode plein écran.\nAppuyez sur la touche ENTRÉE ou F du clavier, ou double-cliquez sur la zone de visionnage."
 	},
-	"F0512":
-	{
+	"F0512": {
 		"message": "Qualité vidéo"
 	},
-	"A0513":
-	{
+	"A0513": {
 		"message": "Vous pouvez réduire la qualité si la vitesse de téléchargement ou les performances de votre ordinateur sont insuffisantes pour une lecture continue de cette vidéo. Toutes les chaînes ne permettent pas de modifier la qualité.\n\nSource — la vidéo source de la meilleure qualité. Les autres variantes sont de qualité inférieure ; la vidéo source a été recompressée sur le serveur de Twitch.tv.\n\nAudio uniquement — la vidéo n'est ni téléchargée ni affichée. Cela réduit l'utilisation des ressources (processeur, mémoire vive, connexion Internet) par le lecteur. Idéal pour écouter de la musique.",
 		"description": "Copy of J0139 J0144."
 	},
-	"F0514":
-	{
+	"F0514": {
 		"message": "Téléchargements simultanés"
 	},
-	"A0515":
-	{
+	"A0515": {
 		"message": "La vidéo est téléchargée depuis le réseau par petites parties — des segments. Une valeur de paramètre supérieure à 1 permet de télécharger simultanément un nombre déterminé de segments. Cela augmente la vitesse globale de téléchargement, mais uniquement si la vitesse de téléchargement d'un segment est inférieure à la bande passante de votre connexion Internet, ou si le « délai avant le premier octet » dépasse 0,5 seconde (voir les statistiques). Sinon, cela ne fera qu'aggraver les choses : vous devrez augmenter la taille du tampon, ce qui augmentera le délai du flux.\n\nUne valeur de paramètre supérieure à 1 peut légèrement retarder le début de la lecture après l'ouverture du lecteur (voir la description du paramètre « Démarrer la lecture »). Elle peut également allonger l'interruption de lecture causée par une erreur de téléchargement d'un segment (voir « Erreurs de téléchargement » dans les statistiques)."
 	},
-	"F0516":
-	{
+	"F0516": {
 		"message": "Taille du tampon, secondes"
 	},
-	"A0517":
-	{
+	"A0517": {
 		"message": "La vidéo téléchargée s'accumule dans le tampon. La lecture commence dès que la durée de la vidéo dans le tampon atteint la valeur indiquée. Cela permet d'éviter d'interrompre la lecture lors de problèmes temporaires du réseau ou du serveur.\n\nSi la lecture est souvent interrompue (voir « Sous-remplissages du tampon » dans les statistiques), essayez d'augmenter cette valeur.\n\nAugmenter la taille du tampon augmente le « délai du flux » (voir les statistiques) — le temps écoulé entre la capture de la vidéo sur un ordinateur distant et la lecture de cette vidéo sur votre ordinateur. Un faible délai du flux n'est important que pour ceux qui utilisent le chat.\n\nJe déconseille d'utiliser une très petite taille de tampon, car lorsque le tampon est peu rempli (moins d'une seconde de vidéo, voir « Remplissage du tampon » dans les statistiques), des artefacts visuels gênants peuvent apparaître (saccades, écran noir, etc.)."
 	},
-	"F0518":
-	{
+	"F0518": {
 		"message": "Démarrer la lecture, secondes"
 	},
-	"A0519":
-	{
+	"A0519": {
 		"message": "Contrairement au paramètre « Taille du tampon », ce paramètre n'influe que sur le premier démarrage de la lecture. Il permet de commencer à regarder plus rapidement après l'ouverture du lecteur.\n\nQuand est-ce utile :\n\n• Vous souhaitez démarrer la lecture le plus rapidement possible.\n\n• Vous n'avez pas de problème de vitesse de téléchargement ; il est donc inutile d'attendre que le tampon soit plein.\n\n« Démarrer la lecture » peut être supérieur à « Taille du tampon », c'est-à-dire que les deux peuvent être inversés. C'est utile lorsque « Démarrer la lecture » est élevé (par exemple plus de 10 s) et que le « débit de téléchargement » (voir les statistiques) ne dépasse pas beaucoup le « débit du flux » (par exemple, pas plus du double)."
 	},
-	"F0524":
-	{
+	"F0524": {
 		"message": "Réinitialiser"
 	},
-	"A0525":
-	{
+	"A0525": {
 		"message": "Réinitialiser l'extension aux paramètres par défaut"
 	},
-	"F0526":
-	{
+	"F0526": {
 		"message": "Statistiques"
 	},
-	"A0527":
-	{
+	"A0527": {
 		"message": "Afficher les statistiques du lecteur.\nVous pouvez également cliquer sur l'heure dans le coin inférieur gauche du lecteur.",
 		"description": "Copy of A0507."
 	},
-	"F0528":
-	{
+	"F0528": {
 		"message": "Envoyer un commentaire",
 		"description": "Menu item. Copy of F1510."
 	},
-	"A0529":
-	{
+	"A0529": {
 		"message": "Vous avez trouvé un bogue dans l'extension Alternate Player for Twitch.tv ? Vous avez des idées pour l'améliorer ? Envoyez vos commentaires au développeur de l'extension."
 	},
-	"F0530":
-	{
+	"F0530": {
 		"message": "Merci de soutenir",
 		"description": "Copy of F1000."
 	},
-	"A0531":
-	{
+	"A0531": {
 		"message": "Si vous aimez l'extension Alternate Player for Twitch.tv, vous pouvez remercier le développeur en lui faisant un don. Ce don constituera également une excellente motivation pour poursuivre le développement de l'extension."
 	},
-	"A0532":
-	{
+	"A0532": {
 		"message": "Faites glisser pour redimensionner le chat.\nD'autres options sont disponibles dans les paramètres du lecteur."
 	},
-	"F0533":
-	{
+	"F0533": {
 		"message": "Durée du replay instantané, secondes"
 	},
-	"A0534":
-	{
+	"A0534": {
 		"message": "Le lecteur mémorise le nombre de secondes de diffusion indiqué. À tout moment, vous pouvez mettre la diffusion en pause pour revoir ces secondes.\n\nPlus la durée est grande, plus l'utilisation de la mémoire est importante. De toute façon, l'utilisation maximale de la mémoire ne dépassera pas 150 mégaoctets dans Chrome ni 100 mégaoctets dans Firefox.\n\nDurée maximale (cliquez sur « + » ou « − » jusqu'au mot « Maximal ») — supprime la limite de temps, ne laissant que la limite de mémoire.",
 		"description": "Variant for Chrome and Firefox. A0578 for Edge."
 	},
-	"A0535":
-	{
+	"A0535": {
 		"message": "Les dernières secondes de la diffusion. La durée peut être modifiée dans les paramètres.\nPour revenir en arrière, cliquez avec le bouton gauche ou appuyez sur J, MAJ+J, FLÈCHE GAUCHE, MAJ+FLÈCHE GAUCHE, L, MAJ+L, FLÈCHE DROITE, MAJ+FLÈCHE DROITE."
 	},
-	"A0536":
-	{
+	"A0536": {
 		"message": "Modifier la vitesse de lecture.\nLes touches de 0 à 9, PLUS et MOINS du clavier.\nLes performances de votre ordinateur peuvent être insuffisantes pour une lecture à la vitesse maximale."
 	},
-	"F0537":
-	{
+	"F0537": {
 		"message": "Dépassement du tampon, secondes"
 	},
-	"A0538":
-	{
+	"A0538": {
 		"message": "Si la durée de la vidéo dans le tampon dépasse la somme « Taille du tampon » + « Dépassement du tampon », une partie de cette vidéo sera supprimée (voir « Dépassements du tampon » dans les statistiques) et l'icône rouge des ciseaux s'affichera dans le coin supérieur droit du lecteur.\n\nDiminuez ce paramètre pour limiter le délai maximal du flux. Augmentez-le pour éviter de sauter des parties de la vidéo."
 	},
-	"F0539":
-	{
+	"F0539": {
 		"message": "Résolution",
 		"description": "Statistics parameter name."
 	},
-	"F0540":
-	{
+	"F0540": {
 		"message": "Vidéo",
 		"description": "Statistics parameter name."
 	},
-	"F0541":
-	{
+	"F0541": {
 		"message": "Audio",
 		"description": "Statistics parameter name."
 	},
-	"F0542":
-	{
+	"F0542": {
 		"message": "Serveur",
 		"description": "Statistics parameter name."
 	},
-	"F0543":
-	{
+	"F0543": {
 		"message": "File d'attente, s",
 		"description": "Statistics parameter name."
 	},
-	"F0544":
-	{
+	"F0544": {
 		"message": "Liste de lecture, s",
 		"description": "Statistics parameter name."
 	},
-	"F0545":
-	{
+	"F0545": {
 		"message": "Intervalle d'interrogation, s",
 		"description": "Statistics parameter name."
 	},
-	"F0546":
-	{
+	"F0546": {
 		"message": "Segments ajoutés",
 		"description": "Statistics parameter name."
 	},
-	"F0547":
-	{
+	"F0547": {
 		"message": "Secondes ajoutées",
 		"description": "Statistics parameter name."
 	},
-	"F0548":
-	{
+	"F0548": {
 		"message": "Débit du flux, Mbit/s",
 		"description": "Statistics parameter name."
 	},
-	"F0549":
-	{
+	"F0549": {
 		"message": "Débit de téléchargement, Mbit/s",
 		"description": "Statistics parameter name."
 	},
-	"F0550":
-	{
+	"F0550": {
 		"message": "Délai avant le premier octet, s",
 		"description": "Statistics parameter name."
 	},
-	"F0551":
-	{
+	"F0551": {
 		"message": "Remux, ms",
 		"description": "Statistics parameter name."
 	},
-	"F0552":
-	{
+	"F0552": {
 		"message": "Délai du flux, s",
 		"description": "Statistics parameter name."
 	},
-	"F0554":
-	{
+	"F0554": {
 		"message": "Durée de visionnage",
 		"description": "Statistics parameter name."
 	},
-	"F0555":
-	{
+	"F0555": {
 		"message": "Total téléchargé, Mo",
 		"description": "Statistics parameter name."
 	},
-	"F0556":
-	{
+	"F0556": {
 		"message": "Images ignorées",
 		"description": "Statistics parameter name."
 	},
-	"F0557":
-	{
+	"F0557": {
 		"message": "Segments incomplets",
 		"description": "Statistics parameter name."
 	},
-	"F0558":
-	{
+	"F0558": {
 		"message": "Erreurs de téléchargement",
 		"description": "Statistics parameter name."
 	},
-	"F0559":
-	{
+	"F0559": {
 		"message": "Dépassements du tampon",
 		"description": "Statistics parameter name."
 	},
-	"F0560":
-	{
+	"F0560": {
 		"message": "Sous-remplissages du tampon",
 		"description": "Statistics parameter name."
 	},
-	"F0561":
-	{
+	"F0561": {
 		"message": "Lecture",
 		"description": "Settings group."
 	},
-	"F0562":
-	{
+	"F0562": {
 		"message": "Couleurs",
 		"description": "Settings group."
 	},
-	"F0563":
-	{
+	"F0563": {
 		"message": "Mise en mémoire tampon",
 		"description": "Settings group."
 	},
-	"F0564":
-	{
+	"F0564": {
 		"message": "Thème de couleurs du lecteur"
 	},
-	"A0565":
-	{
+	"A0565": {
 		"message": "Pour définir vos propres couleurs, sélectionnez le thème adapté, puis ouvrez le groupe de paramètres « Couleurs ». Toutes les modifications seront enregistrées dans le thème « Personnalisable »."
 	},
-	"F0566":
-	{
+	"F0566": {
 		"message": "Couleur de l'arrière-plan"
 	},
-	"F0567":
-	{
+	"F0567": {
 		"message": "Couleur des boutons"
 	},
-	"F0568":
-	{
+	"F0568": {
 		"message": "Couleur des en-têtes"
 	},
-	"F0569":
-	{
+	"F0569": {
 		"message": "Couleur de surbrillance"
 	},
-	"F0570":
-	{
+	"F0570": {
 		"message": "Transparence, %"
 	},
-	"F0571":
-	{
+	"F0571": {
 		"message": "Vérifier"
 	},
-	"A0572":
-	{
+	"A0572": {
 		"message": "Vérifiez la lisibilité des éléments de l'interface et la lisibilité du texte.\n\nPour conserver l'arrière-plan intact, cliquez sur ce bouton tout en maintenant la touche MAJ du clavier enfoncée."
 	},
-	"F0573":
-	{
+	"F0573": {
 		"message": "Remplissage du tampon, s",
 		"description": "Statistics parameter name."
 	},
-	"F0574":
-	{
+	"F0574": {
 		"message": "Modifier le volume avec la molette de la souris"
 	},
-	"A0575":
-	{
+	"A0575": {
 		"message": "Appuyer sur la molette de la souris coupe le son. Faire tourner la molette (et parfois un glissement vertical) modifie le volume du pourcentage indiqué.\n\n« Couper uniquement le son » — ne traite que l'appui sur la molette et ignore sa rotation.",
 		"description": "Copy of F0679."
 	},
-	"F0576":
-	{
+	"F0576": {
 		"message": "Non"
 	},
-	"F0577":
-	{
+	"F0577": {
 		"message": "Oui"
 	},
-	"A0578":
-	{
+	"A0578": {
 		"message": "Le lecteur mémorise le nombre de secondes de diffusion indiqué. À tout moment, vous pouvez mettre la diffusion en pause pour revoir ces secondes.\n\nPlus la durée est grande, plus l'utilisation de la mémoire est importante.",
 		"description": "Variant for Edge. A0534 for Chrome and Firefox."
 	},
-	"F0579":
-	{
+	"F0579": {
 		"message": "Couleur du dégradé"
 	},
-	"F0580":
-	{
+	"F0580": {
 		"message": "Qualité de la connexion"
 	},
-	"A0581":
-	{
+	"A0581": {
 		"message": "Bon — la vitesse de téléchargement est toujours suffisante pour la qualité vidéo sélectionnée (voir la description du paramètre « Qualité vidéo »). Choisissez cette option pour faciliter l'utilisation du chat (voir la description du paramètre « Taille du tampon »).\n\nModéré — la vitesse de téléchargement descend parfois sous le niveau souhaité (voir « Débit de téléchargement » dans les statistiques). C'est l'option la plus universelle.\n\nMauvais — la vitesse de téléchargement descend souvent sous le niveau souhaité, ou certains segments ne peuvent pas être téléchargés en raison d'erreurs réseau (voir « Erreurs de téléchargement » dans les statistiques). Choisissez cette option pour réduire le nombre d'interruptions de lecture.\n\nPersonnalisable — vous avez modifié les paramètres du groupe « Mise en mémoire tampon »."
 	},
-	"F0582":
-	{
+	"F0582": {
 		"message": "Langue de la diffusion :"
 	},
-	"F0583":
-	{
+	"F0583": {
 		"message": "Abonnés :"
 	},
-	"F0585":
-	{
+	"F0585": {
 		"message": "Chaîne créée :"
 	},
-	"F0588":
-	{
+	"F0588": {
 		"message": "Équipe :"
 	},
-	"F0589":
-	{
+	"F0589": {
 		"message": "Vous :"
 	},
-	"F0590":
-	{
+	"F0590": {
 		"message": "devez <a href='https://www.twitch.tv/login' rel='noopener noreferrer'>vous connecter au site Twitch.tv</a> pour suivre une chaîne, discuter, créer des clips, gagner des points de chaîne et des récompenses"
 	},
-	"F0591":
-	{
+	"F0591": {
 		"message": "Suivre"
 	},
-	"A0592":
-	{
+	"A0592": {
 		"message": "Cliquez pour commencer à suivre cette chaîne.\n\nPour suivre vos chaînes favorites, passer rapidement de l'une à l'autre et rechercher de nouvelles chaînes, je vous recommande d'installer l'extension de navigateur « Twitch Now »."
 	},
-	"F0593":
-	{
+	"F0593": {
 		"message": "Ne plus suivre"
 	},
-	"A0594":
-	{
+	"A0594": {
 		"message": "Cliquez pour ne plus suivre cette chaîne"
 	},
-	"A0595":
-	{
+	"A0595": {
 		"message": "Cochez cette case pour recevoir des informations sur l'activité de cette chaîne, y compris lorsqu'elle passe en direct",
 		"description": "Text copied from the Twitch.tv website"
 	},
-	"A0597":
-	{
+	"A0597": {
 		"message": "Ouvrir ou fermer les informations sur cette chaîne.\nLa touche I du clavier."
 	},
-	"A0599":
-	{
+	"A0599": {
 		"message": "Afficher les informations importantes.\nLa touche F1 du clavier."
 	},
-	"F0600":
-	{
+	"F0600": {
 		"message": "Le clic droit active/désactive le démarrage<br>automatique du lecteur alternatif.&ensp;Le clic<br>gauche démarre le lecteur alternatif."
 	},
-	"F0604":
-	{
+	"F0604": {
 		"message": "Tous les paramètres"
 	},
-	"F0605":
-	{
+	"F0605": {
 		"message": "Exporter"
 	},
-	"A0606":
-	{
+	"A0606": {
 		"message": "Enregistrer tous les paramètres de l'extension dans un fichier"
 	},
-	"F0607":
-	{
+	"F0607": {
 		"message": "Importer"
 	},
-	"A0608":
-	{
+	"A0608": {
 		"message": "Restaurer tous les paramètres de l'extension depuis le fichier"
 	},
-	"F0609":
-	{
+	"F0609": {
 		"message": "Interface",
 		"description": "Settings group."
 	},
-	"F0610":
-	{
+	"F0610": {
 		"message": "Taille de l'interface, %"
 	},
-	"A0611":
-	{
+	"A0611": {
 		"message": "Taille de l'interface du lecteur : boutons, texte, etc. N'influe pas sur la taille de la vidéo."
 	},
-	"F0612":
-	{
+	"F0612": {
 		"message": "Animation de l'interface"
 	},
-	"A0613":
-	{
+	"A0613": {
 		"message": "Vous pouvez désactiver l'animation de l'interface du lecteur sur un ordinateur lent, comme une tablette"
 	},
-	"F0614":
-	{
+	"F0614": {
 		"message": "Thème de couleurs du chat"
 	},
-	"A0615":
-	{
+	"A0615": {
 		"message": "Permet d'activer le mode sombre dans le chat. Ce paramètre ne concerne que le chat intégré au lecteur."
 	},
-	"F0616":
-	{
+	"F0616": {
 		"message": "Clair"
 	},
-	"F0617":
-	{
+	"F0617": {
 		"message": "Sombre"
 	},
-	"A0618":
-	{
+	"A0618": {
 		"message": "Faites défiler vers le bas pour voir plus de contenu"
 	},
-	"F0619":
-	{
+	"F0619": {
 		"message": "J'ai lu et compris"
 	},
-	"A0620":
-	{
+	"A0620": {
 		"message": "Ne plus afficher cette actualité.\n\nPour voir toutes les actualités, cliquez sur « Dernières actualités » dans le menu du lecteur.",
 		"description": "Copy of A0620."
 	},
-	"F0621":
-	{
+	"F0621": {
 		"message": "Je lirai plus tard"
 	},
-	"A0622":
-	{
+	"A0622": {
 		"message": "Fermer temporairement cette fenêtre"
 	},
-	"F0623":
-	{
+	"F0623": {
 		"message": "Emplacement du chat"
 	},
-	"A0624":
-	{
+	"A0624": {
 		"message": "Choisissez le côté de la fenêtre du navigateur où placer le chat. « Auto » — choisit automatiquement l'un des deux côtés indiqués selon le format de la fenêtre.\n\nLa combinaison CTRL+U du clavier."
 	},
-	"F0625":
-	{
+	"F0625": {
 		"message": "Aide",
 		"description": "Menu item. Copy of F1501."
 	},
-	"F0626":
-	{
+	"F0626": {
 		"message": "Chat"
 	},
-	"F0627":
-	{
+	"F0627": {
 		"message": "Masquer après inactivité, s"
 	},
-	"A0628":
-	{
+	"A0628": {
 		"message": "L'interface du lecteur sera masquée si vous ne touchez pas à la souris pendant la durée indiquée"
 	},
-	"F0629":
-	{
+	"F0629": {
 		"message": "Chat fermé",
 		"description": "Setting name. Copy of F1065."
 	},
-	"A0630":
-	{
+	"A0630": {
 		"message": "Choisissez comment fermer le chat. Si le chat est déchargé :\n• Il ne reçoit pas de messages.\n• Vous ne figurez pas dans la liste des participants au chat.\n• Les coffres contenant des points bonus ne s'ouvrent pas.\n• La réouverture du chat prend plus de temps.\nSi le chat est masqué :\n• Il continue de consommer une quantité importante de ressources de l'ordinateur (processeur et mémoire vive).\n• Les coffres contenant des points bonus s'ouvrent automatiquement.\n• Au démarrage du lecteur, la lecture de la vidéo met plus de temps à commencer."
 	},
-	"F0631":
-	{
+	"F0631": {
 		"message": "Décharger"
 	},
-	"F0632":
-	{
+	"F0632": {
 		"message": "Masquer"
 	},
-	"F0633":
-	{
+	"F0633": {
 		"message": "Notifier"
 	},
-	"F0634":
-	{
+	"F0634": {
 		"message": "Sortie audio"
 	},
-	"A0635":
-	{
+	"A0635": {
 		"message": "Sélectionnez le périphérique de sortie audio. Ce paramètre est masqué si un seul périphérique audio est disponible."
 	},
-	"F0636":
-	{
+	"F0636": {
 		"message": "Accorder l'autorisation"
 	},
-	"A0637":
-	{
+	"A0637": {
 		"message": "Avant de sélectionner un périphérique de sortie audio, vous devez cliquer sur ce bouton et accorder à l'extension une autorisation supplémentaire pour modifier les paramètres du microphone (le mot « microphone » désigne à la fois l'entrée et la sortie audio)."
 	},
-	"F0640":
-	{
+	"F0640": {
 		"message": "Découvrir"
 	},
-	"F0641":
-	{
+	"F0641": {
 		"message": "Toutes les catégories"
 	},
-	"F0642":
-	{
+	"F0642": {
 		"message": "Abonnements"
 	},
-	"F0643":
-	{
+	"F0643": {
 		"message": "Chaînes suivies"
 	},
-	"F0644":
-	{
+	"F0644": {
 		"message": "Catégories suivies"
 	},
-	"F0645":
-	{
+	"F0645": {
 		"message": "Mes clips"
 	},
-	"F0646":
-	{
+	"F0646": {
 		"message": "Paramètres des notifications"
 	},
-	"A0647":
-	{
+	"A0647": {
 		"message": "Cliquez pour ouvrir les paramètres des notifications sur le site Twitch.tv"
 	},
-	"F0648":
-	{
+	"F0648": {
 		"message": "Version du chat"
 	},
-	"A0649":
-	{
+	"A0649": {
 		"message": "Complète — identique au chat détaché du site Twitch.tv. Les messages privés ne fonctionnent pas encore dans le chat. Si vous devez activer ou désactiver le mode sombre, faites-le sur le site Twitch.tv.\n\nRéduite — pas de salons, ni de paramètres de modération, ni de raids, ni de Bits ; il faut parfois confirmer l'envoi du premier message. Utilisez cette version si la version complète ne fonctionne pas correctement. Pour activer les icônes de modération intégrées, cochez l'option « Mod Icons » dans les paramètres du chat sur le site Twitch.tv."
 	},
-	"F0650":
-	{
+	"F0650": {
 		"message": "Complète"
 	},
-	"F0651":
-	{
+	"F0651": {
 		"message": "Réduite"
 	},
-	"F0652":
-	{
+	"F0652": {
 		"message": "Réduite ; mode sombre"
 	},
-	"F0653":
-	{
+	"F0653": {
 		"message": "Copier l'adresse de la chaîne"
 	},
-	"A0654":
-	{
+	"A0654": {
 		"message": "Copiez dans le presse-papiers l'adresse de cette chaîne pour la partager avec d'autres personnes, créer un favori dans le navigateur, etc."
 	},
-	"F0655":
-	{
+	"F0655": {
 		"message": "Copier l'adresse de la diffusion"
 	},
-	"A0656":
-	{
+	"A0656": {
 		"message": "Copiez dans le presse-papiers l'adresse de cette diffusion pour la regarder dans un autre lecteur prenant en charge HLS, par exemple Media Player Classic, VLC Media Player ou MX Player. L'extraction de l'adresse peut prendre plusieurs secondes. L'adresse copiée expirera dans 20 minutes."
 	},
-	"F0657":
-	{
+	"F0657": {
 		"message": "Étirer les petites vidéos"
 	},
-	"A0658":
-	{
+	"A0658": {
 		"message": "Ce paramètre agit lorsque la résolution de la vidéo (voir les statistiques) est inférieure à la taille du lecteur. S'il est activé, la vidéo est étirée à la taille du lecteur (en conservant le format d'image). S'il est désactivé, la vidéo de taille originale est centrée dans le lecteur et l'espace inutilisé est rempli par un fond noir.\n\nSi la diffusion contient beaucoup de texte ou de petits détails, vous pouvez désactiver l'étirement pour éviter qu'ils ne deviennent flous.\n\nSi la page est zoomée, le navigateur modifiera la taille de la vidéo même lorsque le paramètre est désactivé.\n\nLa combinaison CTRL+I du clavier."
 	},
-	"A0660":
-	{
+	"A0660": {
 		"message": "Ouvrir ou fermer le menu.\nLa touche X ou MENU du clavier."
 	},
-	"F0661":
-	{
+	"F0661": {
 		"message": "Dernières actualités",
 		"description": "Menu item. Copy of A0620."
 	},
-	"A0662":
-	{
+	"A0662": {
 		"message": "Dernières actualités concernant l'extension"
 	},
-	"F0663":
-	{
+	"F0663": {
 		"message": "Fermer",
 		"description": "Button that closes something, such as a window"
 	},
-	"F0664":
-	{
+	"F0664": {
 		"message": "Revoir cette diffusion",
 		"description": "Menu item. Copy of J0149 F1058."
 	},
-	"A0665":
-	{
+	"A0665": {
 		"message": "Lien vers l'enregistrement de cette diffusion. Utilisez-le pour reprendre le visionnage plus tard ou pour partager un moment intéressant avec d'autres personnes. Vous pouvez également cliquer sur ce lien avec le bouton droit."
 	},
-	"A0666":
-	{
+	"A0666": {
 		"message": "Fermer"
 	},
-	"A0667":
-	{
+	"A0667": {
 		"message": "Déplacer"
 	},
-	"F0668":
-	{
+	"F0668": {
 		"message": "<strong>La version de l'extension installée Alternate Player for Twitch.tv est obsolète.</strong> Si vous avez déjà vu ce message, la mise à jour automatique de l'extension ne fonctionne probablement pas."
 	},
-	"F0669":
-	{
+	"F0669": {
 		"message": "Masquage des publicités"
 	},
-	"F0670":
-	{
+	"F0670": {
 		"message": "Publicités masquées"
 	},
-	"A0671":
-	{
+	"A0671": {
 		"message": "Le nombre de publicités Twitch masquées par le lecteur.\n[ Durée des publicités en secondes, la dernière publicité à droite <Elapsed time between ads> ]"
 	},
-	"A0672":
-	{
+	"A0672": {
 		"message": "Activer ou désactiver le mode image dans l'image.\nLa combinaison MAJ+ENTRÉE du clavier."
 	},
-	"F0679":
-	{
+	"F0679": {
 		"message": "Couper uniquement le son",
 		"description": "Copy of A0575."
 	},
-	"F0680":
-	{
+	"F0680": {
 		"message": "Autoriser un volume supérieur à 100 %"
 	},
-	"A0681":
-	{
+	"A0681": {
 		"message": "Étend le curseur de volume jusqu'à 200 %. Utile pour les flux silencieux. Les valeurs supérieures à 100 % sont amplifiées par le navigateur et peuvent provoquer des distorsions."
 	},
-	"F0682":
-	{
+	"F0682": {
 		"message": "Suivre les raids"
 	},
-	"A0683":
-	{
+	"A0683": {
 		"message": "Lorsque la chaîne que vous regardez lance un raid vers une autre chaîne, le lecteur bascule vers la chaîne cible. Nécessite le chargement du panneau de chat."
 	},
-	"F0700":
-	{
+	"F0700": {
 		"message": "Envoyer un message au développeur de l'extension <cite>Alternate Player for Twitch.tv</cite>",
 		"description": "Title of the feedback form."
 	},
-	"F0701":
-	{
+	"F0701": {
 		"message": "Si vous souhaitez signaler un problème de lecture, lancez d'abord le lecteur standard de Twitch.tv (rechargez cette page, puis cliquez sur le titre de la diffusion dans le coin supérieur gauche). Si le problème persiste, il est inutile de le signaler. Le développeur de l'extension <cite>Alternate Player for Twitch.tv</cite> n'est pas affilié aux propriétaires de <cite>Twitch.tv</cite> et ne peut pas agir sur le fonctionnement de leur site Web ni sur la qualité des diffusions."
 	},
-	"F0702":
-	{
+	"F0702": {
 		"message": "Que souhaitez-vous signaler ? Veuillez écrire en détail : les phrases « le chat ne fonctionne pas » et « la vidéo n'est pas fluide » sont inutiles. Si vous trouvez un problème, indiquez les étapes qui me ​permettront de le reproduire sur mon ordinateur. Si vous souhaitez ajouter une fonctionnalité à l'extension, expliquez ses avantages."
 	},
-	"F0703":
-	{
+	"F0703": {
 		"message": "Vous pouvez indiquer votre adresse e-mail afin que le développeur puisse vous répondre (par exemple pour demander plus d'informations, ce qui arrive assez souvent). Si vous ne souhaitez pas communiquer votre adresse, laissez ce champ vide."
 	},
-	"F0704":
-	{
+	"F0704": {
 		"message": "Les données de débogage seront envoyées avec le texte que vous avez saisi."
 	},
-	"F0705":
-	{
+	"F0705": {
 		"message": "Afficher les données de débogage"
 	},
-	"F0706":
-	{
+	"F0706": {
 		"message": "Politique de confidentialité"
 	},
-	"F0707":
-	{
+	"F0707": {
 		"message": "Envoyer",
 		"description": "Button to send data."
 	},
-	"F0708":
-	{
+	"F0708": {
 		"message": "Envoyer un rapport d'erreur au développeur de l'extension <cite>Alternate Player for Twitch.tv</cite>",
 		"description": "Title of the error report form."
 	},
-	"F0710":
-	{
+	"F0710": {
 		"message": "<strong>Vérifiez que vous utilisez la dernière version de l'extension.</strong> De plus, ne désactivez pas les mises à jour du navigateur : les nouvelles versions améliorent constamment la lecture vidéo. Des erreurs fréquentes peuvent être causées par une mauvaise configuration du matériel ou des logiciels (commencez par vérifier les paramètres du navigateur)."
 	},
-	"F0712":
-	{
+	"F0712": {
 		"message": "Une erreur s'est produite dans l'extension. Veuillez envoyer les données de débogage au développeur de l'extension afin qu'il puisse corriger cette erreur. Si nécessaire, quelques secondes de la vidéo seront ajoutées aux données de débogage."
 	},
-	"F0715":
-	{
+	"F0715": {
 		"message": "Si vous connaissez la cause ou la suite d'actions ayant conduit à l'erreur, décrivez-les brièvement."
 	},
-	"F0717":
-	{
+	"F0717": {
 		"message": "Envoi des données",
 		"description": "The <progress> element next to this text shows sending progress."
 	},
-	"F0718":
-	{
+	"F0718": {
 		"message": "Annuler",
 		"description": "Button to cancel or interrupt data sending."
 	},
-	"F0719":
-	{
+	"F0719": {
 		"message": "Échec de l'envoi des données <b>:(</b>"
 	},
-	"F0720":
-	{
+	"F0720": {
 		"message": "Réessayer",
 		"description": "Button to resend data."
 	},
-	"F0723":
-	{
+	"F0723": {
 		"message": "Si la traduction anglaise est incorrecte ou manquante, veuillez indiquer la version correcte ci-dessous. Vous pouvez également <a href='https://coolcmd.github.io/tw5/translate.html' target='_blank' rel='noopener noreferrer'>le faire vous-même</a>, sans l'aide du développeur de l'extension."
 	},
-	"F0726":
-	{
+	"F0726": {
 		"message": "Le chat intégré est développé par Twitch.tv. L'extension se contente de l'insérer dans son lecteur. Ce chat présente certaines limites par rapport à la version utilisée sur le site Twitch.tv. Les serveurs qui hébergent le chat peuvent cesser de fonctionner pour des raisons indépendantes de la volonté du développeur de l'extension. Cela arrive relativement rarement (du moins dans ma ville)."
 	},
-	"F0727":
-	{
+	"F0727": {
 		"message": "L'extension, et surtout le chat, peut être perturbée par : les paramètres du navigateur (cookies), d'autres extensions de navigateur, les bloqueurs de publicités, les pare-feu et les antivirus. Pour diagnostiquer un problème, essayez de désactiver temporairement tous ces éléments."
 	},
-	"F0728":
-	{
+	"F0728": {
 		"message": "<b>Si vous ne recevez pas de réponse depuis longtemps, cherchez dans vos courriers indésirables le message portant l'objet « Alternate Player for Twitch.tv ».</b>"
 	},
-	"F0729":
-	{
+	"F0729": {
 		"message": "Les données ont été refusées. La version de l'extension installée est obsolète ! Veuillez mettre à jour l'extension."
 	},
-	"F0730":
-	{
+	"F0730": {
 		"message": "Les données ont été refusées. Votre navigateur n'est plus pris en charge par l'extension ! Veuillez mettre à jour votre navigateur ou supprimer l'extension."
 	},
-	"J0731":
-	{
+	"J0731": {
 		"message": "Regarder cette diffusion sur le site Twitch.tv"
 	},
-	"F1000":
-	{
+	"F1000": {
 		"message": "<p>L'extension de navigateur <cite>Alternate Player for Twitch.tv</cite> a été créée par le développeur indépendant <cite>Alexander Choporov (CoolCmd)</cite>, ce qui lui a pris beaucoup de temps libre. L'extension est gratuite. Si vous l'aimez, vous pouvez remercier le développeur en lui faisant un don. Ce don constituera également une excellente motivation pour poursuivre le développement de l'extension.</p><p>Pour faire un don, cliquez sur <a href='https://coolcmd.github.io/tw5/donate.html' target='_blank' rel='noopener noreferrer'>ce lien</a>.</p>",
 		"description": "News item."
 	},
-	"J1003":
-	{
+	"J1003": {
 		"message": "Merci de soutenir !",
 		"description": "News title."
 	},
-	"J1010":
-	{
+	"J1010": {
 		"message": "Modifications dans la nouvelle version de l'extension",
 		"description": "News title."
 	},
-	"F1011":
-	{
+	"F1011": {
 		"message": "<p>La possibilité de <a href='https://help.twitch.tv/customer/en/portal/articles/2442508-how-to-use-clips' target='_blank' rel='noopener noreferrer'>créer et partager des clips</a> a été ajoutée au lecteur. Avant de cliquer sur le bouton correspondant, veuillez lire son infobulle.</p>",
 		"description": "News item."
 	},
-	"F1012":
-	{
+	"F1012": {
 		"message": "<p>Dans les paramètres du lecteur, vous pouvez choisir les couleurs de son interface. Pour l'instant, seuls deux thèmes sont disponibles. Pour en augmenter le nombre, lisez l'infobulle.</p>",
 		"description": "News item."
 	},
-	"F1013":
-	{
+	"F1013": {
 		"message": "<p>Désormais, l'extension <cite>FrankerFaceZ</cite> fonctionne dans le chat. De plus, le problème rencontré avec l'extension <cite>BetterTTV</cite> dans <cite>Chrome</cite> a été corrigé.</p>",
 		"description": "News item."
 	},
-	"F1014":
-	{
+	"F1014": {
 		"message": "<p>Désormais, le lecteur ne se lance depuis le site Twitch.tv que sur les chaînes en direct.</p><p>Ajout de la possibilité d'augmenter la vitesse de lecture du replay instantané.</p><p>Ajout de la possibilité de couper le son et de modifier le volume avec la molette de la souris. Vous pouvez désactiver cette fonctionnalité dans les paramètres du lecteur.</p><p>Ajout de la possibilité de lire/mettre en pause le replay instantané en cliquant sur la zone de visionnage.</p><p>Ajout de raccourcis clavier qui permettent de couper le son et de modifier progressivement la vitesse de lecture du replay instantané.</p><p>Les raccourcis clavier de certaines commandes ont été modifiés pour faciliter leur utilisation sur les ordinateurs portables. Les raccourcis sont indiqués dans les infobulles.</p><p>Et la mauvaise nouvelle : en raison de modifications sur le serveur de Twitch, l'extension ne « ressuscite » plus l'audio des diffusions passées.</p>",
 		"description": "News item."
 	},
-	"F1017":
-	{
+	"F1017": {
 		"message": "<p><a href='https://microsoftedge.microsoft.com/addons/detail/aojjiodaaogdbbcnbpjnojilccopgcbk' target='_blank' rel='noopener noreferrer'>Installez</a>, notez et commentez. :)</p><p>De plus, le thème de couleurs « Noir et blanc » a été ajouté.</p>",
 		"description": "News item."
 	},
-	"F1018":
-	{
+	"F1018": {
 		"message": "<p>Ajout d'un paramètre pour sélectionner rapidement la qualité de la connexion Internet.</p><p>Ajout d'un paramètre pour modifier la couleur du dégradé.</p><p><cite>Chrome</cite> : ajout de la prise en charge de l'extension <a href='https://chrome.google.com/webstore/detail/aiimboljphncldaakcnapfolgnjonlea' target='_blank' rel='noopener noreferrer'><cite>FFZ Add-On Pack</cite></a>.</p>",
 		"description": "News item."
 	},
-	"F1020":
-	{
+	"F1020": {
 		"message": "<p>Ajout d'informations succinctes sur la chaîne que vous regardez, avec la possibilité de la suivre ou non. Pour afficher ces informations, cliquez sur l'icône dans le coin supérieur droit du lecteur ou appuyez sur la touche <kbd>I</kbd> du clavier. Pour suivre vos chaînes et en découvrir de nouvelles, je vous recommande d'installer l'extension de navigateur <a href='https://chrome.google.com/webstore/detail/nlmbdmpjmlijibeockamioakdpmhjnpk' target='_blank' rel='noopener noreferrer'><cite>Twitch Now</cite></a>.</p><p>Ajout d'un indicateur de rediffusion : l'icône dans le coin supérieur gauche du lecteur.</p><p>Un appui sur l'écran tactile affiche l'interface du lecteur.</p>",
 		"description": "News item."
 	},
-	"F1023":
-	{
+	"F1023": {
 		"message": "<p>Un indicateur de diffusion en direct a été ajouté dans le coin supérieur gauche du lecteur. Cliquez dessus pour regarder la diffusion depuis le début. Cette fonctionnalité n'est pas disponible sur toutes les chaînes.</p>",
 		"description": "News item."
 	},
-	"J1030":
-	{
+	"J1030": {
 		"message": "Créez des clips et partagez-les avec tout le monde",
 		"description": "News title."
 	},
-	"J1031":
-	{
+	"J1031": {
 		"message": "Personnalisez les couleurs du lecteur",
 		"description": "News title."
 	},
-	"J1035":
-	{
+	"J1035": {
 		"message": "L'extension « Alternate Player for Twitch.tv » est disponible pour le navigateur Microsoft Edge",
 		"description": "News title."
 	},
-	"J1036":
-	{
+	"J1036": {
 		"message": "Correction du chat",
 		"description": "News title."
 	},
-	"F1037":
-	{
+	"F1037": {
 		"message": "<p>Vous pouvez placer le chat sur le côté gauche du lecteur.</p>",
 		"description": "News item."
 	},
-	"F1038":
-	{
+	"F1038": {
 		"message": "<p>Chrome 62 (et ses clones) n'est pas entièrement compatible avec Windows 10 : après avoir minimisé la fenêtre ou changé d'onglet, une erreur de lecture vidéo peut survenir. Dans ce cas, je vous recommande de désactiver le décodage vidéo matériel jusqu'à ce que Google corrige le problème.</p>",
 		"description": "News item."
 	},
-	"J1039":
-	{
+	"J1039": {
 		"message": "L'extension est désormais compatible avec les futures versions de Firefox",
 		"description": "News title."
 	},
-	"F1040":
-	{
+	"F1040": {
 		"message": "<p>Quelques inconvénients de cette transition :</p><ul><li>L'adresse du lecteur a changé (vérifiez vos favoris). L'adresse du lecteur changera après chaque réinstallation de l'extension.<li>Les paramètres du lecteur ont peut-être été perdus.<li>De nouveaux bogues peuvent apparaître.</ul>",
 		"description": "News item."
 	},
-	"J1041":
-	{
+	"J1041": {
 		"message": "Le nom de l'extension a changé",
 		"description": "News title."
 	},
-	"F1042":
-	{
+	"F1042": {
 		"message": "<p>Il y a quelque temps, Google a retiré l'extension de son Web Store, car les propriétaires du site Twitch.tv n'aimaient pas son nom. J'ai donc décidé de renommer l'extension de <cite>Twitch 5</cite> en <cite>Alternate Player for Twitch.tv</cite>. Rien d'autre n'a été modifié. L'extension est toujours développée par <cite>Alexander Choporov (CoolCmd)</cite>. Elle est disponible sur le Google Web Store à la <a href='https://chrome.google.com/webstore/detail/bhplkbgoehhhddaoolmakpocnenplmhf' target='_blank' rel='noopener noreferrer'>nouvelle adresse</a>.</p>",
 		"description": "News item."
 	},
-	"F1043":
-	{
+	"F1043": {
 		"message": "<p>Ajout de la possibilité d'exporter et d'importer les paramètres de l'extension vers un fichier. Vous ne perdrez plus vos paramètres après une réinstallation de l'extension ou un changement de navigateur. Vous pouvez également partager vos paramètres avec d'autres personnes.</p>",
 		"description": "News item."
 	},
-	"F1044":
-	{
+	"F1044": {
 		"message": "<p>Ajout de paramètres pour modifier la taille de l'interface et désactiver l'animation.</p><p>Un clic sur la durée de la diffusion affiche les statistiques du lecteur.</p><p>Sur le site Twitch.tv, deux boutons ont été fusionnés en un seul, toujours situé dans le coin supérieur droit du site. Un clic droit sur le bouton active ou désactive le démarrage automatique du lecteur. Un clic gauche démarre le lecteur (si possible).</p><p>Ajout de la prise en charge du <a href='https://m.twitch.tv/' target='_blank' rel='noopener noreferrer'>site Web pour appareils mobiles</a>. Pour l'instant, seul <a href='https://play.google.com/store/apps/details?id=org.mozilla.firefox' target='_blank' rel='noopener noreferrer'>Firefox pour Android</a> peut exécuter mon extension. La prise en charge de l'écran tactile n'est pas encore idéale. De toute façon, sur les tablettes, les gens regardent les diffusions dans l'application Twitch, et non dans le navigateur (je pense).</p>",
 		"description": "News item."
 	},
-	"F1046":
-	{
+	"F1046": {
 		"message": "<p>Ajout d'un paramètre pour activer le mode sombre dans le chat. Ce paramètre ne concerne que le chat intégré au lecteur.</p><p>De plus, dans Firefox, un bogue a été corrigé : une page blanche apparaissait à la place du chat.</p>",
 		"description": "News item."
 	},
-	"F1047":
-	{
+	"F1047": {
 		"message": "<p>Ajout d'un paramètre pour l'emplacement du chat : vous pouvez l'ancrer sur n'importe quel côté de la fenêtre du navigateur.</p><p>Ajout d'un paramètre pour fermer le chat : décharger ou masquer. Les différences sont décrites dans l'infobulle.</p><p>Ajout d'un paramètre pour le délai de masquage automatique de l'interface. Désormais, l'interface se masque immédiatement lorsque la souris quitte la zone du lecteur.</p><p>Correction de l'extension de navigateur <cite>FFZ Add-On Pack</cite> dans Chrome. Correction du masquage du chat ancré en bas dans Firefox.</p>",
 		"description": "News item."
 	},
-	"F1048":
-	{
+	"F1048": {
 		"message": "<p>Le chat intégré est développé par Twitch.tv. L'extension se contente de l'insérer dans son lecteur. Récemment, Twitch.tv a remplacé l'ancien chat intégré par un nouveau. Ce nouveau chat est une version légèrement réduite du chat de leur site. Les optimisations du chat que j'avais ajoutées récemment à l'extension ne fonctionnent pas encore avec le nouveau chat. De plus, d'autres extensions de navigateur, comme <cite>BetterTTV</cite> et <cite>FrankerFaceZ</cite>, risquent de ne pas être entièrement compatibles avec le nouveau chat intégré. Je n'ai presque pas testé le nouveau chat, en raison des problèmes d'Internet dans mon pays (et de la cervelle des politiciens).</p>",
 		"description": "News item."
 	},
-	"F1049":
-	{
+	"F1049": {
 		"message": "<p>Ajout d'un chat complet, identique au chat détaché du site Twitch.tv. Les fonctionnalités suivantes sont désormais disponibles : salons, modération, raids, Bits, fenêtre détachée ; vous n'avez plus besoin de confirmer l'envoi du premier message. Les messages privés ne fonctionnent pas encore dans le chat. Si vous devez activer ou désactiver le mode sombre, faites-le sur le site Twitch.tv. Le chat complet n'est pas disponible dans Microsoft Edge.</p><p>Désormais, le chat (par exemple ancré en bas ou en haut de la fenêtre) peut afficher beaucoup plus de <a href='https://coolcmd.github.io/img/tw5/messages.png' target='_blank' rel='noopener noreferrer'>messages</a> et d'<a href='https://coolcmd.github.io/img/tw5/emotes.png' target='_blank' rel='noopener noreferrer'>émojis</a>. Cette optimisation est compatible avec les versions actuelles des extensions de navigateur <cite>BetterTTV</cite> et <cite>FrankerFaceZ</cite>. Elle n'est pas disponible dans Microsoft Edge.</p><p>Ajout du thème de couleurs du lecteur « Incognito ». Ajout d'un paramètre pour choisir la version du chat.</p>",
 		"description": "News item."
 	},
-	"J1054":
-	{
+	"J1054": {
 		"message": "Informations importantes",
 		"description": "News title for the first launch of the player."
 	},
-	"J1055":
-	{
+	"J1055": {
 		"message": "La version de l'extension pour le navigateur Firefox pour Android est expérimentale",
 		"description": "News title for tablets."
 	},
-	"F1056":
-	{
+	"F1056": {
 		"message": "<p>L'extension n'a pas été suffisamment testée dans ce navigateur. Elle ne prend pas entièrement en charge l'écran tactile : les infobulles ne sont pas visibles. Ce navigateur contient quelques bogues gênants.</p>",
 		"description": "News item for tablets."
 	},
-	"F1057":
-	{
+	"F1057": {
 		"message": "<p>Ajout d'un menu contenant des liens et des commandes. L'une des commandes permet de regarder la diffusion dans un autre lecteur, par exemple <cite>Media Player Classic</cite>, <cite>VLC Media Player</cite> ou <cite>MX Player</cite>.</p><p>Appuyer sur la touche <kbd>Échap</kbd> du clavier masque l'interface du lecteur, y compris les fenêtres et les menus.</p><p>Ajout d'un paramètre pour désactiver l'étirement des petites vidéos à la taille du lecteur.</p><p>Ajout d'un paramètre pour choisir le périphérique de sortie audio : haut-parleurs, casque, téléviseur, etc. Ce paramètre est masqué si un seul périphérique audio est disponible pour le navigateur. En raison d'un bogue du navigateur, ce paramètre n'est pas encore disponible en mode incognito. Il n'est pas disponible dans Firefox (mais pourrait être ajouté cette année) ni dans Microsoft Edge.</p>",
 		"description": "News item."
 	},
-	"F1058":
-	{
+	"F1058": {
 		"message": "<p>Le chat est disponible en mode plein écran.</p><p>Ajout du lien « Revoir cette diffusion » au menu du lecteur. Utilisez-le pour reprendre le visionnage plus tard ou pour partager un moment intéressant avec d'autres personnes.</p>",
 		"description": "News item."
 	},
-	"F1059":
-	{
+	"F1059": {
 		"message": "<p>Votre état de connexion à Twitch.tv est de nouveau visible dans le lecteur (vous pouvez ainsi créer des clips). Pour cela, l'extension a reçu l'autorisation de lire les cookies du site.</p>",
 		"description": "News item."
 	},
-	"F1060":
-	{
+	"F1060": {
 		"message": "<p>La prise en charge de l'écran tactile a été améliorée : vous pouvez désormais modifier la taille du chat, déplacer les statistiques et augmenter/diminuer rapidement les paramètres. Vous avez toutefois toujours besoin d'une souris pour lire les infobulles.</p>",
 		"description": "News item."
 	},
-	"F1062":
-	{
+	"F1062": {
 		"message": "<p>Ajout de la qualité vidéo « Audio uniquement ». Dans ce mode, la vidéo n'est ni téléchargée ni affichée. Cela réduit l'utilisation des ressources (processeur, mémoire vive, connexion Internet) par le lecteur. Idéal pour écouter de la musique.</p><p>Amélioration du paramètre de modification du volume avec la molette de la souris. Vous pouvez désormais définir le pas de variation du volume.</p>",
 		"description": "News item."
 	},
-	"F1063":
-	{
+	"F1063": {
 		"message": "<p>Dans certains cas, des publicités étaient affichées pendant les diffusions. Désormais, ces publicités seront bloquées.</p>",
 		"description": "News item."
 	},
-	"F1064":
-	{
+	"F1064": {
 		"message": "<p>Ajout de la prise en charge des <a href='https://help.twitch.tv/s/article/channel-points-guide' target='_blank' rel='noopener noreferrer'>points de chaîne</a>. Vous devez être connecté au site Twitch.tv pour les gagner. Vérifiez votre état de connexion en cliquant sur l'icône de la chaîne dans le coin supérieur droit de mon lecteur.</p>",
 		"description": "News item."
 	},
-	"F1065":
-	{
+	"F1065": {
 		"message": "<p>L'extension ouvre automatiquement les coffres contenant des points bonus. Cela se produit aussi bien dans le chat du lecteur que sur le site. Vous n'avez plus besoin d'installer une extension distincte à cet effet. Consultez l'infobulle du paramètre « Chat fermé » pour savoir comment ouvrir les coffres même lorsque le chat est fermé.</p>",
 		"description": "News item. Copy of F0629."
 	},
-	"J1066":
-	{
+	"J1066": {
 		"message": "À propos des publicités",
 		"description": "News title."
 	},
-	"F1067":
-	{
+	"F1067": {
 		"message": "<p>En septembre, Twitch a commencé à lutter contre les bloqueurs de publicités, y compris mon extension. Celle-ci utilise des astuces particulières pour bloquer les publicités. En retour, Twitch bloque chaque astuce qu'il découvre. Ensuite, il me faut quelques jours pour en trouver une nouvelle. De plus, vous devez attendre la publication de la nouvelle version de l'extension dans le store. Google et Microsoft exigent jusqu'à 7 jours, Mozilla 1 jour. Pendant tout ce temps, vous voyez des publicités dans le lecteur de l'extension.</p><p>Le nombre d'astuces est limité et, à l'heure actuelle, Twitch en a bloqué presque toutes. C'est pourquoi, dans la prochaine version de l'extension, j'ajouterai un moyen plus fiable, mais moins efficace, de masquer les publicités. Pendant les publicités, la lecture peut s'interrompre pendant quelques secondes et le message « Skipping ads » s'affichera.</p><p>Malheureusement, Twitch diffuse rarement de publicités dans ma région ; je ne peux donc pas tester moi-même la fonction de masquage. J'ai besoin de volontaires pour tester les versions bêta de l'extension. Ils doivent : être capables de raisonner logiquement, voir souvent des publicités dans l'extension, installer des extensions hors du store (je donnerai les instructions) et décrire les résultats des tests en détail. Si vous souhaitez m'aider dans cette tâche fastidieuse mais importante, cliquez sur « Envoyer un commentaire » dans le menu du lecteur et faites-le-moi savoir. Merci !</p>",
 		"description": "News item. Copy of F0528."
 	},
-	"F1068":
-	{
+	"F1068": {
 		"message": "<p>Ajout d'un bouton pour activer ou désactiver le mode image dans l'image. Vous pouvez également appuyer sur <kbd>Maj</kbd>+<kbd>Entrée</kbd>. La pause dans cette fenêtre n'est pas encore disponible.</p>",
 		"description": "News item. See also F1584."
 	},
-	"F1069":
-	{
+	"F1069": {
 		"message": "<p>Amélioration du paramètre du lecteur « Intervalle d'interrogation ». Je vous recommande de remplacer sa valeur par « Auto » (valeur par défaut). Ce paramètre sera supprimé dans une future version de l'extension.</p>",
 		"description": "News item."
 	},
-	"F1070":
-	{
+	"F1070": {
 		"message": "<p>Le masquage des publicités a été amélioré : désormais, pendant les publicités, vous verrez la diffusion en basse résolution au lieu d'un écran noir. De plus, la fréquence des publicités a été réduite : vous en verrez dans l'extension pas plus souvent que sur le site twitch.tv (peu testé).</p>",
 		"description": "News item."
 	},
-	"F1072":
-	{
+	"F1072": {
 		"message": "L'avenir de cette extension",
 		"description": "News title."
 	},
-	"F1073":
-	{
+	"F1073": {
 		"message": "<p>À partir de juin 2024, le navigateur Chrome <a href='https://developer.chrome.com/docs/extensions/develop/migrate/mv2-deprecation-timeline' target='_blank' rel='noopener noreferrer'>commencera</a> à désactiver automatiquement mon extension et à empêcher son installation depuis le Chrome Web Store. Pendant un certain temps, vous pourrez activer l'extension manuellement.</p><p>Pour que l'extension fonctionne dans Chrome, je devrai la modifier en profondeur. Cela prendra plusieurs mois. La nouvelle version de l'extension ne fonctionnera que sur les <b>versions récentes</b> des navigateurs.</p>",
 		"description": "News item."
 	},
-	"F1074":
-	{
+	"F1074": {
 		"message": "<ul><li>Correction de l'obtention des points de chaîne et des récompenses.<li>Correction partielle du masquage des publicités.<li>Correction du suivi / du désabonnement et de la création de clips.<li>Correction du démarrage automatique du lecteur.<li>Affinement du paramètre de modification du volume avec la molette de la souris.<li>Modification de certains raccourcis clavier.<li>Le bouton des statistiques a été déplacé dans le menu. Un bouton de menu a été ajouté au panneau inférieur du lecteur.<li>La taille du texte dans le panneau supérieur du lecteur s'adapte dynamiquement.<li>Plusieurs autres corrections et améliorations.</ul>",
 		"description": "News item."
 	},
-	"F1076":
-	{
+	"F1076": {
 		"message": "<p>Correction d'une erreur qui empêchait de regarder les diffusions sur certaines chaînes (Twitch utilise un nouveau CDN). C'est pourquoi cette version de l'extension nécessite de nouvelles autorisations.</p>",
 		"description": "News item."
 	},
-	"F1077":
-	{
+	"F1077": {
 		"message": "<p>Correction de la commande « Copier l'adresse de l'enregistrement » dans le menu du lecteur. Elle a également été renommée « Revoir cette diffusion » et transformée en lien ordinaire pour plus de commodité. Utilisez ce lien à la place de celui récemment supprimé dans le coin supérieur gauche.</p><p>Correction du chargement du chat lors d'un raid.</p><p>Si vous ne pouvez pas activer le mode sombre dans le chat, essayez de <b>le désactiver puis de le réactiver</b> sur le site Twitch.tv.</p>",
 		"description": "News item."
 	},
-	"F1078":
-	{
+	"F1078": {
 		"message": "<p>Correction de la création de clips.</p>",
 		"description": "News item."
 	},
-	"J1500":
-	{
+	"J1500": {
 		"message": "Informations utiles",
 		"description": "Help section."
 	},
-	"F1501":
-	{
+	"F1501": {
 		"message": "<p>Pour afficher l'aide, cliquez sur le bouton de menu dans le coin inférieur droit, puis sur « Aide » dans le menu. De plus, la plupart des éléments de l'interface du lecteur (boutons, liens, menus, etc.) disposent d'<strong>infobulles</strong> que je vous recommande vivement de lire. Les infobulles apparaissent automatiquement sous le curseur de la souris lorsqu'il est immobile.</p>",
 		"description": "Part of the help, part of the feedback form, and a news item for the first launch of the player."
 	},
-	"F1502":
-	{
+	"F1502": {
 		"message": "<p>Pour ouvrir la chaîne ou la catégorie sur le site Twitch.tv, cliquez sur le titre de la diffusion ou de la catégorie en haut du lecteur. Les autres liens se trouvent dans le menu du lecteur.</p>",
 		"description": "Part of the help."
 	},
-	"F1503":
-	{
+	"F1503": {
 		"message": "<p>Sur le site Twitch.tv, le logo de l'extension « 5 » se trouve dans le coin supérieur droit. Un clic droit sur le logo active ou désactive le démarrage automatique du lecteur. Un clic gauche démarre le lecteur (si possible). Le démarrage automatique est désactivé sur les chaînes dont les diffusions sont chiffrées.</p>",
 		"description": "Part of the help."
 	},
-	"F1504":
-	{
+	"F1504": {
 		"message": "<p>Les commandes fréquemment utilisées, comme <i>couper le son</i>, sont plus faciles à exécuter avec les touches du clavier. Les touches sont indiquées dans les infobulles.</p>",
 		"description": "Part of the help."
 	},
-	"F1506":
-	{
+	"F1506": {
 		"message": "<p data-image=\"svg-fail\">Les fonctionnalités suivantes du site Twitch.tv ne sont pas disponibles dans le lecteur : lecture de vidéos, lecture de diffusions chiffrées, messages privés, extensions Twitch (à ne pas confondre avec les extensions de navigateur) et sous-titres.</p>",
 		"description": "Part of the help."
 	},
-	"F1507":
-	{
+	"F1507": {
 		"message": "<p>Pour ouvrir le lecteur dans sa propre fenêtre, cliquez sur l'onglet du lecteur et faites-le glisser hors de la barre d'onglets.</p>",
 		"description": "Part of the help."
 	},
-	"F1509":
-	{
+	"F1509": {
 		"message": "<p>Pour réduire le délai du flux (et faciliter l'utilisation du chat), essayez de remplacer « Qualité de la connexion » par « Bon » dans les paramètres du lecteur.</p>",
 		"description": "Part of the help."
 	},
-	"F1510":
-	{
+	"F1510": {
 		"message": "<p>Si vous rencontrez des problèmes avec l'extension <cite>Alternate Player for Twitch.tv</cite>, envoyez un commentaire au développeur de l'extension. Pour cela, cliquez sur « Envoyer un commentaire » dans le menu du lecteur.</p>",
 		"description": "Part of the help. Copy of F0528 and description_xx.txt."
 	},
-	"F1511":
-	{
+	"F1511": {
 		"message": "<p>L'icône rouge en forme de ciseaux dans le coin supérieur droit du lecteur signifie que plusieurs secondes de la diffusion ont été ignorées pour une raison quelconque. Voir la description du paramètre « Dépassement du tampon ».</p>",
 		"description": "Part of the help."
 	},
-	"J1513":
-	{
+	"J1513": {
 		"message": "Dépannage",
 		"description": "Help section."
 	},
-	"F1514":
-	{
+	"F1514": {
 		"message": "<p>Certains utilisateurs me demandent d'ajouter la possibilité de regarder les publicités dans l'extension, soit pour soutenir le diffuseur, soit pour réduire la fréquence des publicités. Mais cela n'a pas de sens, car Twitch comptabilise les vues publicitaires à partir des données envoyées par l'extension. Celle-ci envoie toujours ces données, même si vous regardez la diffusion en basse résolution au lieu des publicités. Le format de ces données n'est pas documenté et peut changer de temps en temps ; je ne peux donc pas garantir que Twitch fait toujours confiance à ces données.</p>",
 		"description": "Part of the help."
 	},
-	"F1515":
-	{
+	"F1515": {
 		"message": "<p>Si vous avez vraiment besoin des émojis <b>7TV</b> dans le chat de l'extension, procédez comme suit. Désinstallez l'extension de navigateur <cite>7TV</cite>. Installez l'extension de navigateur <cite>FrankerFaceZ</cite>. Dans les paramètres de l'extension <cite>FrankerFaceZ</cite>, activez le module complémentaire <cite>7TV</cite>. De la même manière, vous pouvez activer les émojis de BetterTTV.</p>",
 		"description": "Part of the help and a news item."
 	},
-	"F1570":
-	{
+	"F1570": {
 		"message": "<p>Le chat intégré est développé par Twitch.tv. L'extension se contente de l'insérer dans son lecteur (et d'optimiser la <a href='https://coolcmd.github.io/img/tw5/messages.png' target='_blank' rel='noopener noreferrer'>hauteur</a> du <a href='https://coolcmd.github.io/img/tw5/emotes.png' target='_blank' rel='noopener noreferrer'>contenu</a>). Ce chat présente certaines limites par rapport à la version utilisée sur le site Twitch.tv. Voir la description de la version du chat dans les paramètres du lecteur.</p>",
 		"description": "Part of the help for Chrome and Firefox."
 	},
-	"F1571":
-	{
+	"F1571": {
 		"message": "<p>Si vous avez des problèmes avec le chat, essayez ceci :</p><ul><li>Ouvrez les paramètres de votre navigateur et autorisez l'enregistrement et la lecture des cookies, y compris les cookies tiers.<li>Rendez-vous sur le site <a href='https://www.twitch.tv/' rel='noopener noreferrer'>Twitch.tv</a> et supprimez ses cookies.<li>Choisissez une autre version du chat dans les paramètres du lecteur.<li>Le chat peut être perturbé par : d'autres extensions de navigateur, les bloqueurs de publicités, les pare-feu et les antivirus. Pour diagnostiquer un problème, essayez de désactiver temporairement tous ces éléments. Voici les <a href='https://coolcmd.github.io/img/tw5/privacy%20badger%20options.png' target='_blank' rel='noopener noreferrer'>paramètres de l'extension Privacy Badger</a>, qui n'interfèrent pas avec le chat.</ul>",
 		"description": "Part of the help for Chrome."
 	},
-	"F1572":
-	{
+	"F1572": {
 		"message": "<p>En raison des limitations du navigateur, seules les extensions <cite>BetterTTV</cite> et <cite>FrankerFaceZ</cite> peuvent fonctionner dans le chat. Lors de son installation, l'extension <cite>Alternate Player for Twitch.tv</cite> vous a demandé l'autorisation de <b>lire</b> la liste des extensions installées. Cela est nécessaire pour ne charger dans le chat que les extensions que vous avez installées et activées dans votre navigateur.</p>",
 		"description": "Part of the help for Chrome. Copy of description_xx.txt."
 	},
-	"F1573":
-	{
+	"F1573": {
 		"message": "<p>Si vous devez activer ou désactiver le mode sombre dans la version « complète » du chat, faites-le sur le site Twitch.tv.</p>",
 		"description": "Part of the help for Chrome and Firefox."
 	},
-	"F1574":
-	{
+	"F1574": {
 		"message": "<p>Pour activer les icônes de modération intégrées dans la version « réduite » du chat, cochez l'option <a href='https://discuss.dev.twitch.tv/uploads/default/original/2X/f/f3049202b1456ee758ea81487a193ee540c84e7e.gif' target='_blank' rel='noopener noreferrer'>Mod Icons</a> dans les paramètres du chat sur le site Twitch.tv.</p>",
 		"description": "Part of the help for Chrome and Firefox."
 	},
-	"F1575":
-	{
+	"F1575": {
 		"message": "<p>Pour suivre vos chaînes, passer rapidement de l'une à l'autre et rechercher de nouvelles chaînes, je vous recommande d'installer l'extension de navigateur <a href='https://chrome.google.com/webstore/detail/nlmbdmpjmlijibeockamioakdpmhjnpk' target='_blank' rel='noopener noreferrer'><cite>Twitch Now</cite></a>.</p>",
 		"description": "Part of the help for Chrome."
 	},
-	"F1581":
-	{
+	"F1581": {
 		"message": "<p>Si vous avez des problèmes avec le chat, essayez ceci :</p><ul><li>Dans les paramètres de votre navigateur, ne bloquez pas les cookies tiers ni les cookies des sites non visités, ou ajoutez l'adresse <b>https://twitch.tv</b> aux exceptions.<li>Rendez-vous sur le site <a href='https://www.twitch.tv/' rel='noopener noreferrer'>Twitch.tv</a> et supprimez ses cookies (cliquez sur l'icône dans la barre d'adresse).<li>Choisissez une autre version du chat dans les paramètres du lecteur.<li>Ouvrez un onglet à l'adresse <b>about:config</b>, trouvez le paramètre <b>privacy.firstparty.isolate</b> et vérifiez que sa valeur est <b>false</b>.<li>Le chat peut être perturbé par : d'autres extensions de navigateur, les bloqueurs de publicités, les pare-feu et les antivirus. Pour diagnostiquer un problème, essayez de désactiver temporairement tous ces éléments. Voici les <a href='https://coolcmd.github.io/img/tw5/privacy%20badger%20options.png' target='_blank' rel='noopener noreferrer'>paramètres de l'extension Privacy Badger</a>, qui n'interfèrent pas avec le chat.</ul>",
 		"description": "Part of the help for Firefox."
 	},
-	"F1582":
-	{
+	"F1582": {
 		"message": "<p>Vous ne devez pas bloquer JavaScript sur le site Twitch.tv, par exemple dans l'extension <cite>NoScript</cite>. Vous ne devez pas non plus bloquer le chargement des vidéos HTML5, par exemple dans l'extension <cite>Flashblock</cite>.</p>",
 		"description": "Part of the help for Firefox."
 	},
-	"F1583":
-	{
+	"F1583": {
 		"message": "<p>Pour suivre vos chaînes, passer rapidement de l'une à l'autre et rechercher de nouvelles chaînes, je vous recommande d'installer l'extension de navigateur <a href='https://addons.mozilla.org/firefox/addon/twitch-now/' target='_blank' rel='noopener noreferrer'><cite>Twitch Now</cite></a>.</p>",
 		"description": "Part of the help for Firefox."
 	},
-	"F1584":
-	{
+	"F1584": {
 		"message": "<p>Pour activer le <a href='https://support.mozilla.org/kb/about-picture-picture-firefox' target='_blank'>mode image dans l'image</a>, cliquez sur l'icône correspondante située sur le côté droit de la barre d'adresse du navigateur, ou maintenez la touche <kbd>Maj</kbd> enfoncée, cliquez avec le bouton droit sur la zone de visionnage, puis cliquez sur l'élément correspondant dans le menu du navigateur. Vous pouvez également appuyer sur <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>]</kbd> au clavier avec une disposition anglaise. Vous pouvez ouvrir plusieurs fenêtres d'image dans l'image en même temps. La pause dans cette fenêtre n'est pas encore disponible.</p>",
 		"description": "Part of the help for Firefox. See also F1068."
 	},
-	"F1590":
-	{
+	"F1590": {
 		"message": "<p>Le chat intégré est développé par Twitch.tv. L'extension se contente de l'insérer dans son lecteur. Ce chat présente les limites suivantes : pas de paramètres de modération, ni de raids, ni de Bits ; il faut parfois confirmer l'envoi du premier message.</p>",
 		"description": "Part of the help for Edge."
 	},
-	"F1591":
-	{
+	"F1591": {
 		"message": "<p>En raison des limitations du navigateur, les extensions qui améliorent le chat, comme <cite>BetterTTV</cite> et <cite>FrankerFaceZ</cite>, ne fonctionnent pas dans le lecteur.</p>",
 		"description": "Part of the help for Edge."
 	},
-	"F1592":
-	{
+	"F1592": {
 		"message": "<p>Pour activer les icônes de modération intégrées dans le chat du lecteur, cochez l'option <a href='https://discuss.dev.twitch.tv/uploads/default/original/2X/f/f3049202b1456ee758ea81487a193ee540c84e7e.gif' target='_blank' rel='noopener noreferrer'>Mod Icons</a> dans les paramètres du chat sur le site Twitch.tv.</p>",
 		"description": "Part of the help for Edge."
+	},
+	"A1000": {
+		"message": "Largeur de la vidéo source X Hauteur de la vidéo source @ Fréquence moyenne d'images de la vidéo source ± Écart maximal par rapport à la fréquence moyenne d'images. La fréquence d'images et l'écart sont calculés séparément pour chaque segment.",
+		"description": "Tooltip shown in the statistics panel."
+	},
+	"A1001": {
+		"message": "Paramètres de compression vidéo : norme de compression, profil, niveau, nombre maximal d'images de référence, plage, fréquence d'images",
+		"description": "Tooltip shown in the statistics panel."
+	},
+	"A1002": {
+		"message": "Paramètres de compression audio : norme de compression, fréquence d'échantillonnage, nombre de canaux, débit audio. Le débit est calculé séparément pour chaque segment.\r\n\r\nSi la norme de compression HE-AAC est utilisée, tous les paramètres de compression, sauf le débit, sont sans signification, mais cela n'entrave pas la lecture. Chrome prend en charge HE-AAC depuis la version 50.",
+		"description": "Tooltip shown in the statistics panel."
+	},
+	"A1003": {
+		"message": "Serveur à partir duquel la vidéo est téléchargée",
+		"description": "Tooltip shown in the statistics panel."
+	},
+	"A1004": {
+		"message": "Nombre de segments dans la liste × Durée moyenne des segments dans la liste = Durée de la liste - Nombre de segments publicitaires dans la liste < Durée maximale déclarée d'un segment (target duration)",
+		"description": "Tooltip shown in the statistics panel."
+	},
+	"A1005": {
+		"message": "Durée de la vidéo aux différentes étapes du traitement :\r\n\r\nEn attente de téléchargement depuis le réseau + Téléchargement depuis le réseau\r\nEn attente d'ajout au lecteur\r\nNon visionnée dans le tampon du lecteur + Visionnée dans le tampon du lecteur",
+		"description": "Tooltip shown in the statistics panel."
+	},
+	"A1006": {
+		"message": "Intervalle entre les téléchargements de la liste de lecture.\r\n\r\nLégende : minimum < moyenne < maximum [tableau des dernières valeurs, la valeur ajoutée le plus récemment est mise en rouge].",
+		"description": "Tooltip shown in the statistics panel."
+	},
+	"A1007": {
+		"message": "Nombre de nouveaux segments dans la liste de lecture téléchargée.\r\n\r\nLégende : minimum < moyenne < maximum [tableau des dernières valeurs, la valeur ajoutée le plus récemment est mise en rouge].",
+		"description": "Tooltip shown in the statistics panel."
+	},
+	"A1008": {
+		"message": "Durée des nouveaux segments dans la liste de lecture téléchargée.\r\n\r\nLégende : minimum < moyenne < maximum [tableau des dernières valeurs, la valeur ajoutée le plus récemment est mise en rouge].",
+		"description": "Tooltip shown in the statistics panel."
+	},
+	"A1009": {
+		"message": "Somme des débits de la vidéo, de l'audio et des informations de service dans le segment téléchargé. Le débit audio est indiqué dans les paramètres audio ci-dessus.\r\n\r\nLégende : minimum < moyenne < maximum [tableau des dernières valeurs, la valeur ajoutée le plus récemment est mise en rouge]. L'absence de valeur signifie que le segment n'a pas été téléchargé.",
+		"description": "Tooltip shown in the statistics panel."
+	},
+	"A1010": {
+		"message": "Vitesse de téléchargement des segments depuis le réseau. Elle dépend notamment du temps d'attente de la réponse du serveur (voir ci-dessous). Pour regarder le flux sans interruption, la vitesse moyenne de téléchargement ne doit pas être inférieure au débit moyen des segments téléchargés (voir ci-dessus).\r\n\r\nIMPORTANT ! Si les paramètres du lecteur activent le téléchargement simultané de plusieurs segments (activé par défaut), ignorez cette valeur, car la vitesse de téléchargement réelle est supérieure à celle affichée ici.\r\n\r\nLégende : minimum < moyenne < maximum [tableau des dernières valeurs, la valeur ajoutée le plus récemment est mise en rouge]. L'absence de valeur signifie que le segment n'a pas été téléchargé.",
+		"description": "Tooltip shown in the statistics panel."
+	},
+	"A1011": {
+		"message": "Temps écoulé entre l'envoi d'une requête au serveur pour obtenir un segment et l'arrivée de la réponse du serveur contenant le début du segment demandé. Dépend de la distance jusqu'au serveur et de sa charge.\r\n\r\nLégende : minimum < moyenne < maximum [tableau des dernières valeurs, la valeur ajoutée le plus récemment est mise en rouge]. L'absence de valeur signifie qu'aucune réponse n'a été reçue du serveur.",
+		"description": "Tooltip shown in the statistics panel."
+	},
+	"A1012": {
+		"message": "Durée de la vidéo non visionnée dans le tampon du lecteur. Voir aussi « Débordements du tampon », « Épuisements du tampon » dans les statistiques et la description du paramètre « Taille du tampon ».\r\n\r\nLégende : minimum < moyenne < maximum [tableau des dernières valeurs, la valeur ajoutée le plus récemment est mise en rouge].",
+		"description": "Tooltip shown in the statistics panel."
+	},
+	"A1013": {
+		"message": "Temps passé à convertir l'avant-dernier segment de TS en MP4. Il augmente lorsque tous les cœurs du processeur sont assez fortement sollicités.",
+		"description": "Tooltip shown in the statistics panel."
+	},
+	"A1014": {
+		"message": "Temps écoulé entre la capture de la vidéo sur l'ordinateur du diffuseur et votre visionnage de cette vidéo. Le diffuseur ne verra votre réaction à ses actions dans le chat qu'après ce délai.\r\n\r\nCette valeur est approximative. Le délai réel peut être de plusieurs secondes plus long.",
+		"description": "Tooltip shown in the statistics panel."
+	},
+	"A1015": {
+		"message": "Temps écoulé depuis l'ouverture de cette page",
+		"description": "Tooltip shown in the statistics panel."
+	},
+	"A1016": {
+		"message": "Volume approximatif de données téléchargées par le lecteur depuis le réseau depuis l'ouverture de cette page",
+		"description": "Tooltip shown in the statistics panel."
+	},
+	"A1017": {
+		"message": "Nombre d'images que le navigateur n'a pas pu afficher / Nombre total d'images.\r\n\r\nLe comportement de ce paramètre diffère selon les navigateurs, voire selon les versions d'un même navigateur. Il n'y a rien de grave si le nombre d'images ignorées augmente pendant que vous sollicitez le navigateur : par exemple, lorsque vous changez d'onglet ou redimensionnez la fenêtre. D'autres causes, plus gênantes : le processeur ne suit pas le décodage de la vidéo, une fréquence d'images instable dans la vidéo téléchargée, un écart important entre la fréquence d'images de la vidéo téléchargée et la fréquence de rafraîchissement de votre moniteur, une quantité insuffisante de vidéo dans le tampon du lecteur avec le décodage matériel activé (voir la description du paramètre « Taille du tampon »).",
+		"description": "Tooltip shown in the statistics panel."
+	},
+	"A1018": {
+		"message": "Nombre de segments téléchargés dans lesquels une partie des images a peut-être été perdue + Nombre de segments téléchargés dans lesquels une partie de l'audio a été perdue + Nombre de segments endommagés / Nombre de segments téléchargés.\r\n\r\nUne perte de vidéo ou d'audio provoque le gel de l'image, des artefacts, la disparition du son et des arrêts de lecture. Les pertes sont un problème du serveur ou du diffuseur, et non de votre connexion Internet. Si le serveur est en cause (voir son nom ci-dessus), il existe une faible probabilité qu'après le rechargement de la page vous vous connectiez à un serveur moins problématique.\r\n\r\nUn segment endommagé est une erreur plus grave. En théorie, le segment a pu être endommagé sur votre ordinateur. Une cause assez rare encore : le segment a été mal créé par le serveur.",
+		"description": "Tooltip shown in the statistics panel."
+	},
+	"A1019": {
+		"message": "Nombre d'erreurs survenues lors du téléchargement des segments depuis le réseau + Nombre de fois où il a été décidé de ne pas commencer le téléchargement de segments ( Nombre de segments non téléchargés à cause de ces erreurs ).\r\n\r\nCauses possibles d'erreurs de téléchargement :\r\n\r\n• Vitesse de téléchargement très faible (voir ci-dessus). Une partie des segments non téléchargés accumulés a été supprimée par le lecteur ou le serveur.\r\n\r\n• Problèmes réseau momentanés. S'ils durent plusieurs secondes, le flux est considéré comme terminé. Lorsque le réseau fonctionne à nouveau, le flux reprend automatiquement.\r\n\r\n• Problèmes du serveur (voir son nom ci-dessus). Il existe une probabilité qu'après le rechargement de la page vous vous connectiez à un serveur moins problématique.\r\n\r\nRaisons possibles de ne pas commencer un téléchargement :\r\n\r\n• Caractéristique de cette diffusion particulière.\r\n\r\n• Problèmes réseau.\r\n\r\n• Le navigateur n'appelle pas JavaScript suffisamment souvent.\r\n\r\n• Problèmes du serveur.\r\n\r\nSi le nombre d'échecs vous dérange, essayez d'augmenter le paramètre « Taille du tampon » (ou de réduire la « Qualité de la connexion »).",
+		"description": "Tooltip shown in the statistics panel."
+	},
+	"A1020": {
+		"message": "Nombre de débordements du tampon du lecteur ( Durée de la vidéo supprimée en secondes à cause de ces débordements ). Dépend des paramètres du lecteur « Taille du tampon » et « Débordement du tampon ».\r\n\r\nCauses possibles de débordement du tampon :\r\n• Passer longtemps à manipuler les paramètres sans recharger le lecteur.\r\n• Mauvaise qualité de la connexion.\r\n• Pertes audio fréquentes (voir ci-dessus).\r\n• Caractéristique de cette diffusion particulière.\r\n• Dysfonctionnement du lecteur.",
+		"description": "Tooltip shown in the statistics panel."
+	},
+	"A1021": {
+		"message": "Nombre de fois où la vidéo s'est épuisée dans le tampon du lecteur et où la lecture a été interrompue jusqu'au remplissage du tampon.\r\n\r\nPlus la taille du tampon est petite dans les paramètres du lecteur, plus le risque d'épuisement est élevé.\r\n\r\nPendant le remplissage du tampon, un sablier est affiché au milieu de l'écran. Son absence pendant une pause de lecture est le signe que « quelque chose ne va pas » dans le lecteur.",
+		"description": "Tooltip shown in the statistics panel."
 	}
 }
