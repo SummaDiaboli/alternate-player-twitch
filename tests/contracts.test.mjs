@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { LEGACY_MESSAGE_PROTOCOL, MESSAGE_PROTOCOL, TEST_EVENT } from './contracts.mjs';
+import { LEGACY_MESSAGE_PROTOCOL, LEGACY_WORKER_LOG_PROTOCOL, MESSAGE_PROTOCOL, TEST_EVENT, WORKER_LOG_PROTOCOL } from './contracts.mjs';
 import { read } from './harness.mjs';
 
 const html = read('player.html') + '\n' + read('report.html');
@@ -45,11 +45,25 @@ test('raid test seam is present and stable', () => {
 test('log severity names resolve to exported log methods', () => {
 	const common = read('common.js');
 	const exported = new Set([...common.matchAll(/^\t\t(log[A-Za-z]+),$/gm)].map(match => match[1]));
-	assert.deepEqual([...exported].sort(), ['logError', 'logInfo', 'logOk']);
-	assert.doesNotMatch(player, /'(?:Вот|Окак|Ой)'/);
+	assert.deepEqual([...exported].sort(), Object.values(WORKER_LOG_PROTOCOL).sort());
+	assert.doesNotMatch(player, /showState\(\s*'(?:Вот|Окак|Ой)'/);
 	for (const match of player.matchAll(/showState\(\s*'(log[A-Za-z]+)'/g)) {
 		assert.ok(exported.has(match[1]), `unknown log severity ${match[1]}`);
 	}
+});
+
+test('worker log severities map legacy wire values to English log methods', () => {
+	const worker = read('worker.js');
+	const pairs = [
+		[ LEGACY_WORKER_LOG_PROTOCOL.info, WORKER_LOG_PROTOCOL.info ],
+		[ LEGACY_WORKER_LOG_PROTOCOL.ok, WORKER_LOG_PROTOCOL.ok ],
+		[ LEGACY_WORKER_LOG_PROTOCOL.error, WORKER_LOG_PROTOCOL.error ]
+	];
+	for (const [legacy, english] of pairs) {
+		assert.match(worker, new RegExp(`Добавить\\('${legacy}',`));
+		assert.match(player, new RegExp(`\\[\\s*'${legacy}',\\s*'${english}'\\s*\\]`));
+	}
+	assert.match(player, /getWorkerLogSeverityName\(importance\[yMarker\]\)/);
 });
 
 test('runtime message values agree between senders and listeners', () => {

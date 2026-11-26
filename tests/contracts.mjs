@@ -71,4 +71,18 @@ export const LEGACY_MESSAGE_PROTOCOL = {
 	alreadyOpen: 'ЭтотКаналУжеОткрыт'
 };
 
+// The generated worker still emits the version-2 log severity names. Player
+// accepts both the English log methods and these legacy wire values.
+export const WORKER_LOG_PROTOCOL = {
+	info: 'logInfo',
+	ok: 'logOk',
+	error: 'logError'
+};
+
+export const LEGACY_WORKER_LOG_PROTOCOL = {
+	info: 'Вот',
+	ok: 'Окак',
+	error: 'Ой'
+};
+
 export const PLAYER_URL_PREFIX = 'chrome-extension://test/player.html?channel=';

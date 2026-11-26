@@ -5275,6 +5275,17 @@ const converterModule = (() => {
 		}
 		player.addNextSegment();
 	}
+	const legacyWorkerLogSeverityNames = new Map([
+		[ 'Вот', 'logInfo' ],
+		[ 'Окак', 'logOk' ],
+		[ 'Ой', 'logError' ]
+	]);
+	function getWorkerLogSeverityName(importance) {
+		const mapped = legacyWorkerLogSeverityNames.get(importance);
+		const name = mapped === undefined ? importance : mapped;
+		assert(name === 'logInfo' || name === 'logOk' || name === 'logError');
+		return name;
+	}
 	const handleConversionEnd = wrapErrors(event => {
 		const dataModule = event.data;
 		assert(Array.isArray(dataModule));
@@ -5298,8 +5309,9 @@ const converterModule = (() => {
 			const importance = dataModule[1], recordsString = dataModule[2];
 			assert(dataModule.length === 3 && Array.isArray(importance) && Array.isArray(recordsString) && importance.length === recordsString.length);
 			for (let yMarker = 0; yMarker < importance.length; ++yMarker) {
-				assert((importance[yMarker] === 'logInfo' || importance[yMarker] === 'logOk' || importance[yMarker] === 'logError') && typeof recordsString[yMarker] == 'string');
-				log[importance[yMarker]](recordsString[yMarker]);
+				const severityName = getWorkerLogSeverityName(importance[yMarker]);
+				assert(typeof recordsString[yMarker] == 'string');
+				log[severityName](recordsString[yMarker]);
 			}
 			return;
 
