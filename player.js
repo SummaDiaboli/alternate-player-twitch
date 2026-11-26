@@ -2040,6 +2040,18 @@ const mediaQuery = (() => {
 
 const themeModule = (() => {
 	const colorButtonSelector = 'input[type="color"]';
+	const colorSettingNames = new Map([
+		[ 'background-color', 'backgroundColor' ],
+		[ 'gradient-color', 'gradientColor' ],
+		[ 'button-color', 'buttonColor' ],
+		[ 'header-color', 'titleColor' ],
+		[ 'selection-color', 'selectionColor' ]
+	]);
+	function getColorSettingName(buttonElement) {
+		const name = colorSettingNames.get(buttonElement.id);
+		assert(name);
+		return name;
+	}
 	let _opacityInfo = null;
 	const handleColorInput = wrapErrors(event => {
 		if (event.target.matches(colorButtonSelector)) {
@@ -2048,7 +2060,7 @@ const themeModule = (() => {
 	});
 	const handleColorChange = wrapErrors(event => {
 		if (event.target.matches(colorButtonSelector)) {
-			settings.set(event.target.id, event.target.value);
+			settings.set(getColorSettingName(event.target), event.target.value);
 		}
 	});
 	function handleThemePresetChange() {
@@ -2057,7 +2069,7 @@ const themeModule = (() => {
 	}
 	function updateSettingsWindow() {
 		for (let buttonElement of document.querySelectorAll(colorButtonSelector)) {
-			buttonElement.value = settings.get(buttonElement.id);
+			buttonElement.value = settings.get(getColorSettingName(buttonElement));
 		}
 		_opacityInfo.update();
 	}

@@ -14,23 +14,26 @@ function htmlIds(source) {
 	return new Set([...source.matchAll(/\bid=(?:"([^"]+)"|'([^"]+)'|([^\s>]+))/g)].map(match => match[1] || match[2] || match[3]));
 }
 
-test('every element lookup in first-party JS targets an element in player.html', () => {
+test('every literal element lookup targets an element declared in markup', () => {
 	const ids = htmlIds(html);
-	for (const source of [player, content, read('common.js')]) {
-		for (const literal of stringLiterals(source)) ids.add(literal);
+	for (const match of content.matchAll(/\bid=(?:"([^"]+)"|'([^"]+)'|([^\s>]+))/g)) {
+		ids.add(match[1] || match[2] || match[3]);
 	}
 	const referenced = new Set();
 	for (const source of [player, content, read('common.js')]) {
-		for (const match of source.matchAll(/(?:getElementById|Узел)\('([^']+)'\)/g)) {
-			referenced.add(match[1]);
+		for (const match of source.matchAll(/\belement\(\s*(['"])([^'"]+)\1\s*\)/g)) {
+			referenced.add(match[2]);
 		}
-		for (const match of source.matchAll(/querySelector\('#([^']+)'\)/g)) {
-			referenced.add(match[1]);
+		for (const match of source.matchAll(/getElementById\(\s*(['"])([^'"]+)\1\s*\)/g)) {
+			referenced.add(match[2]);
+		}
+		for (const match of source.matchAll(/querySelector\(\s*(['"])#([^'"]+)\1\s*\)/g)) {
+			referenced.add(match[2]);
 		}
 	}
 	assert.ok(referenced.size > 0);
 	for (const id of referenced) {
-		assert.ok(ids.has(id), `player.html has no element with id ${id}`);
+		assert.ok(ids.has(id), `no markup declares id ${id}`);
 	}
 });
 
@@ -63,6 +66,26 @@ test('runtime message values agree between senders and listeners', () => {
 test('dynamic scroll indicator id matches player.html', () => {
 	assert.match(player, /scroll-indicator-\$\{scrollElement\.id\}/);
 	assert.match(html, /\bid=scroll-indicator-news-body\b/);
+});
+
+test('theme color inputs map to settings and CSS custom properties', () => {
+	const pairs = [
+		[ 'background-color', 'backgroundColor' ],
+		[ 'gradient-color', 'gradientColor' ],
+		[ 'button-color', 'buttonColor' ],
+		[ 'header-color', 'titleColor' ],
+		[ 'selection-color', 'selectionColor' ]
+	];
+	const colorIds = [...html.matchAll(/<input[^>]*\bid=([^\s>]+)[^>]*\btype=color\b/g)].map(match => match[1]);
+	assert.deepEqual(colorIds.sort(), pairs.map(([id]) => id).sort());
+	const settingsSource = read('common.js');
+	for (const [id, settingName] of pairs) {
+		assert.match(html, new RegExp(`\\bid=${id}\\b`));
+		assert.match(css, new RegExp(`--${id}\\b`));
+		assert.match(settingsSource, new RegExp(`\\b${settingName}: setting\\.`));
+		assert.match(player, new RegExp(`\\[\\s*'${id}',\\s*'${settingName}'\\s*\\]`));
+	}
+	assert.doesNotMatch(html, /-color-setting\b/);
 });
 
 test('CSS class selectors refer to classes declared in markup or script', () => {
