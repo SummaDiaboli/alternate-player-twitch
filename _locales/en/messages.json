@@ -1203,5 +1203,17 @@
 	"A1021": {
 		"message": "Number of times the player's buffer ran out of video and playback was paused until the buffer was filled again.\r\n\r\nThe lower the buffer size in the player settings, the higher the chance of running out.\r\n\r\nWhile the buffer is filling, an hourglass is drawn in the middle of the screen. Its absence during a playback pause is a sign that “something went wrong” in the player.",
 		"description": "Tooltip shown in the statistics panel."
+	},
+	"F1593": {
+		"message": "Interface language:",
+		"description": "Label for the player interface language setting."
+	},
+	"F1594": {
+		"message": "Browser default",
+		"description": "Option for the interface language setting that follows the browser UI language."
+	},
+	"A1022": {
+		"message": "Choose the language used by the player interface. The player reloads when you change it.",
+		"description": "Tooltip for the player interface language setting."
 	}
 }

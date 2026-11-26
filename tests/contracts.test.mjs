@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import vm from 'node:vm';
-import { LEGACY_MESSAGE_PROTOCOL, LEGACY_WORKER_LOG_PROTOCOL, MESSAGE_PROTOCOL, TEST_EVENT, WORKER_DATA_FIELDS, WORKER_LOG_PROTOCOL, WORKER_SEGMENT_FIELDS } from './contracts.mjs';
+import { INTERFACE_LANGUAGE_KEYS, INTERFACE_LANGUAGE_SETTING, INTERFACE_LANGUAGE_VALUES, LEGACY_MESSAGE_PROTOCOL, LEGACY_WORKER_LOG_PROTOCOL, LOCALES, MESSAGE_PROTOCOL, TEST_EVENT, WORKER_DATA_FIELDS, WORKER_LOG_PROTOCOL, WORKER_SEGMENT_FIELDS } from './contracts.mjs';
 import { read } from './harness.mjs';
 
 const html = read('player.html') + '\n' + read('report.html');
@@ -129,6 +129,18 @@ test('worker adapter translates segment and result fields at runtime', () => {
 	assert.equal(data.frameRate, 30);
 	assert.equal(data.nProfileIndication, 100);
 	assert.equal(api.fromWorkerData(9), 9);
+});
+
+test('interface language selector is wired to the saved setting', () => {
+	assert.match(html, new RegExp(`data-i18n=${INTERFACE_LANGUAGE_KEYS.label}`));
+	assert.match(html, new RegExp(`data-i18n=\\^${INTERFACE_LANGUAGE_KEYS.tooltip}`));
+	assert.match(html, new RegExp(`<option value=auto data-i18n=${INTERFACE_LANGUAGE_KEYS.browserDefault}>`));
+	for (const languageCode of LOCALES) {
+		assert.match(html, new RegExp(`<option value=${languageCode}>`), `missing option ${languageCode}`);
+	}
+	assert.match(player, new RegExp(`i18n\\.prepare\\(settings\\.get\\('${INTERFACE_LANGUAGE_SETTING}'\\)\\)`));
+	assert.match(player, new RegExp(`settings\\.set\\('${INTERFACE_LANGUAGE_SETTING}', languageCode\\)`));
+	assert.match(player, /window\.location\.reload\(\)/);
 });
 
 test('runtime message values agree between senders and listeners', () => {

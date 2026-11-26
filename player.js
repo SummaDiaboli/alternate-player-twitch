@@ -2876,6 +2876,23 @@ const control = (() => {
 		}
 		event.preventDefault();
 	});
+	const handleLanguageChange = wrapErrors(event => {
+		const languageCode = event.target.value;
+		settings.set('interfaceLanguage', languageCode);
+		settings.flushChanges();
+		window.location.reload();
+	});
+	function setupLanguageSelect() {
+		const selectElement = element('interface-language');
+		for (const optionElement of selectElement.options) {
+			if (optionElement.value !== 'auto') {
+				optionElement.textContent = i18n.getLanguageName(optionElement.value);
+			}
+		}
+		selectElement.value = settings.get('interfaceLanguage');
+		assert(selectElement.value);
+		selectElement.addEventListener('change', handleLanguageChange);
+	}
 	function updateSettingsWindow() {
 		document.querySelector(`input[name="concurrent-loads"][value="${settings.get('concurrentLoadCount')}"]`).checked = true;
 		document.querySelector(`input[name="closed-chat-state-setting"][value="${settings.get('closedChatStateCode')}"]`).checked = true;
@@ -3049,6 +3066,7 @@ const control = (() => {
 		volumeElement.addEventListener('input', handleVolumeChange);
 		updateVolume();
 		updateSettingsWindow();
+		setupLanguageSelect();
 		settings.setupPresetLists();
 		autoHide.start();
 		autoHide.show();
@@ -6575,5 +6593,9 @@ wrapErrors(() => {
 	}
 	const channelName = (new URLSearchParams(location.search.slice(1)).get('channel') || 'channel').toLowerCase();
 	isChannelAlreadyOpen(channelName);
-	Promise.all([ assertExtensionPermissions(), settings.restore(), getCurrentTab() ]).then(() => Twitch.startInternal(channelName)).then(startWork).catch(debug.exceptionCaught);
+	Promise.all([ assertExtensionPermissions(), settings.restore(), getCurrentTab() ])
+		.then(() => i18n.prepare(settings.get('interfaceLanguage')))
+		.then(() => Twitch.startInternal(channelName))
+		.then(startWork)
+		.catch(debug.exceptionCaught);
 })();

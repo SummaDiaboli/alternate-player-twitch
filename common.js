@@ -288,11 +288,41 @@ const i18n = (() => {
 		ZH_TW: '繁體中文'
 	};
 	const _formatNumber = new Map();
+	const _interfaceLanguageMessages = new Map();
 	let _formatDateCallback = null;
+	let _messageOverride = null;
+	function applySubstitutions(sMessageText, sSubstitution) {
+		if (sSubstitution === void 0) {
+			return sMessageText;
+		}
+		return sMessageText.replace(/\$(\d+)/g, (sMatch, sIndex) => sSubstitution[Number(sIndex) - 1] ?? '');
+	}
+	async function prepare(sLanguageCode) {
+		assert(sLanguageCode === 'auto' || isNonEmptyString(sLanguageCode));
+		if (sLanguageCode === 'auto') {
+			_messageOverride = null;
+			return;
+		}
+		try {
+			if (!_interfaceLanguageMessages.has(sLanguageCode)) {
+				const sUrl = chrome.runtime.getURL(`_locales/${sLanguageCode}/messages.json`);
+				const oResponse = await fetch(sUrl);
+				if (!oResponse.ok) {
+					throw new Error(`HTTP ${oResponse.status}`);
+				}
+				_interfaceLanguageMessages.set(sLanguageCode, await oResponse.json());
+			}
+			_messageOverride = _interfaceLanguageMessages.get(sLanguageCode);
+		} catch (exception) {
+			log.logError(`[i18n] Failed to load interface language ${sLanguageCode}: ${exception}`);
+			_messageOverride = null;
+		}
+	}
 	function GetMessage(sMessageName, sSubstitution) {
 		assert(isNonEmptyString(sMessageName));
 		assert(sSubstitution === void 0 || typeof sSubstitution == 'string');
-		const sMessageText = chrome.i18n.getMessage(sMessageName, sSubstitution);
+		const oOverride = _messageOverride === null ? null : _messageOverride[sMessageName];
+		const sMessageText = oOverride && oOverride.message ? applySubstitutions(oOverride.message, sSubstitution) : chrome.i18n.getMessage(sMessageName, sSubstitution);
 		if (!sMessageText) {
 			throw new Error(`No text found for ${sMessageName}`);
 		}
@@ -366,6 +396,7 @@ const i18n = (() => {
 		GetMessage,
 		InsertAdjacentHtmlMessage,
 		TranslateDocument,
+		prepare,
 		formatNumber,
 		formatDate,
 		secondsToString,
@@ -574,6 +605,7 @@ const settings = (() => {
 		isFullChat: setting.create(true),
 		shouldDimChat: setting.create(false),
 		followRaids: setting.create(false),
+		interfaceLanguage: setting.createEnum('auto', [ 'auto', 'en', 'ru', 'fr', 'es', 'de' ]),
 		uiSize: setting.createRange(isMobileDevice() ? 115 : 100, 50, 200),
 		autoHideInterval: setting.createRange(4, .5, 60),
 		isUiAnimationEnabled: setting.create(!isMobileDevice()),

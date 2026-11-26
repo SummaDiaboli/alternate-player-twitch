@@ -1203,5 +1203,17 @@
 	"A1021": {
 		"message": "Número de veces que se agotó el vídeo en el búfer del reproductor y la reproducción se pausó hasta que el búfer se llenó de nuevo.\r\n\r\nCuanto menor sea el tamaño del búfer en los ajustes del reproductor, mayor será la probabilidad de que se agote.\r\n\r\nMientras se llena el búfer, se dibuja un reloj de arena en el centro de la pantalla. Su ausencia durante una pausa de la reproducción es señal de que «algo ha ido mal» en el reproductor.",
 		"description": "Tooltip shown in the statistics panel."
+	},
+	"F1593": {
+		"message": "Idioma de la interfaz:",
+		"description": "Etiqueta del ajuste de idioma de la interfaz del reproductor."
+	},
+	"F1594": {
+		"message": "Idioma del navegador",
+		"description": "Opción del ajuste de idioma que sigue el idioma de la interfaz del navegador."
+	},
+	"A1022": {
+		"message": "Elige el idioma que usa la interfaz del reproductor. El reproductor se recarga al cambiarlo.",
+		"description": "Información sobre el ajuste de idioma de la interfaz del reproductor."
 	}
 }

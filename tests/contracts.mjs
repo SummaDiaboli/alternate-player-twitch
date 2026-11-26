@@ -20,6 +20,18 @@ export const VENDOR_OR_GENERATED = [
 	'_metadata'
 ];
 
+export const LOCALES = ['en', 'ru', 'fr', 'es', 'de'];
+
+export const INTERFACE_LANGUAGE_SETTING = 'interfaceLanguage';
+
+export const INTERFACE_LANGUAGE_VALUES = ['auto', ...LOCALES];
+
+export const INTERFACE_LANGUAGE_KEYS = {
+	label: 'F1593',
+	browserDefault: 'F1594',
+	tooltip: 'A1022'
+};
+
 export const SETTING_API = [
 	'restore',
 	'reset',
@@ -41,19 +53,19 @@ export const SETTING_KEYS = {
 	volume: 'volume2',
 	volumeBoostEnabled: 'volumeBoostEnabled',
 	chatState: 'chatState',
-	bufferSize: 'bufferSize'
+	bufferSize: 'bufferSize',
+	interfaceLanguage: INTERFACE_LANGUAGE_SETTING
 };
 
 export const SETTING_DEFAULTS = {
 	followRaids: false,
 	volumeBoostEnabled: false,
 	volume: 50,
-	chatState: 0
+	chatState: 0,
+	interfaceLanguage: 'auto'
 };
 
 export const EXPECTED_SETTINGS_VERSION = 3;
-
-export const LOCALES = ['en', 'ru', 'fr', 'es', 'de'];
 
 export const TEST_EVENT = 'tw5-raid';
 

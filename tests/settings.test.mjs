@@ -32,15 +32,27 @@ test('stored values survive a restore', async () => {
 	assert.equal(settings.get(SETTING_KEYS.volume), 73);
 });
 
+test('interface language survives a restore', async () => {
+	const key = SETTING_KEYS.interfaceLanguage;
+	const { settings } = loadCommon({ storage: {
+		[SETTING_KEYS.version]: EXPECTED_SETTINGS_VERSION,
+		[key]: 'de'
+	} });
+	await settings.restore();
+	assert.equal(settings.get(key), 'de');
+});
+
 test('out-of-range and invalid values are corrected', async () => {
 	const { settings } = loadCommon({ storage: {
 		[SETTING_KEYS.version]: EXPECTED_SETTINGS_VERSION,
 		[SETTING_KEYS.volume]: 9999,
-		[SETTING_KEYS.chatState]: 42
+		[SETTING_KEYS.chatState]: 42,
+		[SETTING_KEYS.interfaceLanguage]: 'xx'
 	} });
 	await settings.restore();
 	assert.equal(settings.get(SETTING_KEYS.volume), 200);
 	assert.equal(settings.get(SETTING_KEYS.chatState), SETTING_DEFAULTS.chatState);
+	assert.equal(settings.get(SETTING_KEYS.interfaceLanguage), SETTING_DEFAULTS.interfaceLanguage);
 });
 
 test('version-2 settings migrate to English storage keys', async () => {

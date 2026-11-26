@@ -86,6 +86,15 @@ export function loadCommon({ locale = 'en', storage = {} } = {}) {
 			calls.timers = calls.timers.filter(timer => timer.id !== id);
 		},
 		performance: { now: () => 0 },
+		fetch(resource) {
+			const match = /_locales\/([a-z]+)\/messages\.json$/.exec(String(resource));
+			const data = match ? readJson(`_locales/${match[1]}/messages.json`) : null;
+			return Promise.resolve({
+				ok: data !== null,
+				status: data === null ? 404 : 200,
+				json: () => Promise.resolve(data)
+			});
+		},
 		navigator: {
 			userAgent: 'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
 			userAgentData: {

@@ -1203,5 +1203,17 @@
 	"A1021": {
 		"message": "Nombre de fois où la vidéo s'est épuisée dans le tampon du lecteur et où la lecture a été interrompue jusqu'au remplissage du tampon.\r\n\r\nPlus la taille du tampon est petite dans les paramètres du lecteur, plus le risque d'épuisement est élevé.\r\n\r\nPendant le remplissage du tampon, un sablier est affiché au milieu de l'écran. Son absence pendant une pause de lecture est le signe que « quelque chose ne va pas » dans le lecteur.",
 		"description": "Tooltip shown in the statistics panel."
+	},
+	"F1593": {
+		"message": "Langue de l’interface :",
+		"description": "Libellé du paramètre de langue de l’interface du lecteur."
+	},
+	"F1594": {
+		"message": "Langue du navigateur",
+		"description": "Option du paramètre de langue qui suit la langue de l’interface du navigateur."
+	},
+	"A1022": {
+		"message": "Choisissez la langue utilisée par l’interface du lecteur. Le lecteur se recharge lorsque vous la modifiez.",
+		"description": "Info-bulle du paramètre de langue de l’interface du lecteur."
 	}
 }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { LOCALES } from './contracts.mjs';
+import { INTERFACE_LANGUAGE_KEYS, LOCALES } from './contracts.mjs';
 import { loadCommon, read, readJson } from './harness.mjs';
 
 const localeFiles = Object.fromEntries(LOCALES.map(locale => [locale, readJson(`_locales/${locale}/messages.json`)]));
@@ -58,4 +58,15 @@ test('message lookup resolves and throws for unknown keys', () => {
 	const { i18n } = loadCommon();
 	assert.ok(i18n.GetMessage('M0001').length > 0);
 	assert.throws(() => i18n.GetMessage('NO_SUCH_KEY'));
+});
+
+test('interface language override loads the selected locale', async () => {
+	const { i18n } = loadCommon({ locale: 'en' });
+	const key = INTERFACE_LANGUAGE_KEYS.browserDefault;
+	const browserText = localeFiles.en[key].message;
+	assert.equal(i18n.GetMessage(key), browserText);
+	await i18n.prepare('fr');
+	assert.equal(i18n.GetMessage(key), localeFiles.fr[key].message);
+	await i18n.prepare('auto');
+	assert.equal(i18n.GetMessage(key), browserText);
 });

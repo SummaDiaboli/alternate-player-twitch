@@ -1203,5 +1203,17 @@
 	"A1021": {
 		"message": "Anzahl der Male, zu denen das Video im Puffer des Players aufgebraucht war und die Wiedergabe angehalten wurde, bis der Puffer wieder gefüllt war.\r\n\r\nJe kleiner die Puffergröße in den Player-Einstellungen ist, desto höher ist die Wahrscheinlichkeit eines Leerlaufs.\r\n\r\nWährend der Puffer gefüllt wird, wird in der Mitte des Bildschirms eine Sanduhr angezeigt. Fehlt sie während einer Wiedergabepause, ist das ein Zeichen dafür, dass „etwas schiefgelaufen“ ist.",
 		"description": "Tooltip shown in the statistics panel."
+	},
+	"F1593": {
+		"message": "Sprache der Oberfläche:",
+		"description": "Beschriftung der Einstellung für die Sprache der Player-Oberfläche."
+	},
+	"F1594": {
+		"message": "Sprache des Browsers",
+		"description": "Option der Spracheinstellung, die der Sprache der Browser-Oberfläche folgt."
+	},
+	"A1022": {
+		"message": "Wählen Sie die Sprache der Player-Oberfläche. Beim Ändern wird der Player neu geladen.",
+		"description": "Hinweis zur Einstellung für die Sprache der Player-Oberfläche."
 	}
 }
