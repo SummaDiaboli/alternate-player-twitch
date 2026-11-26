@@ -22,6 +22,7 @@ When you visit a Twitch channel page, the extension detects whether the channel 
 
 - **Custom HLS player**: direct stream fetching with configurable buffering presets, including start playback threshold, buffer size, and concurrent segment downloads
 - **Chat integration**: floating or panel chat with configurable position, size, and behaviour; links open in new tabs
+- **Raid following**: optional setting that switches the player to the raid destination; raids are detected from the loaded Twitch chat panel
 - **FFZ (FrankerFaceZ) support**: automatically injects FFZ into the chat frame when the FFZ extension is installed
 - **BTTV (BetterTTV) support**: works via FFZ's ffzap-bttv addon when both are installed, avoiding double-injection conflicts
 - **Volume boost**: optional setting to raise the volume above 100% (up to 200%) for quiet streams
@@ -43,7 +44,7 @@ When you visit a Twitch channel page, the extension detects whether the channel 
 | File | Purpose |
 |---|---|
 | `background.js` | MV3 service worker that detects FFZ/BTTV extensions and injects them into chat |
-| `content.js` | Content script on twitch.tv that detects live channels and triggers the redirect |
+| `content.js` | Content script on twitch.tv that detects live channels, triggers the redirect, and reports chat raid navigation |
 | `common.js` | Shared utilities: logging, settings, i18n, GQL helpers |
 | `player.js` | Full custom HLS player logic, UI, and buffering engine |
 | `player.html` | Player page shell |

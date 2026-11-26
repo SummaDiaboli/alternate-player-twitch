@@ -959,6 +959,14 @@
 	{
 		"message": "Extends the volume slider up to 200%. Useful for quiet streams. Values above 100% are amplified by the browser and may sound distorted."
 	},
+	"F0682":
+	{
+		"message": "Follow raids"
+	},
+	"A0683":
+	{
+		"message": "When the channel you are watching raids another channel, switch the player to the raid destination. Requires the chat panel to be loaded."
+	},
 	"F0700":
 	{
 		"message": "Send message to developer of <cite>Alternate Player for Twitch.tv</cite> extension",
