@@ -22,6 +22,8 @@ export const VENDOR_OR_GENERATED = [
 
 export const LOCALES = ['en', 'ru', 'fr', 'es', 'de'];
 
+export const AUDIO_DEVICE_PERMISSION = 'contentSettings';
+
 export const INTERFACE_LANGUAGE_SETTING = 'interfaceLanguage';
 
 export const INTERFACE_LANGUAGE_VALUES = ['auto', ...LOCALES];

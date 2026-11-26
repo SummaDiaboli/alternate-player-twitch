@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import vm from 'node:vm';
-import { INTERFACE_LANGUAGE_KEYS, INTERFACE_LANGUAGE_SETTING, INTERFACE_LANGUAGE_VALUES, LEGACY_MESSAGE_PROTOCOL, LEGACY_WORKER_LOG_PROTOCOL, LOCALES, MESSAGE_PROTOCOL, TEST_EVENT, WORKER_DATA_FIELDS, WORKER_LOG_PROTOCOL, WORKER_SEGMENT_FIELDS } from './contracts.mjs';
+import { AUDIO_DEVICE_PERMISSION, INTERFACE_LANGUAGE_KEYS, INTERFACE_LANGUAGE_SETTING, INTERFACE_LANGUAGE_VALUES, LEGACY_MESSAGE_PROTOCOL, LEGACY_WORKER_LOG_PROTOCOL, LOCALES, MESSAGE_PROTOCOL, TEST_EVENT, WORKER_DATA_FIELDS, WORKER_LOG_PROTOCOL, WORKER_SEGMENT_FIELDS } from './contracts.mjs';
 import { read } from './harness.mjs';
 
 const html = read('player.html') + '\n' + read('report.html');
@@ -10,6 +10,7 @@ const stringLiterals = source => [...source.matchAll(/'([^'\r\n]*)'|"([^"\r\n]*)
 const content = read('content.js');
 const background = read('background.js');
 const css = read('player.css');
+const manifest = JSON.parse(read('manifest.json'));
 
 function htmlIds(source) {
 	return new Set([...source.matchAll(/\bid=(?:"([^"]+)"|'([^"]+)'|([^\s>]+))/g)].map(match => match[1] || match[2] || match[3]));
@@ -141,6 +142,13 @@ test('interface language selector is wired to the saved setting', () => {
 	assert.match(player, new RegExp(`i18n\\.prepare\\(settings\\.get\\('${INTERFACE_LANGUAGE_SETTING}'\\)\\)`));
 	assert.match(player, new RegExp(`settings\\.set\\('${INTERFACE_LANGUAGE_SETTING}', languageCode\\)`));
 	assert.match(player, /window\.location\.reload\(\)/);
+});
+
+test('audio device permission is declared as optional and requested at runtime', () => {
+	assert.ok(manifest.optional_permissions?.includes(AUDIO_DEVICE_PERMISSION), `${AUDIO_DEVICE_PERMISSION} must be declared as optional`);
+	assert.ok(!manifest.permissions?.includes(AUDIO_DEVICE_PERMISSION), `${AUDIO_DEVICE_PERMISSION} should not be a required permission`);
+	assert.match(player, new RegExp(`permissions: \\[ '${AUDIO_DEVICE_PERMISSION}' \\]`));
+	assert.match(player, /chrome\.contentSettings\.microphone\.set\(/);
 });
 
 test('runtime message values agree between senders and listeners', () => {
