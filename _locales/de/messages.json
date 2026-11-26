@@ -1,7 +1,7 @@
 {
 	"M0001": {
 		"message": "Alternativer Player für Live-Übertragungen auf der Website Twitch.tv.",
-		"description": "Short description of the extension. A copy of this string is in AMO and Windows Store."
+		"description": "Short description of the extension. A copy of this string is also in AMO and Windows Store."
 	},
 	"M0010": {
 		"message": "de",
@@ -47,43 +47,43 @@
 	},
 	"J0120": {
 		"message": "Auto",
-		"description": "Text or HTML fragment. Word length no more than 5 characters. Means that the setting value is selected automatically."
+		"description": "Text or HTML fragment. The word must be no longer than 5 characters. Means that the setting value is selected automatically."
 	},
 	"J0121": {
 		"message": "Stahlblau",
-		"description": "Name of the color theme."
+		"description": "Theme name."
 	},
 	"J0122": {
 		"message": "Goldfarben",
-		"description": "Name of the color theme."
+		"description": "Theme name."
 	},
 	"J0123": {
 		"message": "Anpassbar",
-		"description": "Name of the color theme. Copy of A0565."
+		"description": "Theme name. Copy of A0565."
 	},
 	"J0124": {
 		"message": "Maximal",
-		"description": "The number in the player settings is replaced with this word. Word length no more than 7 characters. Means no restrictions. Copy of A0534."
+		"description": "The number in player settings is replaced with this word. The word must be no longer than 7 characters. Means no restrictions. Copy of A0534."
 	},
 	"J0125": {
 		"message": "Schwarz und Weiß",
-		"description": "Name of the color theme."
+		"description": "Theme name."
 	},
 	"J0126": {
 		"message": "Gut",
-		"description": "Name of the connection quality. Copy of A0581."
+		"description": "Connection quality name. Copy of A0581."
 	},
 	"J0127": {
 		"message": "Mittel",
-		"description": "Name of the connection quality. Copy of A0581."
+		"description": "Connection quality name. Copy of A0581."
 	},
 	"J0128": {
 		"message": "Schlecht",
-		"description": "Name of the connection quality. Copy of A0581."
+		"description": "Connection quality name. Copy of A0581."
 	},
 	"J0129": {
 		"message": "Anpassbar",
-		"description": "Name of the connection quality. Copy of A0581."
+		"description": "Connection quality name. Copy of A0581."
 	},
 	"J0133": {
 		"message": "settings.json der Erweiterung Alternate Player for Twitch.tv"
@@ -94,11 +94,11 @@
 	},
 	"J0138": {
 		"message": "Inkognito",
-		"description": "Name of the color theme."
+		"description": "Theme name."
 	},
 	"J0139": {
 		"message": "(Quelle)",
-		"description": "Part of the broadcast quality name. Copy of A0513."
+		"description": "Part of a broadcast quality name. Copy of A0513."
 	},
 	"J0140": {
 		"message": "fps",
@@ -118,19 +118,19 @@
 	},
 	"J0144": {
 		"message": "Nur Audio",
-		"description": "Name of the broadcast quality"
+		"description": "Broadcast quality name"
 	},
 	"J0145": {
 		"message": "Offline",
-		"description": "Broadcast type: broadcast ended (offline)"
+		"description": "Broadcast type: ended (offline)"
 	},
 	"J0146": {
 		"message": "Live",
-		"description": "Broadcast type: live broadcast (live)"
+		"description": "Broadcast type: live"
 	},
 	"J0147": {
 		"message": "Wiederholung",
-		"description": "Broadcast type: rerun (rerun)"
+		"description": "Broadcast type: rerun"
 	},
 	"J0148": {
 		"message": "Diesen Text übersetzen"
@@ -326,87 +326,87 @@
 	},
 	"F0539": {
 		"message": "Auflösung",
-		"description": "Name of a statistics parameter."
+		"description": "Statistics parameter name."
 	},
 	"F0540": {
 		"message": "Video",
-		"description": "Name of a statistics parameter."
+		"description": "Statistics parameter name."
 	},
 	"F0541": {
 		"message": "Audio",
-		"description": "Name of a statistics parameter."
+		"description": "Statistics parameter name."
 	},
 	"F0542": {
 		"message": "Server",
-		"description": "Name of a statistics parameter."
+		"description": "Statistics parameter name."
 	},
 	"F0543": {
 		"message": "Warteschlange, s",
-		"description": "Name of a statistics parameter."
+		"description": "Statistics parameter name."
 	},
 	"F0544": {
 		"message": "Playliste, s",
-		"description": "Name of a statistics parameter."
+		"description": "Statistics parameter name."
 	},
 	"F0545": {
 		"message": "Abfrageintervall, s",
-		"description": "Name of a statistics parameter."
+		"description": "Statistics parameter name."
 	},
 	"F0546": {
 		"message": "Hinzugefügte Segmente",
-		"description": "Name of a statistics parameter."
+		"description": "Statistics parameter name."
 	},
 	"F0547": {
 		"message": "Hinzugefügte Sekunden",
-		"description": "Name of a statistics parameter."
+		"description": "Statistics parameter name."
 	},
 	"F0548": {
 		"message": "Stream-Bitrate, Mbit/s",
-		"description": "Name of a statistics parameter."
+		"description": "Statistics parameter name."
 	},
 	"F0549": {
 		"message": "Download-Rate, Mbit/s",
-		"description": "Name of a statistics parameter."
+		"description": "Statistics parameter name."
 	},
 	"F0550": {
 		"message": "Zeit bis zum ersten Byte, s",
-		"description": "Name of a statistics parameter."
+		"description": "Statistics parameter name."
 	},
 	"F0551": {
 		"message": "Remux, ms",
-		"description": "Name of a statistics parameter."
+		"description": "Statistics parameter name."
 	},
 	"F0552": {
 		"message": "Stream-Verzögerung, s",
-		"description": "Name of a statistics parameter."
+		"description": "Statistics parameter name."
 	},
 	"F0554": {
 		"message": "Ansehdauer",
-		"description": "Name of a statistics parameter."
+		"description": "Statistics parameter name."
 	},
 	"F0555": {
 		"message": "Insgesamt heruntergeladen, MB",
-		"description": "Name of a statistics parameter."
+		"description": "Statistics parameter name."
 	},
 	"F0556": {
 		"message": "Verworfene Frames",
-		"description": "Name of a statistics parameter."
+		"description": "Statistics parameter name."
 	},
 	"F0557": {
 		"message": "Unvollständige Segmente",
-		"description": "Name of a statistics parameter."
+		"description": "Statistics parameter name."
 	},
 	"F0558": {
 		"message": "Downloadfehler",
-		"description": "Name of a statistics parameter."
+		"description": "Statistics parameter name."
 	},
 	"F0559": {
 		"message": "Pufferüberläufe",
-		"description": "Name of a statistics parameter."
+		"description": "Statistics parameter name."
 	},
 	"F0560": {
 		"message": "Pufferunterläufe",
-		"description": "Name of a statistics parameter."
+		"description": "Statistics parameter name."
 	},
 	"F0561": {
 		"message": "Wiedergabe",
@@ -449,7 +449,7 @@
 	},
 	"F0573": {
 		"message": "Pufferfüllung, s",
-		"description": "Name of a statistics parameter."
+		"description": "Statistics parameter name."
 	},
 	"F0574": {
 		"message": "Lautstärke mit dem Mausrad ändern"
@@ -600,7 +600,7 @@
 	},
 	"F0629": {
 		"message": "Geschlossener Chat",
-		"description": "Name of the setting. Copy of F1065."
+		"description": "Setting name. Copy of F1065."
 	},
 	"A0630": {
 		"message": "Wählen Sie, wie der Chat geschlossen werden soll. Wenn der Chat entladen wird:\n• Er empfängt keine Nachrichten.\n• Sie stehen nicht in der Liste der Chatteilnehmer.\n• Kisten mit Bonus-Punkten öffnen sich nicht.\n• Das erneute Öffnen des Chats dauert länger.\nWenn der Chat ausgeblendet wird:\n• Er verbraucht weiterhin erhebliche Computerressourcen (CPU und RAM).\n• Kisten mit Bonus-Punkten öffnen sich automatisch.\n• Beim Start des Players dauert es länger, bis das Video abgespielt wird."
@@ -695,7 +695,7 @@
 	},
 	"F0663": {
 		"message": "Schließen",
-		"description": "Button that closes something, for example a window"
+		"description": "Button that closes something, such as a window"
 	},
 	"F0664": {
 		"message": "Diese Übertragung erneut ansehen",
@@ -765,7 +765,7 @@
 	},
 	"F0707": {
 		"message": "Senden",
-		"description": "Button for sending data."
+		"description": "Button to send data."
 	},
 	"F0708": {
 		"message": "Fehlerbericht an den Entwickler der Erweiterung <cite>Alternate Player for Twitch.tv</cite> senden",
@@ -782,18 +782,18 @@
 	},
 	"F0717": {
 		"message": "Daten werden gesendet",
-		"description": "Next to this text, <progress> shows the sending progress."
+		"description": "The <progress> element next to this text shows sending progress."
 	},
 	"F0718": {
 		"message": "Abbrechen",
-		"description": "Button to cancel or interrupt sending data."
+		"description": "Button to cancel or interrupt data sending."
 	},
 	"F0719": {
 		"message": "Daten konnten nicht gesendet werden <b>:(</b>"
 	},
 	"F0720": {
 		"message": "Erneut versuchen",
-		"description": "Button to send data again."
+		"description": "Button to resend data."
 	},
 	"F0723": {
 		"message": "Wenn die englische Übersetzung falsch oder unvollständig ist, schreiben Sie bitte unten die korrekte Version. Sie können es auch <a href='https://coolcmd.github.io/tw5/translate.html' target='_blank' rel='noopener noreferrer'>selbst tun</a>, ohne die Hilfe des Erweiterungsentwicklers."
@@ -818,7 +818,7 @@
 	},
 	"F1000": {
 		"message": "<p>Die Browser-Erweiterung <cite>Alternate Player for Twitch.tv</cite> wurde vom unabhängigen Entwickler <cite>Alexander Choporov (CoolCmd)</cite> erstellt, und das kostet viel Freizeit. Die Erweiterung ist kostenlos. Wenn sie Ihnen gefällt, können Sie dem Entwickler mit einer Spende danken. Die Spende wirkt auch als große Motivation, die Entwicklung der Erweiterung fortzusetzen.</p><p>Um zu spenden, klicken Sie <a href='https://coolcmd.github.io/tw5/donate.html' target='_blank' rel='noopener noreferrer'>auf diesen Link</a>.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"J1003": {
 		"message": "Bitte unterstützen!",
@@ -830,35 +830,35 @@
 	},
 	"F1011": {
 		"message": "<p>Dem Player wurde die Möglichkeit hinzugefügt, <a href='https://help.twitch.tv/customer/en/portal/articles/2442508-how-to-use-clips' target='_blank' rel='noopener noreferrer'>Clips zu erstellen und zu teilen</a>. Bitte lesen Sie vor dem Klick auf die entsprechende Schaltfläche deren Tooltip.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1012": {
 		"message": "<p>In den Player-Einstellungen können Sie die Farben der Oberfläche wählen. Bisher sind nur zwei Farbschemata verfügbar. Um deren Anzahl zu erhöhen, lesen Sie den Tooltip.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1013": {
 		"message": "<p>Jetzt funktioniert die Erweiterung <cite>FrankerFaceZ</cite> im Chat. Außerdem wurde das Problem mit der Erweiterung <cite>BetterTTV</cite> in <cite>Chrome</cite> behoben.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1014": {
 		"message": "<p>Jetzt startet der Player auf der Website Twitch.tv nur noch auf Live-Kanälen.</p><p>Möglichkeit hinzugefügt, die Wiedergabegeschwindigkeit der sofortigen Wiederholung zu erhöhen.</p><p>Möglichkeit hinzugefügt, den Ton stummschalten und die Lautstärke mit dem Mausrad zu ändern. Sie können diese Funktion in den Player-Einstellungen deaktivieren.</p><p>Möglichkeit hinzugefügt, die sofortige Wiederholung durch Klicken auf den Bildbereich zu starten/pausieren.</p><p>Tastenkürzel hinzugefügt, mit denen sich die Stummschaltung umschalten und die Wiedergabegeschwindigkeit der sofortigen Wiederholung schrittweise ändern lässt.</p><p>Die Tastenkürzel für einige Befehle wurden geändert, damit sie auf Laptops einfacher zu verwenden sind. Die Kürzel stehen in den Tooltips.</p><p>Und die schlechte Nachricht: Aufgrund von Änderungen auf dem Twitch-Server kann die Erweiterung den Ton vergangener Übertragungen nicht mehr „wiederbeleben“.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1017": {
 		"message": "<p><a href='https://microsoftedge.microsoft.com/addons/detail/aojjiodaaogdbbcnbpjnojilccopgcbk' target='_blank' rel='noopener noreferrer'>Installieren</a>, bewerten und rezensieren. :)</p><p>Außerdem wurde das Farbschema „Schwarz und Weiß“ hinzugefügt.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1018": {
 		"message": "<p>Einstellung zur schnellen Auswahl der Qualität der Internetverbindung hinzugefügt.</p><p>Einstellung zum Ändern der Verlaufsfarbe hinzugefügt.</p><p><cite>Chrome</cite>: Unterstützung für die Erweiterung <a href='https://chrome.google.com/webstore/detail/aiimboljphncldaakcnapfolgnjonlea' target='_blank' rel='noopener noreferrer'><cite>FFZ Add-On Pack</cite></a> hinzugefügt.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1020": {
 		"message": "<p>Kurze Informationen zum Kanal, den Sie ansehen, wurden hinzugefügt, einschließlich der Möglichkeit, ihm zu folgen oder nicht mehr zu folgen. Um diese Informationen zu sehen, klicken Sie oben rechts im Player auf das Symbol oder drücken Sie die Taste <kbd>I</kbd>. Um Ihre gefolgten Kanäle im Blick zu behalten und neue Kanäle zu entdecken, empfehle ich die Browser-Erweiterung <a href='https://chrome.google.com/webstore/detail/nlmbdmpjmlijibeockamioakdpmhjnpk' target='_blank' rel='noopener noreferrer'><cite>Twitch Now</cite></a>.</p><p>Hinweis für Wiederholungen hinzugefügt: das Symbol oben links im Player.</p><p>Ein Tippen auf den Touchscreen zeigt die Player-Oberfläche.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1023": {
 		"message": "<p>Oben links im Player wurde der Hinweis auf eine Live-Übertragung hinzugefügt. Klicken Sie darauf, um die Übertragung von Anfang an anzusehen. Diese Funktion ist nicht auf allen Kanälen verfügbar.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"J1030": {
 		"message": "Clips erstellen und mit allen teilen",
@@ -878,11 +878,11 @@
 	},
 	"F1037": {
 		"message": "<p>Sie können den Chat auf die linke Seite des Players verschieben.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1038": {
 		"message": "<p>Chrome 62 (und seine Klone) ist nicht vollständig mit Windows 10 kompatibel: Nach dem Minimieren des Fensters oder dem Wechseln des Tabs kann ein Videowiedergabefehler auftreten. In diesem Fall empfehle ich, die hardwarebeschleunigte Videodekodierung zu deaktivieren, bis Google das Problem behoben hat.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"J1039": {
 		"message": "Jetzt ist die Erweiterung mit zukünftigen Firefox-Versionen kompatibel",
@@ -890,7 +890,7 @@
 	},
 	"F1040": {
 		"message": "<p>Einige Nachteile dieses Wechsels:</p><ul><li>Die Adresse des Players hat sich geändert (prüfen Sie Ihre Lesezeichen). Die Adresse des Players ändert sich nach jeder Neuinstallation der Erweiterung.<li>Player-Einstellungen sind möglicherweise verloren gegangen.<li>Es kann neue Fehler geben.</ul>",
-		"description": "News."
+		"description": "News item."
 	},
 	"J1041": {
 		"message": "Der Name der Erweiterung wurde geändert",
@@ -898,31 +898,31 @@
 	},
 	"F1042": {
 		"message": "<p>Vor einiger Zeit hat Google die Erweiterung aus seinem Web Store entfernt, weil den Betreibern der Website Twitch.tv der Name der Erweiterung nicht gefiel. Deshalb habe ich beschlossen, den Namen der Erweiterung von <cite>Twitch 5</cite> in <cite>Alternate Player for Twitch.tv</cite> zu ändern. Sonst wurde nichts geändert. Die Erweiterung wird weiterhin vom <cite>Alexander Choporov (CoolCmd)</cite> entwickelt. Die Erweiterung ist im Google Web Store unter der <a href='https://chrome.google.com/webstore/detail/bhplkbgoehhhddaoolmakpocnenplmhf' target='_blank' rel='noopener noreferrer'>neuen Adresse</a> verfügbar.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1043": {
 		"message": "<p>Möglichkeit hinzugefügt, Erweiterungseinstellungen in eine Datei zu exportieren und daraus zu importieren. Jetzt verlieren Sie die Einstellungen nach einer Neuinstallation der Erweiterung oder einem Wechsel zu einem anderen Browser nicht mehr. Außerdem können Sie Ihre Einstellungen mit anderen teilen.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1044": {
 		"message": "<p>Einstellungen hinzugefügt, um die Größe der Oberfläche zu ändern und die Animation auszuschalten.</p><p>Ein Klick auf die Dauer der Übertragung zeigt die Player-Statistik.</p><p>Auf der Website Twitch.tv werden zwei Schaltflächen zu einer zusammengefasst, die sich weiterhin oben rechts auf der Website befindet. Ein Rechtsklick auf die Schaltfläche schaltet den automatischen Start des Players um. Ein Linksklick startet den Player (falls möglich).</p><p>Unterstützung für die <a href='https://m.twitch.tv/' target='_blank' rel='noopener noreferrer'>Website für mobile Geräte</a> hinzugefügt. Derzeit kann nur <a href='https://play.google.com/store/apps/details?id=org.mozilla.firefox' target='_blank' rel='noopener noreferrer'>Firefox für Android</a> meine Erweiterung ausführen. Die Unterstützung für den Touchscreen ist noch nicht ideal. Auf Tablets sehen die Leute die Übertragungen ohnehin in der Twitch-App und nicht im Browser (glaube ich).</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1046": {
 		"message": "<p>Einstellung hinzugefügt, um im Chat den dunklen Modus zu aktivieren. Diese Einstellung wirkt sich nur auf den in den Player eingebetteten Chat aus.</p><p>Außerdem wurde in Firefox der Fehler behoben: eine weiße Seite anstelle des Chats.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1047": {
 		"message": "<p>Einstellung für die Chat-Platzierung hinzugefügt: Sie können den Chat an jeder Seite des Browserfensters anbringen.</p><p>Einstellung zum Schließen des Chats hinzugefügt: entladen oder ausblenden. Die Unterschiede sind im Tooltip beschrieben.</p><p>Einstellung für die automatische Ausblendung der Oberfläche hinzugefügt. Außerdem wird die Oberfläche jetzt sofort ausgeblendet, wenn die Maus den Playerbereich verlässt.</p><p>Die Browser-Erweiterung <cite>FFZ Add-On Pack</cite> in Chrome wurde repariert. Das Ausblenden des an der unteren Seite angebrachten Chats in Firefox wurde repariert.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1048": {
 		"message": "<p>Der eingebettete Chat wird von Twitch.tv entwickelt. Die Erweiterung fügt den Chat nur in ihren Player ein. Kürzlich hat Twitch.tv den alten eingebetteten Chat durch einen neuen ersetzt. Der neue Chat ist eine leicht verkürzte Version des Chats auf ihrer Website. Die Chat-Optimierungen, die ich kürzlich zur Erweiterung hinzugefügt habe, funktionieren mit dem neuen Chat noch nicht. Außerdem sind andere Browser-Erweiterungen wie <cite>BetterTTV</cite> und <cite>FrankerFaceZ</cite> möglicherweise nicht vollständig mit dem neuen eingebetteten Chat kompatibel. Ich habe den neuen Chat kaum getestet, weil es in meinem Land Probleme mit dem Internet gibt (und mit dem Verstand der Politiker).</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1049": {
 		"message": "<p>Ein voll funktionsfähiger Chat wurde hinzugefügt, der identisch mit dem Popout-Chat auf der Website Twitch.tv ist. Folgende Funktionen sind jetzt verfügbar: Räume, Moderation, Raids, Bits, Popout-Fenster; Sie müssen das Senden der ersten Nachricht nicht bestätigen. Flüstern funktionieren im Chat noch nicht. Wenn Sie den dunklen Modus umschalten möchten, tun Sie das auf der Website Twitch.tv. Der voll funktionsfähige Chat ist in Microsoft Edge nicht verfügbar.</p><p>Jetzt ist im Chat (z. B. unten oder oben am Fenster angebracht) Platz für deutlich mehr <a href='https://coolcmd.github.io/img/tw5/messages.png' target='_blank' rel='noopener noreferrer'>Nachrichten</a> und <a href='https://coolcmd.github.io/img/tw5/emotes.png' target='_blank' rel='noopener noreferrer'>Emotes</a>. Diese Optimierung ist mit den aktuellen Versionen der Browser-Erweiterungen <cite>BetterTTV</cite> und <cite>FrankerFaceZ</cite> kompatibel. Diese Optimierung ist in Microsoft Edge nicht verfügbar.</p><p>Das Player-Farbschema „Inkognito“ wurde hinzugefügt. Eine Einstellung zur Auswahl der Chat-Version wurde hinzugefügt.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"J1054": {
 		"message": "Wichtige Informationen",
@@ -930,43 +930,43 @@
 	},
 	"J1055": {
 		"message": "Die Version der Erweiterung für den Browser Firefox für Android ist experimentell",
-		"description": "News title for a tablet."
+		"description": "News title for tablets."
 	},
 	"F1056": {
 		"message": "<p>Die Erweiterung ist in diesem Browser nicht ausreichend getestet. Sie unterstützt den Touchscreen nicht vollständig: Tooltips sind nicht sichtbar. Der Browser enthält einige lästige Fehler.</p>",
-		"description": "News for a tablet."
+		"description": "News item for tablets."
 	},
 	"F1057": {
 		"message": "<p>Menü mit Links und Befehlen hinzugefügt. Einer der Befehle ermöglicht es, die Übertragung in einem anderen Player anzusehen, z. B. <cite>Media Player Classic</cite>, <cite>VLC Media Player</cite> oder <cite>MX Player</cite>.</p><p>Das Drücken der Taste <kbd>Esc</kbd> blendet die Player-Oberfläche einschließlich Fenstern und Menüs aus.</p><p>Einstellung hinzugefügt, um das Strecken eines kleinen Videos auf die Playergröße zu deaktivieren.</p><p>Einstellung hinzugefügt, um das Gerät für die Audioausgabe zu wählen: Lautsprecher, Kopfhörer, Fernseher usw. Diese Einstellung wird ausgeblendet, wenn dem Browser nur ein Audiogerät zur Verfügung steht. Aufgrund eines Browserfehlers ist diese Einstellung noch nicht im Inkognito-Modus verfügbar. Diese Einstellung ist in Firefox nicht verfügbar (kann aber noch in diesem Jahr hinzugefügt werden) und in Microsoft Edge.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1058": {
 		"message": "<p>Chat ist im Vollbildmodus verfügbar.</p><p>Der Link „Diese Übertragung erneut ansehen“ wurde zum Player-Menü hinzugefügt. Nutzen Sie ihn, um die Übertragung später weiter anzusehen oder einen interessanten Moment mit anderen zu teilen.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1059": {
 		"message": "<p>Ihr Anmeldestatus bei Twitch.tv ist wieder im Player sichtbar (damit Sie Clips erstellen können). Dazu wurde der Erweiterung die Berechtigung erteilt, die Cookies der Website zu lesen.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1060": {
 		"message": "<p>Die Touchscreen-Unterstützung wurde verbessert: Jetzt können Sie die Chatgröße ändern, die Statistik verschieben und Einstellungen schnell erhöhen/verringern. Um die Tooltips zu lesen, benötigen Sie aber weiterhin eine Maus.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1062": {
 		"message": "<p>Videoqualität „Nur Audio“ hinzugefügt. In diesem Modus wird das Video weder heruntergeladen noch angezeigt. Dadurch werden die Ressourcen (CPU, RAM, Internetverbindung) des Players weniger beansprucht. Ideal zum Musikhören.</p><p>Die Einstellung zum Ändern der Lautstärke mit dem Mausrad wurde verbessert. Jetzt können Sie die Schrittweite der Lautstärkeänderung festlegen.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1063": {
 		"message": "<p>In manchen Fällen wurden Werbespots in den Übertragungen angezeigt. Jetzt werden diese Werbespots blockiert.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1064": {
 		"message": "<p>Unterstützung für <a href='https://help.twitch.tv/s/article/channel-points-guide' target='_blank' rel='noopener noreferrer'>Kanauspunkte</a> hinzugefügt. Sie müssen auf der Website Twitch.tv angemeldet sein, um sie zu erhalten. Prüfen Sie Ihren Anmeldestatus, indem Sie auf das Kanal-Symbol oben rechts in meinem Player klicken.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1065": {
 		"message": "<p>Die Erweiterung öffnet automatisch Kisten mit Bonus-Punkten. Das passiert sowohl im Player-Chat als auch auf der Website. Sie müssen dafür keine separate Erweiterung mehr installieren. Lesen Sie den Tooltip der Einstellung „Geschlossener Chat“, um zu erfahren, wie Sie Kisten auch bei geschlossenem Chat öffnen.</p>",
-		"description": "News. Copy of F0629."
+		"description": "News item. Copy of F0629."
 	},
 	"J1066": {
 		"message": "Über Werbung",
@@ -974,19 +974,19 @@
 	},
 	"F1067": {
 		"message": "<p>Im September hat Twitch begonnen, gegen Werbeblocker vorzugehen, einschließlich meiner Erweiterung. Die Erweiterung verwendet spezielle Tricks, um Werbung zu blockieren. Twitch wiederum blockiert jeden erkannten Trick. Danach brauche ich ein paar Tage, um einen neuen Trick zu finden. Außerdem müssen Sie warten, bis die neue Version der Erweiterung im Store veröffentlicht ist. Google und Microsoft benötigen bis zu 7 Tage, Mozilla 1 Tag. Die ganze Zeit über sehen Sie Werbung im Player der Erweiterung.</p><p>Die Anzahl der Tricks ist begrenzt, und im Moment hat Twitch fast alles blockiert. Deshalb werde ich in der nächsten Version der Erweiterung eine zuverlässigere, aber weniger wirksame Methode zum Ausblenden von Werbung hinzufügen. Während der Werbung kann die Wiedergabe für einige Sekunden pausieren und Sie sehen die Meldung „Werbung wird übersprungen“.</p><p>Leider zeigt Twitch in meiner Region nur selten Werbung, deshalb kann ich die Werbeausblendung nicht selbst testen. Ich brauche Freiwillige, die die Beta-Versionen der Erweiterung testen. Sie sollten: logisch denken können, häufig Werbung in der Erweiterung sehen, Erweiterungen nicht aus dem Store installieren (ich gebe Anweisungen) und die Testergebnisse ausführlich beschreiben. Wenn Sie mir bei dieser mühsamen, aber wichtigen Arbeit helfen möchten, klicken Sie im Player-Menü auf „Feedback senden“ und geben Sie mir Bescheid. Vielen Dank!</p>",
-		"description": "News. Copy of F0528."
+		"description": "News item. Copy of F0528."
 	},
 	"F1068": {
 		"message": "<p>Schaltfläche zum Umschalten des Bild-in-Bild-Modus hinzugefügt. Sie können auch <kbd>Shift</kbd>+<kbd>Enter</kbd> drücken. Pausieren ist in diesem Fenster noch nicht möglich.</p>",
-		"description": "News. See also F1584."
+		"description": "News item. See also F1584."
 	},
 	"F1069": {
 		"message": "<p>Die Player-Einstellung „Abfrageintervall“ wurde verbessert. Ich empfehle, ihren Wert auf „Auto“ zu setzen (das ist der Standardwert). Diese Player-Einstellung wird in einer zukünftigen Version der Erweiterung entfernt.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1070": {
 		"message": "<p>Das Ausblenden von Werbung wurde verbessert: Statt eines schwarzen Bildschirms sehen Sie während der Werbung jetzt die Übertragung in geringer Auflösung. Außerdem wurde die Werbehäufigkeit reduziert: Jetzt sehen Sie Werbung in der Erweiterung nicht häufiger als auf der Website twitch.tv (nicht umfassend getestet).</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1072": {
 		"message": "Die Zukunft dieser Erweiterung",
@@ -994,23 +994,23 @@
 	},
 	"F1073": {
 		"message": "<p>Ab Juni 2024 wird der Browser Chrome <a href='https://developer.chrome.com/docs/extensions/develop/migrate/mv2-deprecation-timeline' target='_blank' rel='noopener noreferrer'>beginnen</a>, meine Erweiterung automatisch zu deaktivieren und ihre Installation aus dem Chrome Web Store zu verhindern. Eine Zeit lang können Sie die Erweiterung noch manuell aktivieren.</p><p>Damit die Erweiterung im Browser Chrome funktioniert, muss ich sie gründlich umbauen. Das wird mehrere Monate dauern. Die neue Version der Erweiterung wird nur mit <b>modernen Versionen</b> der Browser funktionieren.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1074": {
 		"message": "<ul><li>Verdienen von Kanauspunkten und Drops repariert.<li>Werbeausblendung teilweise repariert.<li>Folgen/Nicht-mehr-Folgen und Cliperstellung repariert.<li>Automatischer Start des Players repariert.<li>Einstellung zum Ändern der Lautstärke mit dem Mausrad verfeinert.<li>Einige Tastenkürzel geändert.<li>Die Statistik-Schaltfläche wurde ins Menü verschoben. Die Menü-Schaltfläche wurde in die untere Leiste des Players hinzugefügt.<li>Die Textgröße in der oberen Leiste des Players passt sich dynamisch an.<li>Mehrere weitere Fehlerbehebungen und Verbesserungen.</ul>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1076": {
 		"message": "<p>Ein Fehler wurde behoben, der das Ansehen von Übertragungen auf einigen Kanälen verhinderte (Twitch verwendet ein neues CDN). Deshalb benötigt diese Erweiterungsversion neue Berechtigungen.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1077": {
 		"message": "<p>Der Befehl „Aufzeichnungsadresse kopieren“ im Player-Menü wurde repariert. Außerdem wurde er in „Diese Übertragung erneut ansehen“ umbenannt und in einen normalen Link umgewandelt, damit er bequemer zu nutzen ist. Verwenden Sie diesen Link statt des kürzlich entfernten Links oben links.</p><p>Das Laden des Chats bei einem Raid wurde repariert.</p><p>Wenn Sie den dunklen Modus im Chat nicht aktivieren können, versuchen Sie, ihn auf der Website Twitch.tv <b>aus- und wieder einzuschalten</b>.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"F1078": {
 		"message": "<p>Cliperstellung repariert.</p>",
-		"description": "News."
+		"description": "News item."
 	},
 	"J1500": {
 		"message": "Nützliche Informationen",
@@ -1018,7 +1018,7 @@
 	},
 	"F1501": {
 		"message": "<p>Um Hilfe zu sehen, klicken Sie auf die Menü-Schaltfläche unten rechts und dann im Menü auf „Hilfe“. Außerdem haben die meisten Elemente der Player-Oberfläche (Schaltflächen, Links, Menüs usw.) <strong>Tooltips</strong>, die ich dringend zu lesen empfehle. Tooltips erscheinen automatisch unter dem ruhenden Mauszeiger.</p>",
-		"description": "Part of the help, part of the feedback form, news for the first launch of the player."
+		"description": "Part of the help, part of the feedback form, and a news item for the first launch of the player."
 	},
 	"F1502": {
 		"message": "<p>Um den Kanal oder die Kategorie auf der Website Twitch.tv zu öffnen, klicken Sie oben im Player auf den Titel der Übertragung oder der Kategorie. Weitere Links finden Sie im Player-Menü.</p>",
@@ -1062,7 +1062,7 @@
 	},
 	"F1515": {
 		"message": "<p>Wenn Sie unbedingt <b>7TV</b>-Emotes im Chat der Erweiterung benötigen, gehen Sie so vor: Deinstallieren Sie die Browser-Erweiterung <cite>7TV</cite>. Installieren Sie die Browser-Erweiterung <cite>FrankerFaceZ</cite>. Aktivieren Sie in den Einstellungen der Erweiterung <cite>FrankerFaceZ</cite> das Add-on <cite>7TV</cite>. Auf dieselbe Weise können Sie BetterTTV-Emotes aktivieren.</p>",
-		"description": "Part of the help and news."
+		"description": "Part of the help and a news item."
 	},
 	"F1570": {
 		"message": "<p>Der eingebettete Chat wird von Twitch.tv entwickelt. Die Erweiterung fügt den Chat nur in ihren Player ein (und optimiert die <a href='https://coolcmd.github.io/img/tw5/messages.png' target='_blank' rel='noopener noreferrer'>Höhe</a> des <a href='https://coolcmd.github.io/img/tw5/emotes.png' target='_blank' rel='noopener noreferrer'>Inhalts</a>). Im Vergleich zur Version auf der Website Twitch.tv hat dieser Chat einige Einschränkungen. Lesen Sie die Beschreibung der Chat-Version in den Player-Einstellungen.</p>",
