@@ -60,7 +60,9 @@ test('version-2 settings migrate to English storage keys without value loss', as
 	settings.flushChanges();
 
 	for (const [name, expected] of Object.entries(version2Values)) {
-		assert.equal(settings.get(name), expected, `${name} keeps its value`);
+		if (name !== 'settingsVersion') {
+			assert.equal(settings.get(name), expected, `${name} keeps its value`);
+		}
 	}
 	for (const legacyName of Object.values(LEGACY_STORAGE_KEYS)) {
 		assert.equal(storageData[legacyName], void 0, `${legacyName} is removed`);
@@ -76,4 +78,15 @@ test('version-2 settings migrate to English storage keys without value loss', as
 	const removeWrites = calls.writes.filter(write => write.type === 'remove');
 	assert.equal(removeWrites.length, 1);
 	assert.deepEqual(removeWrites[0].keys.sort(), Object.values(LEGACY_STORAGE_KEYS).sort());
+});
+
+test('version-3 settings restore without rewriting storage', async () => {
+	const values = { ...version2Values, settingsVersion: EXPECTED_SETTINGS_VERSION };
+	const { settings, calls } = loadCommon({ storage: values });
+	await settings.restore();
+	settings.flushChanges();
+	assert.deepEqual(calls.writes, []);
+	for (const [name, expected] of Object.entries(values)) {
+		assert.equal(settings.get(name), expected, `${name} keeps its value`);
+	}
 });

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { LEGACY_INSERT_THIRD_PARTY, MESSAGE_PROTOCOL, MESSAGE_PROTOCOL_ENGLISH, TEST_EVENT } from './contracts.mjs';
+import { LEGACY_MESSAGE_PROTOCOL, MESSAGE_PROTOCOL, TEST_EVENT } from './contracts.mjs';
 import { read } from './harness.mjs';
 
 const html = read('player.html') + '\n' + read('report.html');
@@ -51,11 +51,13 @@ test('log severity names resolve to exported log methods', () => {
 
 test('runtime message values agree between senders and listeners', () => {
 	assert.match(content, new RegExp(`request: '${MESSAGE_PROTOCOL.insertThirdParty}'`));
-	assert.match(background, new RegExp(`message\\.request === '${MESSAGE_PROTOCOL.insertThirdParty}' \\|\\| message\\.request === '${LEGACY_INSERT_THIRD_PARTY}'`));
+	assert.match(background, new RegExp(`message\\.request === '${MESSAGE_PROTOCOL.insertThirdParty}' \\|\\| message\\.request === '${LEGACY_MESSAGE_PROTOCOL.insertThirdParty}'`));
 	assert.match(content, new RegExp(`requestText: '${MESSAGE_PROTOCOL.raid}'`));
-	assert.match(player, new RegExp(`isRaidRequest = message\\.requestText === '${MESSAGE_PROTOCOL.raid}' \\|\\| message\\.requestText === '${MESSAGE_PROTOCOL_ENGLISH.raid}'`));
-	assert.match(player, new RegExp(`message\\.requestText === '${MESSAGE_PROTOCOL.alreadyOpen}' \\|\\| message\\.requestText === '${MESSAGE_PROTOCOL_ENGLISH.alreadyOpen}'`));
-	assert.ok(player.split(MESSAGE_PROTOCOL.alreadyOpen).length >= 3, 'already-open request is sent and handled');
+	assert.match(player, new RegExp(`isRaidRequest = message\\.requestText === '${LEGACY_MESSAGE_PROTOCOL.raid}' \\|\\| message\\.requestText === '${MESSAGE_PROTOCOL.raid}'`));
+	assert.match(player, new RegExp(`message\\.requestText === '${LEGACY_MESSAGE_PROTOCOL.alreadyOpen}' \\|\\| message\\.requestText === '${MESSAGE_PROTOCOL.alreadyOpen}'`));
+	assert.ok(player.split(MESSAGE_PROTOCOL.alreadyOpen).length >= 2, 'already-open request is sent and handled');
+	assert.doesNotMatch(content, new RegExp(`requestText: '${LEGACY_MESSAGE_PROTOCOL.raid}'`));
+	assert.doesNotMatch(player, new RegExp(`requestText: '${LEGACY_MESSAGE_PROTOCOL.alreadyOpen}'`));
 });
 
 test('dynamic scroll indicator id matches player.html', () => {

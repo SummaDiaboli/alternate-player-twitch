@@ -36,12 +36,12 @@ export const SETTING_API = [
 // Stable logical names mapped to the current source/storage key.
 // Layer 3 and Layer 5 update the values only.
 export const SETTING_KEYS = {
-	version: 'чВерсияНастроек',
-	followRaids: 'лСледоватьЗаРейдами',
-	volume: 'чГромкость2',
-	volumeBoostEnabled: 'лРазрешитьУсилениеГромкости',
-	chatState: 'чСостояниеЧата',
-	bufferSize: 'чРазмерБуфера'
+	version: 'settingsVersion',
+	followRaids: 'followRaids',
+	volume: 'volume2',
+	volumeBoostEnabled: 'volumeBoostEnabled',
+	chatState: 'chatState',
+	bufferSize: 'bufferSize'
 };
 
 export const SETTING_DEFAULTS = {
@@ -51,26 +51,24 @@ export const SETTING_DEFAULTS = {
 	chatState: 0
 };
 
-export const EXPECTED_SETTINGS_VERSION = 2;
+export const EXPECTED_SETTINGS_VERSION = 3;
 
 export const LOCALES = ['en', 'ru', 'fr', 'es', 'de'];
 
 export const TEST_EVENT = 'tw5-raid';
 
-// Runtime message values are part of the cross-script protocol. Layer 4
-// accepts the future English values while senders still emit the legacy ones.
+// Runtime message values are part of the cross-script protocol. Listeners keep
+// accepting the version-2 values so mixed extension versions interoperate.
 export const MESSAGE_PROTOCOL = {
-	raid: 'Рейд',
-	insertThirdParty: 'InsertThirdPartyExtensions',
-	alreadyOpen: 'ЭтотКаналУжеОткрыт'
-};
-
-export const MESSAGE_PROTOCOL_ENGLISH = {
 	raid: 'Raid',
 	insertThirdParty: 'InsertThirdPartyExtensions',
 	alreadyOpen: 'ThisChannelIsAlreadyOpen'
 };
 
-export const LEGACY_INSERT_THIRD_PARTY = 'ВставитьСторонниеРасширения';
+export const LEGACY_MESSAGE_PROTOCOL = {
+	raid: 'Рейд',
+	insertThirdParty: 'ВставитьСторонниеРасширения',
+	alreadyOpen: 'ЭтотКаналУжеОткрыт'
+};
 
 export const PLAYER_URL_PREFIX = 'chrome-extension://test/player.html?channel=';

@@ -445,7 +445,7 @@ function translateRestoredSettings(source) {
 }
 
 const settings = (() => {
-	const SETTINGS_VERSION = 2;
+	const SETTINGS_VERSION = 3;
 	const _bufferingPresets = new Map([ [ 'J0126', {
 		concurrentLoadCount: 1,
 		playbackStartMs: 3,

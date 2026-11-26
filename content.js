@@ -604,7 +604,7 @@ function watchRaidInChat() {
 		previousChannelCode = addressObject.channelCode;
 		log.logOk(`[content.js] Чат перешел на канал ${previousChannelCode}, сообщаю о рейде`);
 		chrome.runtime.sendMessage({
-			requestText: 'Рейд',
+			requestText: 'Raid',
 			channelCode: previousChannelCode
 		});
 	}), 500);

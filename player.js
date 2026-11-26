@@ -6457,7 +6457,7 @@ wrapErrors(() => {
 	function isChannelAlreadyOpen(channelName) {
 		assert(isNonEmptyString(channelName));
 		chrome.runtime.sendMessage({
-			requestText: 'ЭтотКаналУжеОткрыт',
+			requestText: 'ThisChannelIsAlreadyOpen',
 			channelName
 		}, response => {
 			if (response === true) {
