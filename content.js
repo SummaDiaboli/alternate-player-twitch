@@ -14,6 +14,10 @@ let г_сКодКанала = '';
 
 let г_лИдетТрансляция = false;
 
+let г_сПоследнийАдрес = '';
+
+let г_лОжидаетВставкиКнопки = false;
+
 const м_Отладка = {
 	ЗавершитьРаботуИПоказатьСообщение: завершитьРаботу,
 	ПойманоИсключение: завершитьРаботу
@@ -220,17 +224,18 @@ function обработатьPopState(оСобытие) {
 	}
 }
 
-function обработатьPushState(оСобытие) {
-	м_Журнал.Окак(`[content.js] Произошло событие tw5-pushstate ${location.href}`);
+function обработатьPushState() {
+	м_Журнал.Окак(`[content.js] Обнаружен переход на страницу ${location.href}`);
 	измененАдресСтраницы('PUSHSTATE');
 }
 
 function обработатьЗапускНашегоПроигрывателя(оСобытие) {
 	оСобытие.preventDefault();
-	if (оСобытие.button === ЛЕВАЯ_КНОПКА && г_оРазобранныйАдрес.сСтраница === 'ВОЗМОЖНО_ПРЯМАЯ_ТРАНСЛЯЦИЯ') {
-		запуститьНашПроигрыватель(г_оРазобранныйАдрес.сКодКанала);
+	const оАдрес = разобратьАдрес(location);
+	if (оСобытие.button === ЛЕВАЯ_КНОПКА && оАдрес.сСтраница === 'ВОЗМОЖНО_ПРЯМАЯ_ТРАНСЛЯЦИЯ') {
+		запуститьНашПроигрыватель(оАдрес.сКодКанала);
 	} else {
-		м_Журнал.Окак(`[content.js] Не запускать проигрыватель Кнопка=${оСобытие.button} Страница=${г_оРазобранныйАдрес.сСтраница}`);
+		м_Журнал.Окак(`[content.js] Не запускать проигрыватель Кнопка=${оСобытие.button} Страница=${оАдрес.сСтраница}`);
 	}
 }
 
@@ -261,14 +266,33 @@ function обновитьНашуКнопку() {
 	получитьНашуКнопку().classList.toggle('tw5-запрещено', !м_Настройки.Получить('лАвтоперенаправлениеРазрешено'));
 }
 
-function вставитьНашуКнопку() {
+function получитьМестоДляКнопки() {
 	if (г_оРазобранныйАдрес.лМобильнаяВерсия) {
-		const узКудаВставлять = document.querySelector('.top-nav__menu > div:last-child > div:first-child');
-		if (!узКудаВставлять) {
-			return false;
+		const узМобильноеМеню = document.querySelector('.mw-top-nav__menu');
+		if (узМобильноеМеню && узМобильноеМеню.parentNode) {
+			return { уз: узМобильноеМеню, способ: 'beforebegin' };
 		}
+	} else {
+		const узНавигация = document.querySelector('.top-nav__nav-items-container');
+		if (узНавигация && узНавигация.nextElementSibling) {
+			return { уз: узНавигация.nextElementSibling, способ: 'afterend' };
+		}
+	}
+	const узСовременноеМеню = document.querySelector('.top-nav__menu > div:last-child > div:first-child');
+	if (узСовременноеМеню) {
+		return { уз: узСовременноеМеню, способ: 'afterend' };
+	}
+	return null;
+}
+
+function вставитьНашуКнопку() {
+	const оМесто = получитьМестоДляКнопки();
+	if (!оМесто) {
+		return false;
+	}
+	if (г_оРазобранныйАдрес.лМобильнаяВерсия) {
 		м_Журнал.Окак('[content.js] Вставляю нашу кнопку для мобильного сайта');
-		узКудаВставлять.insertAdjacentHTML('afterend', `
+		оМесто.уз.insertAdjacentHTML(оМесто.способ, `
 		<div class="tw5-автоперенаправление tw5-js-удалить">
 			<button id="tw5-автоперенаправление">
 				<svg viewBox="0 0 128 128">
@@ -319,12 +343,8 @@ function вставитьНашуКнопку() {
 		</div>
 		`);
 	} else {
-		const узКудаВставлять = document.querySelector('.top-nav__menu > div:last-child > div:first-child');
-		if (!узКудаВставлять) {
-			return false;
-		}
 		м_Журнал.Окак('[content.js] Вставляю нашу кнопку');
-		узКудаВставлять.insertAdjacentHTML('afterend', `
+		оМесто.уз.insertAdjacentHTML(оМесто.способ, `
 		<div class="tw5-автоперенаправление tw5-js-удалить">
 			<button id="tw5-автоперенаправление">
 				<svg viewBox="0 0 128 128">
@@ -437,57 +457,50 @@ function вставитьНашуКнопку() {
 }
 
 function вставитьНашуКнопкуЕслиНужно() {
-	return Boolean(получитьНашуКнопку()) || вставитьНашуКнопку();
-}
-
-function вставитьНашуКнопкуВПервыйРаз() {
-	вставитьНашуКнопку();
-	if (г_оРазобранныйАдрес.лМобильнаяВерсия) {
-		new MutationObserver(моЗаписи => {
-			вставитьНашуКнопкуЕслиНужно();
-		}).observe(document.head || document.documentElement, {
-			childList: true,
-			subtree: true
-		});
-	} else {
-		window.addEventListener('tw5-изменензаголовок', вставитьНашуКнопкуЕслиНужно);
+	if (получитьНашуКнопку()) {
+		return true;
 	}
+	if (г_лОжидаетВставкиКнопки) {
+		return false;
+	}
+	г_лОжидаетВставкиКнопки = true;
+	requestAnimationFrame(() => {
+		г_лОжидаетВставкиКнопки = false;
+		if (!получитьНашуКнопку()) {
+			вставитьНашуКнопку();
+		}
+	});
+	return false;
 }
 
-function перехватитьФункции() {
-	let _лНеПерехватывать = false;
-	window.addEventListener('tw5-неперехватывать', () => {
-		_лНеПерехватывать = true;
+function следитьЗаРазметкойСтраницы() {
+	if (!document.documentElement) {
+		window.addEventListener('DOMContentLoaded', следитьЗаРазметкойСтраницы, { once: true });
+		return;
+	}
+	вставитьНашуКнопкуЕслиНужно();
+	new MutationObserver(() => вставитьНашуКнопкуЕслиНужно()).observe(document.documentElement, {
+		childList: true,
+		subtree: true
 	});
-	const oTitleDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'title');
-	Object.defineProperty(document, 'title', {
-		configurable: oTitleDescriptor.configurable,
-		enumerable: oTitleDescriptor.enumerable,
-		get() {
-			return oTitleDescriptor.get.call(this);
-		},
-		set(title) {
-			if (_лНеПерехватывать) {
-				oTitleDescriptor.set.call(this, title);
-			} else if (this.documentElement.hasAttribute('data-tw5-перенаправление')) {} else {
-				oTitleDescriptor.set.call(this, title);
-				window.dispatchEvent(new CustomEvent('tw5-изменензаголовок'));
-			}
-		}
-	});
-	const fPushState = history.pushState;
-	history.pushState = function(state, title) {
-		if (_лНеПерехватывать) {
-			fPushState.apply(this, arguments);
-		} else if (document.documentElement.hasAttribute('data-tw5-перенаправление')) {} else {
-			const сБыло = location.pathname;
-			fPushState.apply(this, arguments);
-			if (сБыло !== location.pathname) {
-				oTitleDescriptor.set.call(document, 'Twitch');
-				window.dispatchEvent(new CustomEvent('tw5-pushstate'));
-			}
-		}
-	};
+}
+
+function проверитьСменуАдреса() {
+	if (document.documentElement && document.documentElement.hasAttribute('data-tw5-перенаправление')) {
+		return;
+	}
+	if (location.href === г_сПоследнийАдрес) {
+		return;
+	}
+	г_сПоследнийАдрес = location.href;
+	м_Журнал.Окак(`[content.js] Обнаружена смена адреса ${location.href}`);
+	обработатьPushState();
+	вставитьНашуКнопкуЕслиНужно();
+}
+
+function следитьЗаАдресом() {
+	г_сПоследнийАдрес = location.href;
+	setInterval(проверитьСменуАдреса, 200);
 }
 
 function ждатьЗагрузкуДомика() {
@@ -596,17 +609,12 @@ function удалитьХвостыСтаройВерсии() {}
 	window.addEventListener('popstate', обработатьPopState);
 	м_Настройки.Восстановить().then(() => {
 		измененАдресСтраницы('LOAD');
-		window.addEventListener('tw5-pushstate', обработатьPushState);
-		вставитьНаСтраницу(перехватитьФункции);
-		// Insert button for both chat page and main live stream page
 		const адрес = разобратьАдрес(location);
 		if (адрес.сСтраница === 'ЧАТ_КАНАЛА' || адрес.сСтраница === 'ВОЗМОЖНО_ПРЯМАЯ_ТРАНСЛЯЦИЯ') {
-			// For main live stream page, wait a bit for the DOM to be ready
-			if (адрес.сСтраница === 'ВОЗМОЖНО_ПРЯМАЯ_ТРАНСЛЯЦИЯ') {
-				setTimeout(() => вставитьНашуКнопкуВПервыйРаз(), 1000);
-			} else {
-				вставитьНашуКнопкуВПервыйРаз();
-			}
+			следитьЗаРазметкойСтраницы();
+		}
+		if (адрес.сСтраница === 'ВОЗМОЖНО_ПРЯМАЯ_ТРАНСЛЯЦИЯ' && window.top === window) {
+			следитьЗаАдресом();
 		}
 	}).catch(м_Отладка.ПойманоИсключение);
 })();
