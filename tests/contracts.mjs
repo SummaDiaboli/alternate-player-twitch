@@ -85,4 +85,36 @@ export const LEGACY_WORKER_LOG_PROTOCOL = {
 	error: 'Ой'
 };
 
+// worker.js is generated and unchanged. These are its wire field names.
+// Keys are player names; values are worker names.
+export const WORKER_SEGMENT_FIELDS = {
+	dataValue: 'пДанные',
+	isGap: 'лРазрыв',
+	number: 'чНомер',
+	duration: 'чДлительность'
+};
+
+// Keys are worker names; values are player names.
+export const WORKER_DATA_FIELDS = {
+	чПреобразованЗа: 'conversionTime',
+	лЗабраковано: 'isRejected',
+	лПотериВидео: 'hasVideoLoss',
+	лПотериЗвука: 'hasAudioLoss',
+	чМинДлительностьВидеоСемпла: 'minVideoSampleDuration',
+	чМаксДлительностьВидеоСемпла: 'maxVideoSampleDurationMs',
+	чСредняяДлительностьВидеоСемпла: 'avgVideoSampleDuration',
+	чБитрейтЗвука: 'audioBitrate',
+	чПозицияКодирования: 'encodePositionMs',
+	чПозицияТрансляции: 'streamPosition',
+	чВремяКодирования: 'encodingTime',
+	мбМедиасегмент: 'mediaSegmentData',
+	лЕстьВидео: 'hasVideo',
+	лЕстьЗвук: 'hasAudio',
+	мбСегментИнициализации: 'isInitSegment',
+	сКодеки: 'codecString',
+	чЧастотаКадров: 'frameRate',
+	чДиапазон: 'range',
+	лЧересстрочное: 'isInterlaced'
+};
+
 export const PLAYER_URL_PREFIX = 'chrome-extension://test/player.html?channel=';

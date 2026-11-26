@@ -1441,7 +1441,7 @@ const stats = (() => {
 	function convertedSegmentReceived(segment) {
 		const isWindowOpen2 = isWindowOpen();
 		const data = segment.dataValue;
-		if (data.hasOwnProperty('мбМедиасегмент')) {
+		if (data.hasOwnProperty('mediaSegmentData')) {
 			if (segment.isGap) {
 				if (data.hasVideo) {
 					let videoCompression = 'H.264' + ` ${getH264ProfileName(data.nProfileIndication, data.nConstraintSetFlag)}` + ` L${(data.nLevelIndication / 10).toFixed(1)}` + ` RF${data.nMaxNumberReferenceFrames}`;
@@ -5258,12 +5258,12 @@ const converterModule = (() => {
 			} else {
 				if (typeof segment.dataValue == 'number') {
 					log.logInfo(`[Conversion] Sending segment ${segment.number} State=${segment.dataValue}`);
-					_worker.postMessage(segment);
+					_worker.postMessage(toWorkerSegment(segment));
 				} else {
 					debug.saveTransportStream(segment);
 					stats.originalSegmentReceived();
 					log.logInfo(`[Conversion] Sending segment ${segment.number}`);
-					_worker.postMessage(segment, [ segment.dataValue ]);
+					_worker.postMessage(toWorkerSegment(segment), [ segment.dataValue ]);
 				}
 				if (++deleteCount == 1) {
 					removeNumber = segmentIndex;
@@ -5275,11 +5275,63 @@ const converterModule = (() => {
 		}
 		player.addNextSegment();
 	}
+	const workerSegmentFields = [
+		[ 'dataValue', 'пДанные' ],
+		[ 'isGap', 'лРазрыв' ],
+		[ 'number', 'чНомер' ],
+		[ 'duration', 'чДлительность' ]
+	];
+	const workerDataFieldNames = new Map([
+		[ 'чПреобразованЗа', 'conversionTime' ],
+		[ 'лЗабраковано', 'isRejected' ],
+		[ 'лПотериВидео', 'hasVideoLoss' ],
+		[ 'лПотериЗвука', 'hasAudioLoss' ],
+		[ 'чМинДлительностьВидеоСемпла', 'minVideoSampleDuration' ],
+		[ 'чМаксДлительностьВидеоСемпла', 'maxVideoSampleDurationMs' ],
+		[ 'чСредняяДлительностьВидеоСемпла', 'avgVideoSampleDuration' ],
+		[ 'чБитрейтЗвука', 'audioBitrate' ],
+		[ 'чПозицияКодирования', 'encodePositionMs' ],
+		[ 'чПозицияТрансляции', 'streamPosition' ],
+		[ 'чВремяКодирования', 'encodingTime' ],
+		[ 'мбМедиасегмент', 'mediaSegmentData' ],
+		[ 'лЕстьВидео', 'hasVideo' ],
+		[ 'лЕстьЗвук', 'hasAudio' ],
+		[ 'мбСегментИнициализации', 'isInitSegment' ],
+		[ 'сКодеки', 'codecString' ],
+		[ 'чЧастотаКадров', 'frameRate' ],
+		[ 'чДиапазон', 'range' ],
+		[ 'лЧересстрочное', 'isInterlaced' ]
+	]);
 	const legacyWorkerLogSeverityNames = new Map([
 		[ 'Вот', 'logInfo' ],
 		[ 'Окак', 'logOk' ],
 		[ 'Ой', 'logError' ]
 	]);
+	function toWorkerSegment(segment) {
+		const workerSegment = {};
+		for (const [ playerName, workerName ] of workerSegmentFields) {
+			workerSegment[workerName] = segment[playerName];
+		}
+		return workerSegment;
+	}
+	function fromWorkerSegment(workerSegment) {
+		const segment = {};
+		for (const [ playerName, workerName ] of workerSegmentFields) {
+			segment[playerName] = workerSegment[workerName];
+		}
+		return segment;
+	}
+	function fromWorkerData(workerData) {
+		if (!isObject(workerData)) {
+			return workerData;
+		}
+		const data = {};
+		for (const [ workerName, value ] of Object.entries(workerData)) {
+			const mapped = workerDataFieldNames.get(workerName);
+			data[mapped === undefined ? workerName : mapped] = value;
+		}
+		return data;
+	}
 	function getWorkerLogSeverityName(importance) {
 		const mapped = legacyWorkerLogSeverityNames.get(importance);
 		const name = mapped === undefined ? importance : mapped;
@@ -5292,11 +5344,13 @@ const converterModule = (() => {
 		switch (dataModule[0]) {
 		  case 1:
 			assert(dataModule.length === 2 && isObject(dataModule[1]));
-			const segment = new segmentItem(processingTransformed, dataModule[1].dataValue, dataModule[1].duration, dataModule[1].isGap, dataModule[1].number);
+			const workerSegment = fromWorkerSegment(dataModule[1]);
+			const dataValue = fromWorkerData(workerSegment.dataValue);
+			const segment = new segmentItem(processingTransformed, dataValue, workerSegment.duration, workerSegment.isGap, workerSegment.number);
 			log.logInfo(`[Conversion] Segment received ${segment.number} ConvertedIn=${log.F0(segment.dataValue.conversionTime)}ms`);
 			if (typeof segment.dataValue != 'number') {
 				stats.convertedSegmentReceived(segment);
-				if (!segment.dataValue.hasOwnProperty('мбМедиасегмент')) {
+				if (!segment.dataValue.hasOwnProperty('mediaSegmentData')) {
 					return;
 				}
 				debug.saveConvertedSegment(segment);

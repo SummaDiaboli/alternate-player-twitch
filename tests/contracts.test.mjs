@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { LEGACY_MESSAGE_PROTOCOL, LEGACY_WORKER_LOG_PROTOCOL, MESSAGE_PROTOCOL, TEST_EVENT, WORKER_LOG_PROTOCOL } from './contracts.mjs';
+import vm from 'node:vm';
+import { LEGACY_MESSAGE_PROTOCOL, LEGACY_WORKER_LOG_PROTOCOL, MESSAGE_PROTOCOL, TEST_EVENT, WORKER_DATA_FIELDS, WORKER_LOG_PROTOCOL, WORKER_SEGMENT_FIELDS } from './contracts.mjs';
 import { read } from './harness.mjs';
 
 const html = read('player.html') + '\n' + read('report.html');
@@ -64,6 +65,70 @@ test('worker log severities map legacy wire values to English log methods', () =
 		assert.match(player, new RegExp(`\\[\\s*'${legacy}',\\s*'${english}'\\s*\\]`));
 	}
 	assert.match(player, /getWorkerLogSeverityName\(importance\[yMarker\]\)/);
+});
+
+test('worker segment fields are translated at the player boundary', () => {
+	const worker = read('worker.js');
+	for (const [playerName, workerName] of Object.entries(WORKER_SEGMENT_FIELDS)) {
+		assert.ok(worker.includes(workerName), `worker.js does not use ${workerName}`);
+		assert.match(player, new RegExp(`\\[\\s*'${playerName}',\\s*'${workerName}'\\s*\\]`));
+	}
+	for (const [workerName, playerName] of Object.entries(WORKER_DATA_FIELDS)) {
+		assert.ok(worker.includes(workerName), `worker.js does not emit ${workerName}`);
+		assert.match(player, new RegExp(`\\[\\s*'${workerName}',\\s*'${playerName}'\\s*\\]`));
+	}
+	assert.match(player, /_worker\.postMessage\(toWorkerSegment\(segment\)/);
+	assert.doesNotMatch(player, /_worker\.postMessage\(segment\b/);
+	assert.match(player, /fromWorkerSegment\(dataModule\[1\]\)/);
+	assert.match(player, /fromWorkerData\(workerSegment\.dataValue\)/);
+	assert.doesNotMatch(player, /hasOwnProperty\('мбМедиасегмент'\)/);
+});
+
+test('worker adapter translates segment and result fields at runtime', () => {
+	const start = player.indexOf('\tconst workerSegmentFields = [');
+	const end = player.indexOf('\tfunction getWorkerLogSeverityName', start);
+	assert.ok(start !== -1 && end !== -1, 'worker adapter block not found');
+	const context = { isObject: value => typeof value == 'object' && value !== null };
+	vm.createContext(context);
+	const api = vm.runInContext(`${player.slice(start, end)}\n({ toWorkerSegment, fromWorkerSegment, fromWorkerData })`, context);
+	const buffer = new ArrayBuffer(8);
+	const outbound = api.toWorkerSegment({ dataValue: buffer, isGap: true, number: 7, duration: 2 });
+	assert.equal(outbound.пДанные, buffer);
+	assert.equal(outbound.лРазрыв, true);
+	assert.equal(outbound.чНомер, 7);
+	assert.equal(outbound.чДлительность, 2);
+	const mediaSegmentData = new Uint8Array(4);
+	const initSegment = new Uint8Array(2);
+	const inbound = {
+		пДанные: {
+			чПреобразованЗа: 12,
+			лЗабраковано: false,
+			лПотериВидео: true,
+			мбМедиасегмент: mediaSegmentData,
+			мбСегментИнициализации: initSegment,
+			сКодеки: 'video/mp4;codecs="avc1.4D401F"',
+			чЧастотаКадров: 30,
+			nProfileIndication: 100
+		},
+		лРазрыв: false,
+		чНомер: 7,
+		чДлительность: 2
+	};
+	const workerSegment = api.fromWorkerSegment(inbound);
+	assert.equal(workerSegment.dataValue, inbound.пДанные);
+	assert.equal(workerSegment.isGap, false);
+	assert.equal(workerSegment.number, 7);
+	assert.equal(workerSegment.duration, 2);
+	const data = api.fromWorkerData(workerSegment.dataValue);
+	assert.equal(data.conversionTime, 12);
+	assert.equal(data.isRejected, false);
+	assert.equal(data.hasVideoLoss, true);
+	assert.equal(data.mediaSegmentData, mediaSegmentData);
+	assert.equal(data.isInitSegment, initSegment);
+	assert.equal(data.codecString, inbound.пДанные.сКодеки);
+	assert.equal(data.frameRate, 30);
+	assert.equal(data.nProfileIndication, 100);
+	assert.equal(api.fromWorkerData(9), 9);
 });
 
 test('runtime message values agree between senders and listeners', () => {
