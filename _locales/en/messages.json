@@ -951,6 +951,14 @@
 		"message": "Only mute",
 		"description": "Копия A0575."
 	},
+	"F0680":
+	{
+		"message": "Allow volume above 100%"
+	},
+	"A0681":
+	{
+		"message": "Extends the volume slider up to 200%. Useful for quiet streams. Values above 100% are amplified by the browser and may sound distorted."
+	},
 	"F0700":
 	{
 		"message": "Send message to developer of <cite>Alternate Player for Twitch.tv</cite> extension",
