@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { MESSAGE_PROTOCOL, TEST_EVENT } from './contracts.mjs';
+import { LEGACY_INSERT_THIRD_PARTY, MESSAGE_PROTOCOL, MESSAGE_PROTOCOL_ENGLISH, TEST_EVENT } from './contracts.mjs';
 import { read } from './harness.mjs';
 
 const html = read('player.html') + '\n' + read('report.html');
@@ -39,12 +39,28 @@ test('raid test seam is present and stable', () => {
 	assert.match(player, /detail, 'channel'\)/);
 });
 
+test('log severity names resolve to exported log methods', () => {
+	const common = read('common.js');
+	const exported = new Set([...common.matchAll(/^\t\t(log[A-Za-z]+),$/gm)].map(match => match[1]));
+	assert.deepEqual([...exported].sort(), ['logError', 'logInfo', 'logOk']);
+	assert.doesNotMatch(player, /'(?:Вот|Окак|Ой)'/);
+	for (const match of player.matchAll(/showState\(\s*'(log[A-Za-z]+)'/g)) {
+		assert.ok(exported.has(match[1]), `unknown log severity ${match[1]}`);
+	}
+});
+
 test('runtime message values agree between senders and listeners', () => {
 	assert.match(content, new RegExp(`request: '${MESSAGE_PROTOCOL.insertThirdParty}'`));
-	assert.match(background, new RegExp(`message\\.request === '${MESSAGE_PROTOCOL.insertThirdParty}'`));
-	assert.match(content, new RegExp(`сЗапрос: '${MESSAGE_PROTOCOL.raid}'`));
-	assert.match(player, new RegExp(`сЗапрос === '${MESSAGE_PROTOCOL.raid}'`));
+	assert.match(background, new RegExp(`message\\.request === '${MESSAGE_PROTOCOL.insertThirdParty}' \\|\\| message\\.request === '${LEGACY_INSERT_THIRD_PARTY}'`));
+	assert.match(content, new RegExp(`requestText: '${MESSAGE_PROTOCOL.raid}'`));
+	assert.match(player, new RegExp(`isRaidRequest = message\\.requestText === '${MESSAGE_PROTOCOL.raid}' \\|\\| message\\.requestText === '${MESSAGE_PROTOCOL_ENGLISH.raid}'`));
+	assert.match(player, new RegExp(`message\\.requestText === '${MESSAGE_PROTOCOL.alreadyOpen}' \\|\\| message\\.requestText === '${MESSAGE_PROTOCOL_ENGLISH.alreadyOpen}'`));
 	assert.ok(player.split(MESSAGE_PROTOCOL.alreadyOpen).length >= 3, 'already-open request is sent and handled');
+});
+
+test('dynamic scroll indicator id matches player.html', () => {
+	assert.match(player, /scroll-indicator-\$\{scrollElement\.id\}/);
+	assert.match(html, /\bid=scroll-indicator-news-body\b/);
 });
 
 test('CSS class selectors refer to classes declared in markup or script', () => {

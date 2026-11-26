@@ -1,11 +1,11 @@
 @charset "utf-8";
-:root{--tw5-ширинаспискасмайликов: 90rem}
+:root{--tw5-emoji-list-width: 90rem}
 .tw-balloon[data-a-target=chat-settings-balloon],
 .chat-input__badge-carousel .tw-balloon{max-width:unset}
 html .chat-settings__popover{max-width:calc(100vw - 2rem);width:43rem}
 .chat-input__badge-carousel div[direction=top-right]{right:auto;left:0;margin-right:0}
 .tw-balloon[data-a-target=emote-picker]{max-width:calc(100vw - 2rem)}
-html .emote-picker{max-width:100%;width:var(--tw5-ширинаспискасмайликов)}
+html .emote-picker{max-width:100%;width:var(--tw5-emoji-list-width)}
 .community-points-summary+.tw-transition>div>div>.tw-balloon{max-width:unset}
 .reward-center__content{max-width:calc(100vw - 2rem)}
 html .viewer-card-layer__draggable{width:unset}
@@ -15,12 +15,12 @@ html .viewer-card-layer__draggable{width:unset}
 	div[class*=bttv-EmoteListRow-module__row-]{height:auto!important;flex-wrap:wrap!important}
 }
 @media (max-height:33em){
-	:root{--tw5-высотазаголовка: 0px;--tw5-отступокна: .2rem;--tw5-нижнийотступчата: .4rem;--tw5-высотавводасообщения: var(--button-size-default);--tw5-вышеавода-в: (var(--tw5-нижнийотступчата) + var(--tw5-высотавводасообщения))}
-	html .stream-chat-header{height:var(--tw5-высотазаголовка);overflow:hidden;z-index:var(--z-index-default)!important}
-	.stream-chat-header>div:last-child{position:fixed!important;bottom:var(--tw5-нижнийотступчата)!important;margin-right:.5rem!important}
+	:root{--tw5-header-height: 0px;--tw5-window-padding: .2rem;--tw5-chat-bottom-margin: .4rem;--tw5-message-input-height: var(--button-size-default);--tw5-above-avatar-offset-v: (var(--tw5-chat-bottom-margin) + var(--tw5-message-input-height))}
+	html .stream-chat-header{height:var(--tw5-header-height);overflow:hidden;z-index:var(--z-index-default)!important}
+	.stream-chat-header>div:last-child{position:fixed!important;bottom:var(--tw5-chat-bottom-margin)!important;margin-right:.5rem!important}
 	html .chat-scrollable-area__message-container{padding-bottom:0!important}
-	html .chat-input{padding-bottom:var(--tw5-нижнийотступчата)!important;margin-right:var(--button-size-default)}
-	html .chat-input__textarea textarea:empty{height:var(--tw5-высотавводасообщения)!important;min-height:unset;padding-top:.3rem;padding-bottom:0}
+	html .chat-input{padding-bottom:var(--tw5-chat-bottom-margin)!important;margin-right:var(--button-size-default)}
+	html .chat-input__textarea textarea:empty{height:var(--tw5-message-input-height)!important;min-height:unset;padding-top:.3rem;padding-bottom:0}
 	html .chat-input__input-icons{padding-bottom:0}
 	html .chat-input__badge-carousel{top:unset!important;bottom:0!important}
 	.chat-input>div:last-child{display:flex;align-items:flex-end}

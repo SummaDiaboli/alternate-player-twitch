@@ -36,7 +36,7 @@ test('every statically referenced message key exists in every locale', () => {
 				if (name) referenced.add(name);
 			}
 		}
-		for (const match of text.matchAll(/(?:GetMessage|Текст)\('([^']+)'\)/g)) {
+		for (const match of text.matchAll(/(?:GetMessage|getMessageText)\('([^']+)'\)/g)) {
 			referenced.add(match[1]);
 		}
 	}

@@ -1,157 +1,157 @@
 'use strict';
 
-const ХРАНИТЬ_СОСТОЯНИЕ_КАНАЛА = 2e4;
+const keepChannelState = 2e4;
 
-let г_оРазобранныйАдрес = null;
+let globalParsedAddress = null;
 
-let г_сСпособЗаданияАдреса = '';
+let urlMode = '';
 
-let г_чПоследняяПроверка = 0;
+let globalLastCheck = 0;
 
-let г_оЗапрос = null;
+let globalRequest = null;
 
-let г_сКодКанала = '';
+let globalChannelCode = '';
 
-let г_лИдетТрансляция = false;
+let globalIsStreaming = false;
 
-let г_сПоследнийАдрес = '';
+let globalLastUrl = '';
 
-let г_лОжидаетВставкиКнопки = false;
+let globalIsAwaitingButtonInsert = false;
 
-const м_Отладка = {
-	ЗавершитьРаботуИПоказатьСообщение: завершитьРаботу,
-	ПойманоИсключение: завершитьРаботу
+const debug = {
+	finishAndShowMessage: finishWork2,
+	exceptionCaught: finishWork2
 };
 
-function завершитьРаботу(пИсключениеИлиКодСообщения) {
-	if (!г_лРаботаЗавершена) {
-		console.error(пИсключениеИлиКодСообщения);
+function finishWork2(errorOrMessageCode) {
+	if (!globalIsWorkFinished) {
+		console.error(errorOrMessageCode);
 		try {
-			г_лРаботаЗавершена = true;
-			м_Журнал.Окак('[content.js] Работа завершена');
+			globalIsWorkFinished = true;
+			log.logOk('[content.js] Работа завершена');
 		} catch (_) {}
 	}
 	throw void 0;
 }
 
-function задатьАдресСтраницы(сАдрес, лЗаменить = false) {
-	location[лЗаменить ? 'replace' : 'assign'](сАдрес);
+function setPageUrl(address, shouldReplace = false) {
+	location[shouldReplace ? 'replace' : 'assign'](address);
 }
 
-function вставитьНаСтраницу(фВставить) {
+function insertIntoPage(insertCallback) {
 	// MV3 fix: Call function directly instead of injecting inline script (CSP violation)
-	фВставить();
+	insertCallback();
 }
 
-function этотАдресМожноПеренаправлять(оАдрес) {
-	return !оАдрес.search.includes(АДРЕС_НЕ_ПЕРЕНАПРАВЛЯТЬ);
+function canRedirectThisUrl(addressObject) {
+	return !addressObject.search.includes(urlNoRedirect);
 }
 
-function получитьНеперенаправляемыйАдрес(оАдрес) {
-	return `${оАдрес.protocol}//${оАдрес.host}${оАдрес.pathname}${оАдрес.search.length > 1 ? `${оАдрес.search}&${АДРЕС_НЕ_ПЕРЕНАПРАВЛЯТЬ}` : `?${АДРЕС_НЕ_ПЕРЕНАПРАВЛЯТЬ}`}${оАдрес.hash}`;
+function getNonRedirectableUrl(addressObject) {
+	return `${addressObject.protocol}//${addressObject.host}${addressObject.pathname}${addressObject.search.length > 1 ? `${addressObject.search}&${urlNoRedirect}` : `?${urlNoRedirect}`}${addressObject.hash}`;
 }
 
-function запретитьАвтоперенаправлениеЭтойСтраницы() {
-	if (этотАдресМожноПеренаправлять(location)) {
-		history.replaceState(history.state, '', получитьНеперенаправляемыйАдрес(location));
+function disableAutoRedirectForThisPage() {
+	if (canRedirectThisUrl(location)) {
+		history.replaceState(history.state, '', getNonRedirectableUrl(location));
 	}
 }
 
-разобратьАдрес.ЭТО_НЕ_КОД_КАНАЛА = new Set([ 'directory', 'embed', 'friends', 'inventory', 'login', 'logout', 'manager', 'messages', 'payments', 'popout', 'search', 'settings', 'signup', 'subscriptions', 'team' ]);
+parseAddress.notChannelCode = new Set([ 'directory', 'embed', 'friends', 'inventory', 'login', 'logout', 'manager', 'messages', 'payments', 'popout', 'search', 'settings', 'signup', 'subscriptions', 'team' ]);
 
-function разобратьАдрес(оАдрес) {
-	let лМобильнаяВерсия = false;
-	let сСтраница = 'НЕИЗВЕСТНАЯ';
-	let сКодКанала = '';
-	let лМожноПеренаправлять = false;
-	if (оАдрес.protocol === 'https:' && (оАдрес.host === 'www.twitch.tv' || оАдрес.host === 'm.twitch.tv')) {
-		лМобильнаяВерсия = оАдрес.host === 'm.twitch.tv';
-		const мсЧасти = оАдрес.pathname.split('/');
-		if (мсЧасти.length <= 3 && мсЧасти[1] && !мсЧасти[2]) {
-			if (!разобратьАдрес.ЭТО_НЕ_КОД_КАНАЛА.has(мсЧасти[1])) {
-				сСтраница = 'ВОЗМОЖНО_ПРЯМАЯ_ТРАНСЛЯЦИЯ';
-				сКодКанала = decodeURIComponent(мсЧасти[1]);
-				лМожноПеренаправлять = этотАдресМожноПеренаправлять(оАдрес);
+function parseAddress(addressObject) {
+	let isMobileVersion = false;
+	let page = 'UNKNOWN';
+	let channelCode = '';
+	let canRedirect = false;
+	if (addressObject.protocol === 'https:' && (addressObject.host === 'www.twitch.tv' || addressObject.host === 'm.twitch.tv')) {
+		isMobileVersion = addressObject.host === 'm.twitch.tv';
+		const parts = addressObject.pathname.split('/');
+		if (parts.length <= 3 && parts[1] && !parts[2]) {
+			if (!parseAddress.notChannelCode.has(parts[1])) {
+				page = 'POSSIBLE_LIVE_STREAM';
+				channelCode = decodeURIComponent(parts[1]);
+				canRedirect = canRedirectThisUrl(addressObject);
 			}
-		} else if ((мсЧасти[1] === 'embed' || мсЧасти[1] === 'popout') && мсЧасти[2] && мсЧасти[3] === 'chat') {
-			сСтраница = 'ЧАТ_КАНАЛА';
-			сКодКанала = decodeURIComponent(мсЧасти[2]);
+		} else if ((parts[1] === 'embed' || parts[1] === 'popout') && parts[2] && parts[3] === 'chat') {
+			page = 'CHANNEL_CHAT';
+			channelCode = decodeURIComponent(parts[2]);
 		}
 	}
-	м_Журнал.Окак(`[content.js] Адрес разобран: Страница=${сСтраница} КодКанала=${сКодКанала} МожноПеренаправлять=${лМожноПеренаправлять}`);
+	log.logOk(`[content.js] Адрес разобран: Страница=${page} КодКанала=${channelCode} МожноПеренаправлять=${canRedirect}`);
 	return {
-		лМобильнаяВерсия,
-		сСтраница,
-		сКодКанала,
-		лМожноПеренаправлять
+		isMobileVersion,
+		page,
+		channelCode,
+		canRedirect
 	};
 }
 
-function запроситьСостояниеКанала(оРазобранныйАдрес) {
-	if (!оРазобранныйАдрес.лМожноПеренаправлять || !м_Настройки.Получить('лАвтоперенаправлениеРазрешено')) {
+function requestChannelState(parsedUrl) {
+	if (!parsedUrl.canRedirect || !settings.get('isAutoRedirectAllowed')) {
 		return;
 	}
-	if (!г_оЗапрос && г_сКодКанала === оРазобранныйАдрес.сКодКанала && performance.now() - г_чПоследняяПроверка < ХРАНИТЬ_СОСТОЯНИЕ_КАНАЛА) {
+	if (!globalRequest && globalChannelCode === parsedUrl.channelCode && performance.now() - globalLastCheck < keepChannelState) {
 		return;
 	}
-	if (г_оЗапрос && г_сКодКанала === оРазобранныйАдрес.сКодКанала) {
+	if (globalRequest && globalChannelCode === parsedUrl.channelCode) {
 		return;
 	}
-	отменитьЗапрос();
-	г_сКодКанала = оРазобранныйАдрес.сКодКанала;
-	г_чПоследняяПроверка = -1;
-	отправитьЗапрос();
+	abortRequest();
+	globalChannelCode = parsedUrl.channelCode;
+	globalLastCheck = -1;
+	sendRequest();
 }
 
-function измененАдресСтраницы(сСпособ) {
-	г_оРазобранныйАдрес = разобратьАдрес(location);
-	г_сСпособЗаданияАдреса = сСпособ;
-	if (!г_оРазобранныйАдрес.лМожноПеренаправлять || !м_Настройки.Получить('лАвтоперенаправлениеРазрешено')) {
-		if (г_чПоследняяПроверка === -2) {
-			г_чПоследняяПроверка = -1;
+function onPageUrlChanged(modeName) {
+	globalParsedAddress = parseAddress(location);
+	urlMode = modeName;
+	if (!globalParsedAddress.canRedirect || !settings.get('isAutoRedirectAllowed')) {
+		if (globalLastCheck === -2) {
+			globalLastCheck = -1;
 		}
 		return;
 	}
-	if (!г_оЗапрос && г_сКодКанала === г_оРазобранныйАдрес.сКодКанала && performance.now() - г_чПоследняяПроверка < ХРАНИТЬ_СОСТОЯНИЕ_КАНАЛА) {
-		if (г_лИдетТрансляция) {
-			перенаправитьНаНашПроигрыватель(г_сКодКанала);
+	if (!globalRequest && globalChannelCode === globalParsedAddress.channelCode && performance.now() - globalLastCheck < keepChannelState) {
+		if (globalIsStreaming) {
+			redirectToOurPlayer(globalChannelCode);
 		}
 		return;
 	}
-	if (г_оЗапрос && г_сКодКанала === г_оРазобранныйАдрес.сКодКанала) {
-		г_чПоследняяПроверка = -2;
+	if (globalRequest && globalChannelCode === globalParsedAddress.channelCode) {
+		globalLastCheck = -2;
 		return;
 	}
-	отменитьЗапрос();
-	г_сКодКанала = г_оРазобранныйАдрес.сКодКанала;
-	г_чПоследняяПроверка = -2;
-	отправитьЗапрос();
+	abortRequest();
+	globalChannelCode = globalParsedAddress.channelCode;
+	globalLastCheck = -2;
+	sendRequest();
 }
 
-function отменитьЗапрос() {
-	if (г_оЗапрос) {
-		м_Журнал.Окак('[content.js] Отменяю незавершенный запрос');
-		г_оЗапрос.abort();
+function abortRequest() {
+	if (globalRequest) {
+		log.logOk('[content.js] Отменяю незавершенный запрос');
+		globalRequest.abort();
 	}
 }
 
-function отправитьЗапрос() {
-	м_Журнал.Окак(`[content.js] Посылаю запрос для канала ${г_сКодКанала}`);
-	г_оЗапрос = new XMLHttpRequest();
-	г_оЗапрос.addEventListener('loadend', обработатьОтвет);
-	г_оЗапрос.open('POST', 'https://gql.twitch.tv/gql#origin=twilight');
-	г_оЗапрос.responseType = 'json';
-	г_оЗапрос.timeout = 15e3;
-	г_оЗапрос.setRequestHeader('Accept-Language', 'en-US');
-	г_оЗапрос.setRequestHeader('Client-ID', 'kimne78kx3ncx6brgo4mv6wki5h1ko');
-	г_оЗапрос.setRequestHeader('Content-Type', 'text/plain; charset=UTF-8');
-	if (отправитьЗапрос._мсИдУстройства === void 0) {
-		отправитьЗапрос._мсИдУстройства = document.cookie.match(/(?:^|;[ \t]?)unique_id=([^;]+)/);
+function sendRequest() {
+	log.logOk(`[content.js] Посылаю запрос для канала ${globalChannelCode}`);
+	globalRequest = new XMLHttpRequest();
+	globalRequest.addEventListener('loadend', handleResponse);
+	globalRequest.open('POST', 'https://gql.twitch.tv/gql#origin=twilight');
+	globalRequest.responseType = 'json';
+	globalRequest.timeout = 15e3;
+	globalRequest.setRequestHeader('Accept-Language', 'en-US');
+	globalRequest.setRequestHeader('Client-ID', 'kimne78kx3ncx6brgo4mv6wki5h1ko');
+	globalRequest.setRequestHeader('Content-Type', 'text/plain; charset=UTF-8');
+	if (sendRequest._deviceIdString === void 0) {
+		sendRequest._deviceIdString = document.cookie.match(/(?:^|;[ \t]?)unique_id=([^;]+)/);
 	}
-	if (отправитьЗапрос._мсИдУстройства) {
-		г_оЗапрос.setRequestHeader('X-Device-ID', отправитьЗапрос._мсИдУстройства[1]);
+	if (sendRequest._deviceIdString) {
+		globalRequest.setRequestHeader('X-Device-ID', sendRequest._deviceIdString[1]);
 	}
-	г_оЗапрос.send(создатьТелоЗапросаGql(`query($login: String!) {
+	globalRequest.send(createGqlRequestBody(`query($login: String!) {
 			user(login: $login) {
 				stream {
 					isEncrypted
@@ -163,138 +163,138 @@ function отправитьЗапрос() {
 				}
 			}
 		}`, {
-		login: г_сКодКанала
+		login: globalChannelCode
 	}));
 }
 
-function обработатьОтвет({target: оЗапрос}) {
-	г_оЗапрос = null;
-	if (оЗапрос.status >= 200 && оЗапрос.status < 300 && ЭтоОбъект(оЗапрос.response)) {
-		const лПеренаправить = г_чПоследняяПроверка === -2;
-		г_чПоследняяПроверка = performance.now();
-		let лТрансляцияЗавершенаИлиЗакодирована = true, лСовместныйПросмотр = false;
+function handleResponse({target: request}) {
+	globalRequest = null;
+	if (request.status >= 200 && request.status < 300 && isObject(request.response)) {
+		const shouldRedirect = globalLastCheck === -2;
+		globalLastCheck = performance.now();
+		let isStreamEndedOrEncoded = true, isSharedViewing = false;
 		try {
-			лТрансляцияЗавершенаИлиЗакодирована = оЗапрос.response.data.user.stream.isEncrypted === true;
-			лСовместныйПросмотр = оЗапрос.response.data.user.watchParty.session.state === 'IN_PROGRESS';
+			isStreamEndedOrEncoded = request.response.data.user.stream.isEncrypted === true;
+			isSharedViewing = request.response.data.user.watchParty.session.state === 'IN_PROGRESS';
 		} catch (_) {}
-		г_лИдетТрансляция = !лТрансляцияЗавершенаИлиЗакодирована && !лСовместныйПросмотр;
-		if (г_лИдетТрансляция && лПеренаправить) {
-			перенаправитьНаНашПроигрыватель(г_сКодКанала);
+		globalIsStreaming = !isStreamEndedOrEncoded && !isSharedViewing;
+		if (globalIsStreaming && shouldRedirect) {
+			redirectToOurPlayer(globalChannelCode);
 		}
 	} else {
-		г_чПоследняяПроверка = 0;
+		globalLastCheck = 0;
 	}
 }
 
-function запуститьНашПроигрыватель(сКодКанала) {
-	const сАдресПроигрывателя = ПолучитьАдресНашегоПроигрывателя(сКодКанала);
-	м_Журнал.Окак(`[content.js] Перехожу на страницу ${сАдресПроигрывателя}`);
-	запретитьАвтоперенаправлениеЭтойСтраницы();
-	задатьАдресСтраницы(сАдресПроигрывателя);
+function launchOurPlayer(channelCode) {
+	const playerUrl = getPlayerUrl(channelCode);
+	log.logOk(`[content.js] Перехожу на страницу ${playerUrl}`);
+	disableAutoRedirectForThisPage();
+	setPageUrl(playerUrl);
 }
 
-function перенаправитьНаНашПроигрыватель(сКодКанала) {
-	const сАдресПроигрывателя = ПолучитьАдресНашегоПроигрывателя(сКодКанала);
-	м_Журнал.Окак(`[content.js] Меняю адрес страницы с ${location.href} на ${сАдресПроигрывателя}`);
-	document.documentElement.setAttribute('data-tw5-перенаправление', сАдресПроигрывателя);
-	задатьАдресСтраницы(сАдресПроигрывателя, true);
+function redirectToOurPlayer(channelCode) {
+	const playerUrl = getPlayerUrl(channelCode);
+	log.logOk(`[content.js] Меняю адрес страницы с ${location.href} на ${playerUrl}`);
+	document.documentElement.setAttribute('data-tw5-redirect', playerUrl);
+	setPageUrl(playerUrl, true);
 }
 
-function обработатьPointerDownИClick(оСобытие) {
-	if (г_оРазобранныйАдрес) {
-		const узСсылка = оСобытие.target.closest('a[href]');
-		if (узСсылка && оСобытие.isPrimary !== false && оСобытие.button === ЛЕВАЯ_КНОПКА && !оСобытие.shiftKey && !оСобытие.ctrlKey && !оСобытие.altKey && !оСобытие.metaKey) {
-			м_Журнал.Окак(`[content.js] Произошло событие ${оСобытие.type} у ссылки ${узСсылка.href}`);
-			запроситьСостояниеКанала(разобратьАдрес(узСсылка));
+function handlePointerDownAndClick(event) {
+	if (globalParsedAddress) {
+		const linkElement = event.target.closest('a[href]');
+		if (linkElement && event.isPrimary !== false && event.button === leftButton && !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey) {
+			log.logOk(`[content.js] Произошло событие ${event.type} у ссылки ${linkElement.href}`);
+			requestChannelState(parseAddress(linkElement));
 		}
 	}
 }
 
-function обработатьPopState(оСобытие) {
-	if (г_оРазобранныйАдрес) {
-		м_Журнал.Окак(`[content.js] Произошло событие popstate ${location.href}`);
-		if (получитьВерсиюДвижкаБраузера() < 67) {
+function handlePopState(event) {
+	if (globalParsedAddress) {
+		log.logOk(`[content.js] Произошло событие popstate ${location.href}`);
+		if (getBrowserEngineVersion() < 67) {
 			document.title = 'Twitch';
 		}
-		измененАдресСтраницы('POPSTATE');
-		if (document.documentElement.hasAttribute('data-tw5-перенаправление')) {
-			м_Журнал.Окак('[content.js] Скрываю событие popstate');
-			оСобытие.stopImmediatePropagation();
+		onPageUrlChanged('POPSTATE');
+		if (document.documentElement.hasAttribute('data-tw5-redirect')) {
+			log.logOk('[content.js] Скрываю событие popstate');
+			event.stopImmediatePropagation();
 		}
 	}
 }
 
-function обработатьPushState() {
-	м_Журнал.Окак(`[content.js] Обнаружен переход на страницу ${location.href}`);
-	измененАдресСтраницы('PUSHSTATE');
+function handlePushState() {
+	log.logOk(`[content.js] Обнаружен переход на страницу ${location.href}`);
+	onPageUrlChanged('PUSHSTATE');
 }
 
-function обработатьЗапускНашегоПроигрывателя(оСобытие) {
-	оСобытие.preventDefault();
-	const оАдрес = разобратьАдрес(location);
-	if (оСобытие.button === ЛЕВАЯ_КНОПКА && оАдрес.сСтраница === 'ВОЗМОЖНО_ПРЯМАЯ_ТРАНСЛЯЦИЯ') {
-		запуститьНашПроигрыватель(оАдрес.сКодКанала);
+function handleOurPlayerLaunch(event) {
+	event.preventDefault();
+	const addressObject = parseAddress(location);
+	if (event.button === leftButton && addressObject.page === 'POSSIBLE_LIVE_STREAM') {
+		launchOurPlayer(addressObject.channelCode);
 	} else {
-		м_Журнал.Окак(`[content.js] Не запускать проигрыватель Кнопка=${оСобытие.button} Страница=${оАдрес.сСтраница}`);
+		log.logOk(`[content.js] Не запускать player Кнопка=${event.button} Страница=${addressObject.page}`);
 	}
 }
 
-function обработатьПереключениеАвтоперенаправления(оСобытие) {
-	оСобытие.preventDefault();
-	const л = !м_Настройки.Получить('лАвтоперенаправлениеРазрешено');
-	м_Журнал.Окак(`[content.js] Автоперенаправление разрешено: ${л}`);
-	м_Настройки.Изменить('лАвтоперенаправлениеРазрешено', л);
-	обновитьНашуКнопку();
+function handleAutoRedirectToggle(event) {
+	event.preventDefault();
+	const isFlag = !settings.get('isAutoRedirectAllowed');
+	log.logOk(`[content.js] Автоперенаправление разрешено: ${isFlag}`);
+	settings.set('isAutoRedirectAllowed', isFlag);
+	updateOurButton();
 }
 
-function обработатьЗакрытиеСправки(оСобытие) {
-	оСобытие.preventDefault();
-	м_Журнал.Окак('[content.js] Закрываю справку');
-	оСобытие.currentTarget.classList.remove('tw5-справка');
-	оСобытие.currentTarget.removeEventListener('mouseover', обработатьЗакрытиеСправки);
-	оСобытие.currentTarget.removeEventListener('touchstart', обработатьЗакрытиеСправки, {
+function handleHelpClose(event) {
+	event.preventDefault();
+	log.logOk('[content.js] Закрываю справку');
+	event.currentTarget.classList.remove('tw5-help');
+	event.currentTarget.removeEventListener('mouseover', handleHelpClose);
+	event.currentTarget.removeEventListener('touchstart', handleHelpClose, {
 		passive: false
 	});
-	м_Настройки.Изменить('лАвтоперенаправлениеЗамечено', true);
+	settings.set('isAutoRedirectDetected', true);
 }
 
-function получитьНашуКнопку() {
-	return document.getElementById('tw5-автоперенаправление');
+function getOurButton() {
+	return document.getElementById('tw5-auto-redirect');
 }
 
-function обновитьНашуКнопку() {
-	получитьНашуКнопку().classList.toggle('tw5-запрещено', !м_Настройки.Получить('лАвтоперенаправлениеРазрешено'));
+function updateOurButton() {
+	getOurButton().classList.toggle('tw5-forbidden', !settings.get('isAutoRedirectAllowed'));
 }
 
-function получитьМестоДляКнопки() {
-	if (г_оРазобранныйАдрес.лМобильнаяВерсия) {
-		const узМобильноеМеню = document.querySelector('.mw-top-nav__menu');
-		if (узМобильноеМеню && узМобильноеМеню.parentNode) {
-			return { уз: узМобильноеМеню, способ: 'beforebegin' };
+function getButtonSpot() {
+	if (globalParsedAddress.isMobileVersion) {
+		const mobileMenuElement = document.querySelector('.mw-top-nav__menu');
+		if (mobileMenuElement && mobileMenuElement.parentNode) {
+			return { elementRef: mobileMenuElement, method2: 'beforebegin' };
 		}
 	} else {
-		const узНавигация = document.querySelector('.top-nav__nav-items-container');
-		if (узНавигация && узНавигация.nextElementSibling) {
-			return { уз: узНавигация.nextElementSibling, способ: 'afterend' };
+		const navigationElement = document.querySelector('.top-nav__nav-items-container');
+		if (navigationElement && navigationElement.nextElementSibling) {
+			return { elementRef: navigationElement.nextElementSibling, method2: 'afterend' };
 		}
 	}
-	const узСовременноеМеню = document.querySelector('.top-nav__menu > div:last-child > div:first-child');
-	if (узСовременноеМеню) {
-		return { уз: узСовременноеМеню, способ: 'afterend' };
+	const modernMenuElement = document.querySelector('.top-nav__menu > div:last-child > div:first-child');
+	if (modernMenuElement) {
+		return { elementRef: modernMenuElement, method2: 'afterend' };
 	}
 	return null;
 }
 
-function вставитьНашуКнопку() {
-	const оМесто = получитьМестоДляКнопки();
-	if (!оМесто) {
+function insertOurButton() {
+	const location = getButtonSpot();
+	if (!location) {
 		return false;
 	}
-	if (г_оРазобранныйАдрес.лМобильнаяВерсия) {
-		м_Журнал.Окак('[content.js] Вставляю нашу кнопку для мобильного сайта');
-		оМесто.уз.insertAdjacentHTML(оМесто.способ, `
-		<div class="tw5-автоперенаправление tw5-js-удалить">
-			<button id="tw5-автоперенаправление">
+	if (globalParsedAddress.isMobileVersion) {
+		log.logOk('[content.js] Вставляю нашу кнопку для мобильного сайта');
+		location.elementRef.insertAdjacentHTML(location.method2, `
+		<div class="tw5-auto-redirect tw5-js-remove">
+			<button id="tw5-auto-redirect">
 				<svg viewBox="0 0 128 128">
 					<g>
 						<path d="M64 53h-19.688l-1.313-15.225h57l1.313-14.7h-74.55l3.937 44.888h51.712l-1.8 19.162-16.6 4.463l-16.8-4.463-1.1-11.813h-14.7l1.838 23.362 30.713 8.4l30.45-8.4 4.2-45.675z"/>
@@ -302,12 +302,12 @@ function вставитьНашуКнопку() {
 				</svg>
 			</button>
 			<style>
-				.tw5-автоперенаправление
+				.tw5-auto-redirect
 				{
 					flex: 0 0;
 					margin: 0 0 0 .5rem;
 				}
-				.tw5-автоперенаправление button
+				.tw5-auto-redirect button
 				{
 					align-items: center;
 					background-color: transparent;
@@ -318,24 +318,24 @@ function вставитьНашуКнопку() {
 					justify-content: center;
 					width: 3.6rem;
 				}
-				.tw-root--theme-dark .tw5-автоперенаправление button
+				.tw-root--theme-dark .tw5-auto-redirect button
 				{
 					color: #efeff1;
 				}
-				.tw5-автоперенаправление button:active
+				.tw5-auto-redirect button:active
 				{
 					background-color: rgba(0, 0, 0, 0.05);
 				}
-				.tw-root--theme-dark .tw5-автоперенаправление button:active
+				.tw-root--theme-dark .tw5-auto-redirect button:active
 				{
 					background-color: rgba(255, 255, 255, 0.15);
 				}
-				.tw5-автоперенаправление svg
+				.tw5-auto-redirect svg
 				{
 					fill: currentColor;
 					width: 75%;
 				}
-				.tw5-запрещено svg
+				.tw5-forbidden svg
 				{
 					opacity: .4;
 				}
@@ -343,10 +343,10 @@ function вставитьНашуКнопку() {
 		</div>
 		`);
 	} else {
-		м_Журнал.Окак('[content.js] Вставляю нашу кнопку');
-		оМесто.уз.insertAdjacentHTML(оМесто.способ, `
-		<div class="tw5-автоперенаправление tw5-js-удалить">
-			<button id="tw5-автоперенаправление">
+		log.logOk('[content.js] Вставляю нашу кнопку');
+		location.elementRef.insertAdjacentHTML(location.method2, `
+		<div class="tw5-auto-redirect tw5-js-remove">
+			<button id="tw5-auto-redirect">
 				<svg viewBox="0 0 128 128">
 					<g>
 						<path d="M64 53h-19.688l-1.313-15.225h57l1.313-14.7h-74.55l3.937 44.888h51.712l-1.8 19.162-16.6 4.463l-16.8-4.463-1.1-11.813h-14.7l1.838 23.362 30.713 8.4l30.45-8.4 4.2-45.675z"/>
@@ -354,16 +354,16 @@ function вставитьНашуКнопку() {
 				</svg>
 			</button>
 			<div class="tw5-tooltip">
-				${м_i18n.GetMessage('F0600')}
+				${i18n.GetMessage('F0600')}
 			</div>
 			<style>
-				.tw5-автоперенаправление
+				.tw5-auto-redirect
 				{
 					flex: 0 0;
 					margin: 0 .5rem;
 					position: relative;
 				}
-				.tw5-автоперенаправление button
+				.tw5-auto-redirect button
 				{
 					align-items: center;
 					background-color: var(--color-background-button-text-default);
@@ -374,22 +374,22 @@ function вставитьНашуКнопку() {
 					justify-content: center;
 					width: var(--button-size-default);
 				}
-				.tw5-автоперенаправление button:hover
+				.tw5-auto-redirect button:hover
 				{
 					background-color: var(--color-background-button-text-hover);
 					color: var(--color-fill-button-icon-hover);
 				}
-				.tw5-автоперенаправление button:active
+				.tw5-auto-redirect button:active
 				{
 					background-color: var(--color-background-button-text-active);
 					color: var(--color-fill-button-icon-active);
 				}
-				.tw5-автоперенаправление svg
+				.tw5-auto-redirect svg
 				{
 					fill: currentColor;
 					width: 75%;
 				}
-				.tw5-запрещено svg
+				.tw5-forbidden svg
 				{
 					opacity: .4;
 				}
@@ -426,11 +426,11 @@ function вставитьНашуКнопку() {
 					width: 6px;
 					z-index: var(--z-index-below);
 				}
-				.tw5-автоперенаправление:hover .tw5-tooltip
+				.tw5-auto-redirect:hover .tw5-tooltip
 				{
 					display: block;
 				}
-				.tw5-справка .tw5-tooltip
+				.tw5-help .tw5-tooltip
 				{
 					background: #f00000;
 					color: #fff;
@@ -442,94 +442,94 @@ function вставитьНашуКнопку() {
 		</div>
 		`);
 	}
-	const узКнопка = получитьНашуКнопку();
-	узКнопка.addEventListener('click', обработатьЗапускНашегоПроигрывателя);
-	узКнопка.addEventListener('contextmenu', обработатьПереключениеАвтоперенаправления);
-	if (!г_оРазобранныйАдрес.лМобильнаяВерсия && !м_Настройки.Получить('лАвтоперенаправлениеЗамечено')) {
-		узКнопка.parentNode.classList.add('tw5-справка');
-		узКнопка.parentNode.addEventListener('mouseover', обработатьЗакрытиеСправки);
-		узКнопка.parentNode.addEventListener('touchstart', обработатьЗакрытиеСправки, {
+	const buttonElement = getOurButton();
+	buttonElement.addEventListener('click', handleOurPlayerLaunch);
+	buttonElement.addEventListener('contextmenu', handleAutoRedirectToggle);
+	if (!globalParsedAddress.isMobileVersion && !settings.get('isAutoRedirectDetected')) {
+		buttonElement.parentNode.classList.add('tw5-help');
+		buttonElement.parentNode.addEventListener('mouseover', handleHelpClose);
+		buttonElement.parentNode.addEventListener('touchstart', handleHelpClose, {
 			passive: false
 		});
 	}
-	обновитьНашуКнопку();
+	updateOurButton();
 	return true;
 }
 
-function вставитьНашуКнопкуЕслиНужно() {
-	if (получитьНашуКнопку()) {
+function insertOurButtonIfNeeded() {
+	if (getOurButton()) {
 		return true;
 	}
-	if (г_лОжидаетВставкиКнопки) {
+	if (globalIsAwaitingButtonInsert) {
 		return false;
 	}
-	г_лОжидаетВставкиКнопки = true;
+	globalIsAwaitingButtonInsert = true;
 	requestAnimationFrame(() => {
-		г_лОжидаетВставкиКнопки = false;
-		if (!получитьНашуКнопку()) {
-			вставитьНашуКнопку();
+		globalIsAwaitingButtonInsert = false;
+		if (!getOurButton()) {
+			insertOurButton();
 		}
 	});
 	return false;
 }
 
-function следитьЗаРазметкойСтраницы() {
+function watchPageMarkup() {
 	if (!document.documentElement) {
-		window.addEventListener('DOMContentLoaded', следитьЗаРазметкойСтраницы, { once: true });
+		window.addEventListener('DOMContentLoaded', watchPageMarkup, { once: true });
 		return;
 	}
-	вставитьНашуКнопкуЕслиНужно();
-	new MutationObserver(() => вставитьНашуКнопкуЕслиНужно()).observe(document.documentElement, {
+	insertOurButtonIfNeeded();
+	new MutationObserver(() => insertOurButtonIfNeeded()).observe(document.documentElement, {
 		childList: true,
 		subtree: true
 	});
 }
 
-function проверитьСменуАдреса() {
-	if (document.documentElement && document.documentElement.hasAttribute('data-tw5-перенаправление')) {
+function checkUrlChange() {
+	if (document.documentElement && document.documentElement.hasAttribute('data-tw5-redirect')) {
 		return;
 	}
-	if (location.href === г_сПоследнийАдрес) {
+	if (location.href === globalLastUrl) {
 		return;
 	}
-	г_сПоследнийАдрес = location.href;
-	м_Журнал.Окак(`[content.js] Обнаружена смена адреса ${location.href}`);
-	обработатьPushState();
-	вставитьНашуКнопкуЕслиНужно();
+	globalLastUrl = location.href;
+	log.logOk(`[content.js] Обнаружена смена адреса ${location.href}`);
+	handlePushState();
+	insertOurButtonIfNeeded();
 }
 
-function следитьЗаАдресом() {
-	г_сПоследнийАдрес = location.href;
-	setInterval(проверитьСменуАдреса, 200);
+function watchUrl() {
+	globalLastUrl = location.href;
+	setInterval(checkUrlChange, 200);
 }
 
-function ждатьЗагрузкуДомика() {
-	return new Promise(фВыполнить => {
+function waitForHomeLoad() {
+	return new Promise(execute => {
 		if (document.readyState !== 'loading') {
-			фВыполнить();
+			execute();
 		} else {
-			document.addEventListener('DOMContentLoaded', function ОбработатьЗагрузкуДомика() {
-				document.removeEventListener('DOMContentLoaded', ОбработатьЗагрузкуДомика);
-				фВыполнить();
+			document.addEventListener('DOMContentLoaded', function handleHomeLoad() {
+				document.removeEventListener('DOMContentLoaded', handleHomeLoad);
+				execute();
 			});
 		}
 	});
 }
 
-function ждатьЗагрузкуСтраницы() {
-	return new Promise(фВыполнить => {
+function waitForPageLoad() {
+	return new Promise(execute => {
 		if (document.readyState === 'complete') {
-			фВыполнить();
+			execute();
 		} else {
-			window.addEventListener('load', function ОбработатьЗагрузкуСтраницы() {
-				window.removeEventListener('load', ОбработатьЗагрузкуСтраницы);
-				фВыполнить();
+			window.addEventListener('load', function handlePageLoad() {
+				window.removeEventListener('load', handlePageLoad);
+				execute();
 			});
 		}
 	});
 }
 
-function вставитьСторонниеРасширения() {
+function insertThirdPartyExtensions() {
 	chrome.runtime.sendMessage({
 		request: 'InsertThirdPartyExtensions'
 	}, response => {
@@ -543,100 +543,100 @@ function вставитьСторонниеРасширения() {
 	});
 }
 
-function разрешитьРаботуЧата() {
+function allowChat() {
 	const fGetItem = Storage.prototype.getItem;
-	Storage.prototype.getItem = function(сИмя) {
-		let сЗначение = fGetItem.apply(this, arguments);
-		if (сИмя === 'TwitchCache:Layout' && сЗначение) {
-			сЗначение = сЗначение.replace('"isRightColumnClosedByUserAction":true', '"isRightColumnClosedByUserAction":false');
+	Storage.prototype.getItem = function(name) {
+		let valueString = fGetItem.apply(this, arguments);
+		if (name === 'TwitchCache:Layout' && valueString) {
+			valueString = valueString.replace('"isRightColumnClosedByUserAction":true', '"isRightColumnClosedByUserAction":false');
 		}
-		return сЗначение;
+		return valueString;
 	};
 }
 
-function изменитьСтильЧата() {
-	const узСтиль = document.createElement('link');
-	узСтиль.rel = 'stylesheet';
-	узСтиль.href = chrome.runtime.getURL('content.css');
-	узСтиль.className = 'tw5-js-удалить';
-	(document.head || document.documentElement).appendChild(узСтиль);
+function setChatStyle() {
+	const styleElement = document.createElement('link');
+	styleElement.rel = 'stylesheet';
+	styleElement.href = chrome.runtime.getURL('content.css');
+	styleElement.className = 'tw5-js-remove';
+	(document.head || document.documentElement).appendChild(styleElement);
 }
 
-function изменитьПоведениеЧата() {
-	window.addEventListener('click', оСобытие => {
-		if (оСобытие.button !== ЛЕВАЯ_КНОПКА) {
+function setChatBehavior() {
+	window.addEventListener('click', event => {
+		if (event.button !== leftButton) {
 			return;
 		}
-		const узСсылка = оСобытие.target.closest('a[href^="http:"],a[href^="https:"],a[href]:not([href=""]):not([href^="#"]):not([href*=":"]):not([href$="/not-a-location"])');
-		if (!узСсылка) {
+		const linkElement = event.target.closest('a[href^="http:"],a[href^="https:"],a[href]:not([href=""]):not([href^="#"]):not([href*=":"]):not([href$="/not-a-location"])');
+		if (!linkElement) {
 			return;
 		}
-		м_Журнал.Окак(`[content.js] Открываю ссылку в новой вкладке: ${узСсылка.getAttribute('href')}`);
-		узСсылка.target = '_blank';
-		оСобытие.stopImmediatePropagation();
+		log.logOk(`[content.js] Открываю ссылку в новой вкладке: ${linkElement.getAttribute('href')}`);
+		linkElement.target = '_blank';
+		event.stopImmediatePropagation();
 	}, true);
-	const оНаблюдатель = new MutationObserver(моЗаписи => {
-		const сэл = document.getElementsByClassName('channel-leaderboard');
-		if (сэл.length !== 0) {
-			сэл[0].parentElement.parentElement.classList.add('tw5-parent-channel-leaderboard');
-			оНаблюдатель.disconnect();
+	const observer = new MutationObserver(recordsMap => {
+		const selector = document.getElementsByClassName('channel-leaderboard');
+		if (selector.length !== 0) {
+			selector[0].parentElement.parentElement.classList.add('tw5-parent-channel-leaderboard');
+			observer.disconnect();
 		}
 	});
-	оНаблюдатель.observe(document.body || document.documentElement, {
+	observer.observe(document.body || document.documentElement, {
 		childList: true,
 		subtree: true
 	});
-	setTimeout(() => оНаблюдатель.disconnect(), 6e4);
+	setTimeout(() => observer.disconnect(), 6e4);
 }
 
-function следитьЗаРейдомВЧате() {
-	let сПредыдущийАдрес = location.href;
-	let сПредыдущийКодКанала = разобратьАдрес(location).сКодКанала;
-	setInterval(ДобавитьОбработчикИсключений(() => {
-		if (location.href === сПредыдущийАдрес) {
+function watchRaidInChat() {
+	let previousUrl = location.href;
+	let previousChannelCode = parseAddress(location).channelCode;
+	setInterval(wrapErrors(() => {
+		if (location.href === previousUrl) {
 			return;
 		}
-		сПредыдущийАдрес = location.href;
-		const оАдрес = разобратьАдрес(location);
-		if (оАдрес.сСтраница !== 'ЧАТ_КАНАЛА' || !ЭтоНепустаяСтрока(оАдрес.сКодКанала) || оАдрес.сКодКанала === сПредыдущийКодКанала) {
+		previousUrl = location.href;
+		const addressObject = parseAddress(location);
+		if (addressObject.page !== 'CHANNEL_CHAT' || !isNonEmptyString(addressObject.channelCode) || addressObject.channelCode === previousChannelCode) {
 			return;
 		}
-		сПредыдущийКодКанала = оАдрес.сКодКанала;
-		м_Журнал.Окак(`[content.js] Чат перешел на канал ${сПредыдущийКодКанала}, сообщаю о рейде`);
+		previousChannelCode = addressObject.channelCode;
+		log.logOk(`[content.js] Чат перешел на канал ${previousChannelCode}, сообщаю о рейде`);
 		chrome.runtime.sendMessage({
-			сЗапрос: 'Рейд',
-			сКодКанала: сПредыдущийКодКанала
+			requestText: 'Рейд',
+			channelCode: previousChannelCode
 		});
 	}), 500);
 }
 
-function удалитьХвостыСтаройВерсии() {}
+function removeOldVersionLeftovers() {}
 
-ДобавитьОбработчикИсключений(() => {
-	м_Журнал.Окак(`[content.js] Запущен ${performance.now().toFixed()}мс ${location.href}`);
-	if (разобратьАдрес(location).сСтраница === 'ЧАТ_КАНАЛА') {
-		вставитьНаСтраницу(разрешитьРаботуЧата);
+wrapErrors(() => {
+	log.logOk(`[content.js] Запущен ${performance.now().toFixed()}мс ${location.href}`);
+	if (parseAddress(location).page === 'CHANNEL_CHAT') {
+		insertIntoPage(allowChat);
 		if (window.top !== window) {
-			вставитьСторонниеРасширения();
-			изменитьСтильЧата();
-			изменитьПоведениеЧата();
-			следитьЗаРейдомВЧате();
+			insertThirdPartyExtensions();
+			setChatStyle();
+			setChatBehavior();
+			watchRaidInChat();
 		}
 		return;
 	}
-	удалитьХвостыСтаройВерсии();
-	const сСобытие = window.PointerEvent ? 'pointerdown' : 'mousedown';
-	window.addEventListener(сСобытие, обработатьPointerDownИClick, true);
-	window.addEventListener('click', обработатьPointerDownИClick, true);
-	window.addEventListener('popstate', обработатьPopState);
-	м_Настройки.Восстановить().then(() => {
-		измененАдресСтраницы('LOAD');
-		const адрес = разобратьАдрес(location);
-		if (адрес.сСтраница === 'ЧАТ_КАНАЛА' || адрес.сСтраница === 'ВОЗМОЖНО_ПРЯМАЯ_ТРАНСЛЯЦИЯ') {
-			следитьЗаРазметкойСтраницы();
+	removeOldVersionLeftovers();
+	const eventName = window.PointerEvent ? 'pointerdown' : 'mousedown';
+	window.addEventListener(eventName, handlePointerDownAndClick, true);
+	window.addEventListener('click', handlePointerDownAndClick, true);
+	window.addEventListener('popstate', handlePopState);
+	settings.restore().then(() => {
+		onPageUrlChanged('LOAD');
+		const addressValue = parseAddress(location);
+		if (addressValue.page === 'CHANNEL_CHAT' || addressValue.page === 'POSSIBLE_LIVE_STREAM') {
+			watchPageMarkup();
 		}
-		if (адрес.сСтраница === 'ВОЗМОЖНО_ПРЯМАЯ_ТРАНСЛЯЦИЯ' && window.top === window) {
-			следитьЗаАдресом();
+		if (addressValue.page === 'POSSIBLE_LIVE_STREAM' && window.top === window) {
+			watchUrl();
 		}
-	}).catch(м_Отладка.ПойманоИсключение);
+	}).catch(debug.exceptionCaught);
 })();

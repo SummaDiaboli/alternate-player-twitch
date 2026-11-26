@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { loadCommon } from './harness.mjs';
 import { EXPECTED_SETTINGS_VERSION, SETTING_API, SETTING_DEFAULTS, SETTING_KEYS } from './contracts.mjs';
+import { legacyStorage } from './legacy-keys.mjs';
 
 test('settings exposes the expected public API', () => {
 	const { settings } = loadCommon();
@@ -12,10 +13,10 @@ test('settings exposes the expected public API', () => {
 
 test('empty storage produces documented defaults', async () => {
 	const { settings } = loadCommon();
-	await settings.Восстановить();
-	assert.equal(settings.Получить(SETTING_KEYS.version), EXPECTED_SETTINGS_VERSION);
+	await settings.restore();
+	assert.equal(settings.get(SETTING_KEYS.version), EXPECTED_SETTINGS_VERSION);
 	for (const [logicalName, expected] of Object.entries(SETTING_DEFAULTS)) {
-		assert.equal(settings.Получить(SETTING_KEYS[logicalName]), expected, logicalName);
+		assert.equal(settings.get(SETTING_KEYS[logicalName]), expected, logicalName);
 	}
 });
 
@@ -26,9 +27,9 @@ test('stored values survive a restore', async () => {
 		[key]: true,
 		[SETTING_KEYS.volume]: 73
 	} });
-	await settings.Восстановить();
-	assert.equal(settings.Получить(key), true);
-	assert.equal(settings.Получить(SETTING_KEYS.volume), 73);
+	await settings.restore();
+	assert.equal(settings.get(key), true);
+	assert.equal(settings.get(SETTING_KEYS.volume), 73);
 });
 
 test('out-of-range and invalid values are corrected', async () => {
@@ -37,9 +38,37 @@ test('out-of-range and invalid values are corrected', async () => {
 		[SETTING_KEYS.volume]: 9999,
 		[SETTING_KEYS.chatState]: 42
 	} });
-	await settings.Восстановить();
-	assert.equal(settings.Получить(SETTING_KEYS.volume), 200);
-	assert.equal(settings.Получить(SETTING_KEYS.chatState), SETTING_DEFAULTS.chatState);
+	await settings.restore();
+	assert.equal(settings.get(SETTING_KEYS.volume), 200);
+	assert.equal(settings.get(SETTING_KEYS.chatState), SETTING_DEFAULTS.chatState);
+});
+
+test('version-2 settings migrate to English storage keys', async () => {
+	const { settings, storageData } = loadCommon({ storage: {
+		'чВерсияНастроек': 2,
+		'лСледоватьЗаРейдами': true,
+		'чГромкость2': 73
+	} });
+	await settings.restore();
+	settings.flushChanges();
+	assert.equal(settings.get(SETTING_KEYS.followRaids), true);
+	assert.equal(settings.get(SETTING_KEYS.volume), 73);
+	assert.equal(storageData.followRaids, true);
+	assert.equal(storageData.volume2, 73);
+	assert.equal(storageData['лСледоватьЗаРейдами'], void 0);
+});
+
+test('new storage keys take precedence over legacy aliases', async () => {
+	const { settings, storageData } = loadCommon({ storage: {
+		...legacyStorage({ settingsVersion: 2, followRaids: false, volume2: 1 }),
+		settingsVersion: 2,
+		followRaids: true,
+		volume2: 73
+	} });
+	await settings.restore();
+	settings.flushChanges();
+	assert.equal(settings.get('followRaids'), true);
+	assert.equal(settings.get('volume2'), 73);
 });
 
 test('unrecognized settings version clears storage', async () => {
@@ -47,9 +76,9 @@ test('unrecognized settings version clears storage', async () => {
 		[SETTING_KEYS.version]: 9999,
 		[SETTING_KEYS.followRaids]: true
 	} });
-	await settings.Восстановить();
-	settings.СохранитьИзменения();
-	assert.equal(settings.Получить(SETTING_KEYS.followRaids), false);
+	await settings.restore();
+	settings.flushChanges();
+	assert.equal(settings.get(SETTING_KEYS.followRaids), false);
 	assert.ok(calls.writes.some(write => write.type === 'clear'));
 	assert.equal(storageData[SETTING_KEYS.followRaids], void 0);
 });

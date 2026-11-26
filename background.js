@@ -17,7 +17,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 // Listen for the message from the content script.
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.request === 'InsertThirdPartyExtensions') {
+    if (message.request === 'InsertThirdPartyExtensions' || message.request === 'ВставитьСторонниеРасширения') {
         // Pass both tabId and frameId
         insertThirdPartyExtensions(sender.tab.id, sender.frameId);
         sendResponse({status: "Injections started."});

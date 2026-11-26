@@ -44,6 +44,12 @@ function makeChrome(messages, storageData, calls) {
 					Object.assign(storageData, values);
 					callback?.();
 				},
+				remove(keys, callback) {
+					const names = Array.isArray(keys) ? keys : [keys];
+					calls.writes.push({ type: 'remove', keys: [...names] });
+					for (const key of names) delete storageData[key];
+					callback?.();
+				},
 				clear(callback) {
 					calls.writes.push({ type: 'clear' });
 					for (const key of Object.keys(storageData)) {
@@ -107,9 +113,9 @@ export function loadCommon({ locale = 'en', storage = {} } = {}) {
 	vm.createContext(context);
 	vm.runInContext(read('common.js'), context, { filename: 'common.js' });
 	const api = vm.runInContext(`({
-		settings: м_Настройки,
-		i18n: м_i18n,
-		getPlayerUrl: ПолучитьАдресНашегоПроигрывателя
+		settings,
+		i18n,
+		getPlayerUrl
 	})`, context, { filename: 'test-probe.js' });
 
 	return { ...api, calls, storageData, messages, context };
