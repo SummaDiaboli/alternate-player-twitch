@@ -44,7 +44,7 @@ const subscriptionDoNotNotify = 2;
 
 const subscriptionNotify = 3;
 
-const responseCode = 'Сервер вернул код ';
+const responseCode = 'Server returned code ';
 
 function getMaxVolume() {
 	return settings.get('volumeBoostEnabled') ? maxAmplifiedVolume : maxVolume;
@@ -166,7 +166,7 @@ function getAllCookies(address) {
 		}
 		chrome.cookies.getAll(params, wrapErrors(cookiesStorage => {
 			if (!chrome.runtime.lastError && Array.isArray(cookiesStorage)) {
-				log.logInfo(`[API] Количество печенек: ${cookiesStorage.length}`);
+				log.logInfo(`[API] Cookie count: ${cookiesStorage.length}`);
 				execute(cookiesStorage);
 			} else {
 				console.error('cookies.getAll', chrome.runtime.lastError && chrome.runtime.lastError.message);
@@ -538,7 +538,7 @@ const debug = (() => {
 				finishAndShowMessage('J0200');
 			}
 			try {
-				player.showState('logInfo', 'Завершаю работу');
+				player.showState('logInfo', 'Finishing work');
 				globalQueue.showState();
 			} catch (_) {}
 			finishWork(false);
@@ -645,7 +645,7 @@ class segmentItem {
 			assert(false);
 		}
 		if (typeof dataValue == 'number') {
-			log.logOk(`[Очередь] Добавлен сегмент ${number} Состояние=${dataValue} Обработка=${processingCount}`);
+			log.logOk(`[Queue] Segment added ${number} State=${dataValue} Processing=${processingCount}`);
 		}
 		this.processingCount = processingCount;
 		this.dataValue = dataValue;
@@ -658,7 +658,7 @@ class segmentItem {
 			return `${this.number}-${this.processingCount}-${this.dataValue}`;
 		}
 		if (this.isGap) {
-			return `${this.number}-${this.processingCount}-Р`;
+			return `${this.number}-${this.processingCount}-G`;
 		}
 		return `${this.number}-${this.processingCount}`;
 	}
@@ -683,14 +683,14 @@ function loadFmp4Init() {
 	}
 	const address = globalFmp4Initialization.address;
 	globalFmp4InitLoadCancellation = new cancelPromise();
-	loader.load(globalFmp4InitLoadCancellation, 'GET', address, 15e3, null, null, 'сегмент инициализации', false, 0).then(wrapErrors(buffer2 => {
+	loader.load(globalFmp4InitLoadCancellation, 'GET', address, 15e3, null, null, 'initialization segment', false, 0).then(wrapErrors(buffer2 => {
 		globalFmp4InitLoadCancellation = null;
 		if (!globalIsFmp4 || !globalFmp4Initialization || globalFmp4Initialization.address !== address) {
 			return;
 		}
 		globalFmp4InitBuffer = buffer2;
 		globalFmp4LoadedInitUrl = address;
-		log.logOk(`[fMP4] Загружен сегмент инициализации ${buffer2.byteLength} байт`);
+		log.logOk(`[fMP4] Loaded initialization segment ${buffer2.byteLength} bytes`);
 		converterModule.convertNextSegment();
 	})).catch(wrapErrors(reasonValue => {
 		globalFmp4InitLoadCancellation = null;
@@ -748,7 +748,7 @@ globalQueue.remove = function(elementValue, quantity = 1) {
 		switch (this[index].processingCount) {
 		  case processingLoading:
 			if (isObject(this[index].dataValue)) {
-				log.logInfo(`[Очередь] Отменяю загрузку ${this[index]}`);
+				log.logInfo(`[Queue] Cancelling load of ${this[index]}`);
 				this[index].dataValue.cancel();
 			}
 			break;
@@ -763,7 +763,7 @@ globalQueue.remove = function(elementValue, quantity = 1) {
 				trashModule.discard(this[index].dataValue.mediaSegmentData);
 			}
 		}
-		log.logInfo(`[Очередь] Удаляю ${this[index]}`);
+		log.logInfo(`[Queue] Removing ${this[index]}`);
 		this.splice(index, 1);
 	}
 };
@@ -773,7 +773,7 @@ globalQueue.clear = function() {
 };
 
 globalQueue.showState = function() {
-	log.logInfo(`[Очередь] ${this.join(' ')}`);
+	log.logInfo(`[Queue] ${this.join(' ')}`);
 };
 
 class numberInput {
@@ -859,7 +859,7 @@ const events = (() => {
 	}
 	function sendEvent(eventName, dataValue) {
 		assert(isNonEmptyString(eventName));
-		log.logInfo(`[События] Произошло событие ${eventName}`);
+		log.logInfo(`[Events] Event occurred: ${eventName}`);
 		const eventHandlers = _handlersMap.get(eventName);
 		if (eventHandlers !== void 0) {
 			assert(eventHandlers.size !== 0);
@@ -895,7 +895,7 @@ const trashModule = (() => {
 			if (isObject(junkValue)) {
 				const junkBuffer = junkValue.buffer ? junkValue.buffer : junkValue;
 				if (junkBuffer.byteLength) {
-					log.logInfo(`[Помойка] Выбрасываю ${junkBuffer.byteLength} байтов`);
+					log.logInfo(`[Trash] Discarding ${junkBuffer.byteLength} bytes`);
 					if (this._messageChannel === null) {
 						this._messageChannel = new MessageChannel();
 						this._messageChannel.port2.close();
@@ -921,7 +921,7 @@ const trashModule = (() => {
 			if (isObject(junkValue)) {
 				const junkBuffer = junkValue.buffer ? junkValue.buffer : junkValue;
 				if (junkBuffer.byteLength) {
-					log.logInfo(`[Помойка] Выбрасываю ${junkBuffer.byteLength} байтов`);
+					log.logInfo(`[Trash] Discarding ${junkBuffer.byteLength} bytes`);
 					if (this._worker === null) {
 						this._worker = new Worker('/recycler.js');
 					}
@@ -935,7 +935,7 @@ const trashModule = (() => {
 		}
 		burn() {
 			if (this._worker !== null) {
-				log.logInfo(`[Помойка] Сжигаю ${this._trashByteCount} байтов`);
+				log.logInfo(`[Trash] Disposing ${this._trashByteCount} bytes`);
 				this._worker.postMessage(null);
 				this._worker = null;
 				this._trashByteCount = 0;
@@ -965,18 +965,18 @@ const magicianModule = (() => {
 		};
 	}
 	const handleEvent = wrapErrors(event => {
-		log.logInfo(`[Фокусник] Событие ${event.type}, старое состояние ${log.O(_state2)}`);
+		log.logInfo(`[Focus] Event ${event.type}, old state ${log.O(_state2)}`);
 		setTimeout(updateState);
 	});
 	const updateState = wrapErrors(() => {
 		const nextState = getNewState();
 		if (_state2.isShown !== nextState.isShown || _state2.isActive !== nextState.isActive) {
-			log.logOk(`[Фокусник] Новое состояние ${log.O(nextState)}`);
+			log.logOk(`[Focus] New state ${log.O(nextState)}`);
 			_state2 = nextState;
 			events.sendEvent('focus-manager-state-changed', nextState);
 		}
 	});
-	log.logInfo(`[Фокусник] Начальное состояние ${log.O(_state2)}`);
+	log.logInfo(`[Focus] Initial state ${log.O(_state2)}`);
 	document.addEventListener('visibilitychange', handleEvent);
 	window.addEventListener('focus', handleEvent);
 	window.addEventListener('blur', handleEvent);
@@ -1000,7 +1000,7 @@ const pulseModule = (() => {
 		const timeDriftMs = time - _timeMs - checkIntervalMs;
 		const dateDeviation = dateValue2 - _timestampMs - (time - _timeMs);
 		if (timeDriftMs < MIN_TIME_DEVIATION || timeDriftMs > MAX_TIME_DEVIATION || Math.abs(dateDeviation) > MAX_DATE_DEVIATION) {
-			log.logError(`[Пульс] ${log.F0(timeDriftMs)} ${log.F0(dateDeviation)}`);
+			log.logError(`[Pulse] ${log.F0(timeDriftMs)} ${log.F0(dateDeviation)}`);
 		}
 		_maxDeviationMs = Math.max(_maxDeviationMs, timeDriftMs);
 		_timeMs = time;
@@ -1010,12 +1010,12 @@ const pulseModule = (() => {
 	function handleStateChange(stateNumber) {
 		if (stateNumber === streamEndState || stateNumber === stoppedState || stateNumber === repeatState) {
 			if (_timer !== 0) {
-				log.logInfo('[Пульс] Таймер остановлен');
+				log.logInfo('[Pulse] Timer stopped');
 				clearTimeout(_timer);
 				_timer = 0;
 			}
 		} else if (_timer === 0) {
-			log.logInfo('[Пульс] Таймер запущен');
+			log.logInfo('[Pulse] Timer started');
 			_timeMs = performance.now();
 			_timestampMs = Date.now();
 			_timer = setTimeout(assertHeartbeat, checkIntervalMs);
@@ -1207,7 +1207,7 @@ const stats = (() => {
 		  case 44:
 			return 'CAVLC 4:4:4 Intra';
 		}
-		log.logError(`[Статистика] Неизвестный профиль H.264 ProfileIndication=${nProfileIndication} ConstraintSetFlag=${nConstraintSetFlag}`);
+		log.logError(`[Stats] Unknown H.264 profile ProfileIndication=${nProfileIndication} ConstraintSetFlag=${nConstraintSetFlag}`);
 		return `P${nProfileIndication}C${nConstraintSetFlag}`;
 	}
 	function updateStats() {
@@ -1449,7 +1449,7 @@ const stats = (() => {
 						videoCompression += data.range === 0 ? ' 16-235' : ' 0-255';
 					}
 					if (data.isInterlaced) {
-						videoCompression += ' чересстрочное';
+						videoCompression += ' interlaced';
 					}
 					if (data.frameRate !== 0) {
 						videoCompression += ` ${data.frameRate < 0 ? '≈' : ''}${Math.abs(data.frameRate).toFixed(2)} ${getMessageText('J0140')}`;
@@ -1475,7 +1475,7 @@ const stats = (() => {
 				const relativeDeviation = data.avgVideoSampleDuration / data.maxVideoSampleDurationMs;
 				const absoluteDeviation = data.maxVideoSampleDurationMs - data.avgVideoSampleDuration;
 				if (relativeDeviation <= HIGHLIGHT_VIDEO_LOSS_RELATIVE && absoluteDeviation >= HIGHLIGHT_VIDEO_LOSS_ABSOLUTE) {
-					log.logError(`[Статистика] Превышено отклонение длительности кадра в сегменте ${segment.number}` + ` СредняяДлительностьКадра=${log.F0(data.avgVideoSampleDuration)}мс` + ` АбсолютноеОтклонение=${log.F0(absoluteDeviation)}мс` + ` ОтносительноеОтклонение=${log.F2(relativeDeviation)}`);
+					log.logError(`[Stats] Frame duration deviation exceeded in segment ${segment.number}` + ` AvgFrameDuration=${log.F0(data.avgVideoSampleDuration)}ms` + ` AbsoluteDeviation=${log.F0(absoluteDeviation)}ms` + ` RelativeDeviation=${log.F2(relativeDeviation)}`);
 					data.hasVideoLoss = true;
 				}
 				if (isWindowOpen2) {
@@ -1716,7 +1716,7 @@ const fullscreenMode = (() => {
 	}
 	function update() {
 		const isEnabled = isEnabled2();
-		log.logOk(`[ПолноэкранныйРежим] Режим включен: ${isEnabled}`);
+		log.logOk(`[Fullscreen] Mode enabled: ${isEnabled}`);
 		updateButton('toggle-fullscreen', isEnabled);
 		return isEnabled;
 	}
@@ -1724,7 +1724,7 @@ const fullscreenMode = (() => {
 		if (isEnabled2()) {
 			return false;
 		}
-		log.logInfo('[ПолноэкранныйРежим] Включаю режим');
+		log.logInfo('[Fullscreen] Enabling mode');
 		autoHide.hide(false);
 		pictureInPictureModule.disableControl();
 		getElement()[_sRequestFullscreen]();
@@ -1734,7 +1734,7 @@ const fullscreenMode = (() => {
 		if (!isEnabled2()) {
 			return false;
 		}
-		log.logInfo('[ПолноэкранныйРежим] Отключаю режим');
+		log.logInfo('[Fullscreen] Disabling mode');
 		autoHide.hide(false);
 		document[_sExitFullscreen]();
 		return true;
@@ -1763,14 +1763,14 @@ const pictureInPictureModule = (() => {
 	}
 	function refresh() {
 		const isEnabled = isTurnedOn();
-		log.logOk(`[КартинкаВКартинке] Режим включен: ${isEnabled}`);
+		log.logOk(`[PictureInPicture] Mode enabled: ${isEnabled}`);
 		updateButton('toggle-picture-in-picture', isEnabled);
 	}
 	function turnOn() {
 		if (isTurnedOn()) {
 			return false;
 		}
-		log.logInfo('[КартинкаВКартинке] Включаю режим');
+		log.logInfo('[PictureInPicture] Enabling mode');
 		fullscreenMode.disable();
 		_oMediaElement.requestPictureInPicture();
 		return true;
@@ -1779,7 +1779,7 @@ const pictureInPictureModule = (() => {
 		if (!isTurnedOn()) {
 			return false;
 		}
-		log.logInfo('[КартинкаВКартинке] Отключаю режим');
+		log.logInfo('[PictureInPicture] Disabling mode');
 		document.exitPictureInPicture();
 		return true;
 	}
@@ -1788,7 +1788,7 @@ const pictureInPictureModule = (() => {
 	}
 	function startInternal(oMediaElement) {
 		if (!document.pictureInPictureEnabled || oMediaElement.disablePictureInPicture) {
-			log.logError(`[КартинкаВКартинке] pictureInPictureEnabled=${document.pictureInPictureEnabled} disablePictureInPicture=${oMediaElement.disablePictureInPicture}`);
+			log.logError(`[PictureInPicture] pictureInPictureEnabled=${document.pictureInPictureEnabled} disablePictureInPicture=${oMediaElement.disablePictureInPicture}`);
 			return;
 		}
 		_oMediaElement = oMediaElement;
@@ -1834,7 +1834,7 @@ const draggerModule = (() => {
 		_lastDragTimeMs = 0;
 		_initialX = _lastX = event.clientX;
 		_initialY = _lastY = event.clientY;
-		log.logOk(`[Тащилка] Начинаю перетаскивать ${_params.draggedElement.id} X=${_initialX} Y=${_initialY} id=${_pointerId} type=${event.pointerType} primary=${event.isPrimary}`);
+		log.logOk(`[Drag] Starting drag of ${_params.draggedElement.id} X=${_initialX} Y=${_initialY} id=${_pointerId} type=${event.pointerType} primary=${event.isPrimary}`);
 		document.addEventListener('pointermove', handlePointerMove, passiveHandler);
 		document.addEventListener('pointerup', handlePointerUpAndCancel, passiveHandler);
 		document.addEventListener('pointercancel', handlePointerUpAndCancel);
@@ -1873,19 +1873,19 @@ const draggerModule = (() => {
 	});
 	function handleTabLeave({isActive}) {
 		if (!isActive) {
-			endDrag('вкладка неактивна');
+			endDrag('tab inactive');
 		}
 	}
 	function cancelDrag(nodeId) {
 		assert(nodeId === void 0 || isNonEmptyString(nodeId));
 		if (!Number.isNaN(_pointerId) && (nodeId === void 0 || nodeId === _params.draggedElement.id)) {
 			_params.isCancelled2 = true;
-			endDrag('операция отменена');
+			endDrag('operation cancelled');
 		}
 	}
 	function endDrag(reasonText) {
 		if (_params.step !== 3) {
-			log.logOk(`[Тащилка] Заканчиваю перетаскивание: ${reasonText} X=${_lastX} Y=${_lastY}`);
+			log.logOk(`[Drag] Ending drag: ${reasonText} X=${_lastX} Y=${_lastY}`);
 			_params.step = 3;
 			events.sendEvent(`drag-handle-dragging-${_params.draggedElement.id}`, _params);
 			fullscreenMode.getElement().style.removeProperty('cursor');
@@ -2143,7 +2143,7 @@ const scale = (() => {
 		const scaleEnd = Math.round(borderObject.right - Number.parseFloat(style.paddingRight));
 		const pointer = event.clientX + 1;
 		const seekToTime = clampTime((pointer - scaleStart) / (scaleEnd - scaleStart) * (_endPosition - _startTime) + _startTime);
-		log.logOk(`[Шкала] Перематываю до ${seekToTime}`);
+		log.logOk(`[Timeline] Seeking to ${seekToTime}`);
 		player.seekReplayBack(seekToTime);
 	});
 	function setStartAndEnd(startTime, endTime) {
@@ -2283,7 +2283,7 @@ const newsModule = (() => {
 			return;
 		}
 		wait(null, 900).then(() => {
-			return loader.loadJson(null, `https://coolcmd.github.io/tw5/version.json?${now}`, 3e4, 'обновление расширения', false);
+			return loader.loadJson(null, `https://coolcmd.github.io/tw5/version.json?${now}`, 3e4, 'extension update', false);
 		}).then(result => {
 			let isUpdateAvailable = false;
 			try {
@@ -2305,7 +2305,7 @@ const newsModule = (() => {
 			settings.flushChanges();
 		}).catch(wrapErrors(reasonValue => {
 			if (typeof reasonValue == 'string') {
-				log.logError(`[Новости] Не удалось проверить обновление расширения. ${reasonValue}`);
+				log.logError(`[News] Failed to check for extension update. ${reasonValue}`);
 				settings.set('lastExtensionUpdateCheck', lastCheck < 0 ? -now : now);
 				settings.flushChanges();
 			} else {
@@ -2316,7 +2316,7 @@ const newsModule = (() => {
 	function start() {
 		const {currentValue: previousVersionName, initialValue: initialVersion} = settings.getSettingParam('previousVersionName');
 		if (previousVersionName !== extensionVersion) {
-			log.logOk(`[Новости] Версия расширения изменилась с ${previousVersionName} на ${extensionVersion}`);
+			log.logOk(`[News] Extension version changed from ${previousVersionName} to ${extensionVersion}`);
 			if (previousVersionName === initialVersion || hasNewsWithNewerVersion(previousVersionName)) {
 				showElement('open-news', true).classList.add('unread');
 			} else {
@@ -2360,7 +2360,7 @@ const control = (() => {
 	const handleWheelRotation = wrapErrors(event => {
 		if (!(event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || canScrollElementAtPoint(event.clientX, event.clientY))) {
 			event.preventDefault();
-			log.logInfo(`[Управление] Движение колеса deltaY=${event.deltaY} deltaMode=${event.deltaMode}`);
+			log.logInfo(`[Controls] Wheel movement deltaY=${event.deltaY} deltaMode=${event.deltaMode}`);
 			if (event.deltaY !== 0) {
 				saveAndApplyVolume(void 0, limit(getVolume() - settings.get('wheelVolumeStep') * Math.sign(event.deltaY), minVolume, getMaxVolume()));
 			}
@@ -2376,7 +2376,7 @@ const control = (() => {
 		if (_state === stoppedState || _state === repeatState) {
 			return false;
 		}
-		log.logOk('[Управление] Останавливаю просмотр трансляции');
+		log.logOk('[Controls] Stopping stream viewing');
 		listModule.stop();
 		converterModule.stop();
 		globalQueue.clear();
@@ -2386,7 +2386,7 @@ const control = (() => {
 	}
 	function toggleStreamViewing() {
 		if (!stopWatchingStream()) {
-			log.logOk('[Управление] Начинаю просмотр трансляции');
+			log.logOk('[Controls] Starting stream viewing');
 			globalQueue.clear();
 			player.reload(launchState);
 			listModule.start();
@@ -2414,10 +2414,10 @@ const control = (() => {
 			return;
 		}
 		navigator.clipboard.writeText(textString).then(() => {
-			log.logInfo('[Управление] Копирование в буфер обмена завершено');
+			log.logInfo('[Controls] Clipboard copy completed');
 			notification.showHappiness();
 		}, reasonValue => {
-			log.logError(`[Управление] Ошибка при копировании в буфер обмена: ${reasonValue}`);
+			log.logError(`[Controls] Error copying to clipboard: ${reasonValue}`);
 			notification.showButt();
 		}).catch(debug.exceptionCaught);
 	}
@@ -2426,21 +2426,21 @@ const control = (() => {
 			return;
 		}
 		copyStreamUrlToClipboard.isRunning = true;
-		log.logOk('[Управление] Получаю адрес трансляции для копирования');
+		log.logOk('[Controls] Getting stream URL for copying');
 		Twitch.getAbsoluteOptionListUrl(null, true, false).then(resultText => {
-			log.logInfo('[Управление] Копирую адрес трансляции в буфер обмена');
+			log.logInfo('[Controls] Copying stream URL to clipboard');
 			return navigator.clipboard.writeText(resultText).then(() => {
 				copyStreamUrlToClipboard.isRunning = false;
-				log.logInfo('[Управление] Копирование в буфер обмена завершено');
+				log.logInfo('[Controls] Clipboard copy completed');
 				control.stopWatchingStream();
 				notification.showHappiness();
 			}, reasonValue => {
-				throw `Ошибка при копировании в буфер обмена: ${reasonValue}`;
+				throw `Error copying to clipboard: ${reasonValue}`;
 			});
 		}).catch(wrapErrors(reasonValue => {
 			copyStreamUrlToClipboard.isRunning = false;
 			if (typeof reasonValue == 'string') {
-				log.logError(`[Управление] Ошибка при копировании адреса трансляции в буфер обмена: ${reasonValue}`);
+				log.logError(`[Controls] Error copying stream URL to clipboard: ${reasonValue}`);
 				notification.showButt();
 			} else {
 				throw reasonValue;
@@ -2639,7 +2639,7 @@ const control = (() => {
 			break;
 
 		  case 'copy-channel-url':
-			log.logInfo('[Управление] Копирую адрес канала в буфер обмена');
+			log.logInfo('[Controls] Copying channel URL to clipboard');
 			copyTextToClipboard(Twitch.getChannelUrl(false));
 			break;
 
@@ -2782,7 +2782,7 @@ const control = (() => {
 		  case 74:
 		  case 37:
 			if (isPressed && _state === repeatState) {
-				log.logOk(`[Управление] Перематываю на -${arrowSeekTo}с`);
+				log.logOk(`[Controls] Seeking -${arrowSeekTo}s`);
 				player.seekReplayForward(false, -arrowSeekTo);
 				autoHide.show();
 			}
@@ -2791,7 +2791,7 @@ const control = (() => {
 		  case 76:
 		  case 39:
 			if (isPressed && _state === repeatState) {
-				log.logOk(`[Управление] Перематываю на +${arrowSeekTo}с`);
+				log.logOk(`[Controls] Seeking +${arrowSeekTo}s`);
 				player.seekReplayForward(false, arrowSeekTo);
 				autoHide.show();
 			}
@@ -2800,7 +2800,7 @@ const control = (() => {
 		  case 74 + SHIFT_KEY:
 		  case 37 + SHIFT_KEY:
 			if (isPressed && _state === repeatState) {
-				log.logOk(`[Управление] Перематываю на -${FRAME_SEEK_STEP} кадров`);
+				log.logOk(`[Controls] Seeking -${FRAME_SEEK_STEP} frames`);
 				player.seekReplayForward(true, -FRAME_SEEK_STEP);
 			}
 			break;
@@ -2808,7 +2808,7 @@ const control = (() => {
 		  case 76 + SHIFT_KEY:
 		  case 39 + SHIFT_KEY:
 			if (isPressed && _state === repeatState) {
-				log.logOk(`[Управление] Перематываю на +1 кадр`);
+				log.logOk(`[Controls] Seeking +1 frame`);
 				player.seekReplayForward(true, 1);
 			}
 			break;
@@ -2964,7 +2964,7 @@ const control = (() => {
 	});
 	const handleStreamVariantChange = wrapErrors(({target: {selectedIndex}}) => {
 		if (selectedIndex !== -1) {
-			log.logOk(`[Управление] Выбран вариант ${selectedIndex}`);
+			log.logOk(`[Controls] Variant selected ${selectedIndex}`);
 			listModule.setStreamVariant(selectedIndex);
 		}
 	});
@@ -2978,7 +2978,7 @@ const control = (() => {
 		startWheelVolumeChange();
 	});
 	const handleChatAddressChange = wrapErrors(event => {
-		log.logOk(`[Управление] Выбран адрес чата ${event.target.selectedIndex}`);
+		log.logOk(`[Controls] Chat address selected ${event.target.selectedIndex}`);
 		switch (event.target.selectedIndex) {
 		  case 0:
 			settings.set('isFullChat', true);
@@ -3071,7 +3071,7 @@ const control = (() => {
 		if (_state === newStateNumber) {
 			return;
 		}
-		log.logInfo(`[Управление] Состояние трансляции изменилось с ${_state} на ${newStateNumber}`);
+		log.logInfo(`[Controls] Stream state changed from ${_state} to ${newStateNumber}`);
 		_state = newStateNumber;
 		document.body.setAttribute('data-state', newStateNumber);
 		updateButton('toggle-stream', newStateNumber === stoppedState || newStateNumber === repeatState);
@@ -3318,7 +3318,7 @@ const chat = (() => {
 			return;
 		}
 		const address = Twitch.openChat();
-		log.logInfo(`[Чат] Вставляю iframe ${address}`);
+		log.logInfo(`[Chat] Inserting iframe ${address}`);
 		_chatElement = document.createElement('iframe');
 		_chatElement.src = address;
 		_chatElement.id = 'chat';
@@ -3328,7 +3328,7 @@ const chat = (() => {
 	}
 	function removePanel() {
 		if (_chatElement) {
-			log.logInfo(`[Чат] Удаляю iframe ${_chatElement.src}`);
+			log.logInfo(`[Chat] Removing iframe ${_chatElement.src}`);
 			Twitch.closeChat();
 			_chatElement.remove();
 			_chatElement = null;
@@ -3336,14 +3336,14 @@ const chat = (() => {
 	}
 	function applyUrl() {
 		if (_chatElement) {
-			log.logOk('[Чат] Меняю адрес iframe');
+			log.logOk('[Chat] Changing iframe URL');
 			removePanel();
 			insertPanel();
 		}
 	}
 	function applyPanelState() {
 		const stateNumber = settings.get('chatState');
-		log.logOk(`[Чат] Новое состояние панели: ${stateNumber}`);
+		log.logOk(`[Chat] New panel state: ${stateNumber}`);
 		cancelPanelDrag();
 		switch (stateNumber) {
 		  case chatUnloaded:
@@ -3447,7 +3447,7 @@ const chat = (() => {
 		}
 		const position = getPanelPosition();
 		if (params.step !== 1 && params._initialPosition !== position) {
-			log.logError(`[Чат] Положение перетаскиваемой панели изменилось с ${params._initialPosition} на ${position}`);
+			log.logError(`[Chat] Dragged panel position changed from ${params._initialPosition} to ${position}`);
 			cancelPanelDrag();
 			return;
 		}
@@ -3533,21 +3533,21 @@ const audioDeviceModule = (() => {
 	let _oMediaElement = null;
 	function refreshDevicesAndSelect() {
 		const deviceListElement = element('audio-devices-list');
-		log.logOk('[Аудиоустройства] Получаю список медиаустройств');
+		log.logOk('[AudioDevices] Getting media device list');
 		navigator.mediaDevices.enumerateDevices().then(mediaDevicesModule => {
 			if (!Array.isArray(mediaDevicesModule)) {
-				log.logError('[Аудиоустройства] Список аудиоустройств недоступен');
+				log.logError('[AudioDevices] Audio device list unavailable');
 				showElement('audio-devices', false);
 				return;
 			}
 			deviceListElement.length = 0;
-			log.logInfo(`[Аудиоустройства] Текущее устройство ${_oMediaElement.sinkId}`);
+			log.logInfo(`[AudioDevices] Current device ${_oMediaElement.sinkId}`);
 			const currentDeviceName = _oMediaElement.sinkId === defaultDevice ? '' : _oMediaElement.sinkId;
 			const savedDeviceName = settings.get('audioDeviceId');
 			let deviceCount = 0, actualDeviceCount = 0;
 			let hasDefaultDevice = false, hasCurrentDevice = currentDeviceName === '', hasSavedDevice = savedDeviceName === '';
 			for (const mediaDevice of mediaDevicesModule) {
-				log.logInfo(`[Аудиоустройства] Медиаустройство kind=${mediaDevice.kind} deviceId=${mediaDevice.deviceId} groupId=${mediaDevice.groupId} label=${mediaDevice.label}`);
+				log.logInfo(`[AudioDevices] Media device kind=${mediaDevice.kind} deviceId=${mediaDevice.deviceId} groupId=${mediaDevice.groupId} label=${mediaDevice.label}`);
 				if (mediaDevice.kind === 'audiooutput') {
 					deviceCount++;
 					if (mediaDevice.deviceId && mediaDevice.label) {
@@ -3587,18 +3587,18 @@ const audioDeviceModule = (() => {
 					selectionName = '';
 				}
 				if (selectionName !== void 0) {
-					log.logOk(`[Аудиоустройства] Выбираю устройство ${selectionName}`);
+					log.logOk(`[AudioDevices] Selecting device ${selectionName}`);
 					return _oMediaElement.setSinkId(selectionName).then(() => {
-						log.logInfo('[Аудиоустройства] Устройство выбрано');
+						log.logInfo('[AudioDevices] Device selected');
 						volumeBoostModule.selectDevice(selectionName);
 						deviceListElement.value = selectionName;
 					}, reasonValue => {
-						log.logError(`[Аудиоустройства] Не удалось выбрать устройство: ${reasonValue}`);
+						log.logError(`[AudioDevices] Failed to select device: ${reasonValue}`);
 					});
 				}
 			}
 		}, reasonValue => {
-			log.logError(`[Аудиоустройства] Не удалось получить список медиаустройств: ${reasonValue}`);
+			log.logError(`[AudioDevices] Failed to get media device list: ${reasonValue}`);
 			deviceListElement.length = 0;
 			deviceListElement.disabled = true;
 		}).catch(debug.exceptionCaught);
@@ -3607,25 +3607,25 @@ const audioDeviceModule = (() => {
 		if (callSign !== 'audio-devices-access') {
 			return;
 		}
-		log.logOk('[Аудиоустройства] Запрашиваю разрешение contentSettings');
+		log.logOk('[AudioDevices] Requesting contentSettings permission');
 		chrome.permissions.request({
 			permissions: [ 'contentSettings' ]
 		}, wrapErrors(isPermissionGranted => {
 			if (isPermissionGranted) {
-				log.logOk('[Аудиоустройства] Получаю доступ к аудиоустройствам');
+				log.logOk('[AudioDevices] Getting access to audio devices');
 				chrome.contentSettings.microphone.set({
 					primaryPattern: `*://${chrome.runtime.id}/*`,
 					setting: 'allow',
 					scope: chrome.extension.inIncognitoContext ? 'incognito_session_only' : 'regular'
 				}, wrapErrors(() => {
 					if (chrome.runtime.lastError) {
-						log.logError(`[Аудиоустройства] Доступ не получен: ${chrome.runtime.lastError.message}`);
+						log.logError(`[AudioDevices] Access not granted: ${chrome.runtime.lastError.message}`);
 						notification.showButt();
 					}
 					refreshDevicesAndSelect();
 				}));
 			} else {
-				log.logError(`[Аудиоустройства] Разрешение не получено: ${chrome.runtime.lastError && chrome.runtime.lastError.message}`);
+				log.logError(`[AudioDevices] Permission not granted: ${chrome.runtime.lastError && chrome.runtime.lastError.message}`);
 				notification.showButt();
 			}
 		}));
@@ -3633,13 +3633,13 @@ const audioDeviceModule = (() => {
 	const handleDeviceSelect = wrapErrors(event => {
 		if (event.target.selectedIndex !== -1) {
 			const selectionName = event.target.value;
-			log.logOk(`[Аудиоустройства] Выбираю устройство ${selectionName} вместо ${_oMediaElement.sinkId}`);
+			log.logOk(`[AudioDevices] Selecting device ${selectionName} instead of ${_oMediaElement.sinkId}`);
 			_oMediaElement.setSinkId(selectionName).then(() => {
-				log.logInfo('[Аудиоустройства] Устройство выбрано');
+				log.logInfo('[AudioDevices] Device selected');
 				volumeBoostModule.selectDevice(selectionName);
 				settings.set('audioDeviceId', selectionName);
 			}, reasonValue => {
-				log.logError(`[Аудиоустройства] Не удалось выбрать устройство: ${reasonValue}`);
+				log.logError(`[AudioDevices] Failed to select device: ${reasonValue}`);
 				notification.showButt();
 				refreshDevicesAndSelect();
 			}).catch(debug.exceptionCaught);
@@ -3651,11 +3651,11 @@ const audioDeviceModule = (() => {
 		}
 		_oMediaElement = oMediaElement;
 		if (!('setSinkId' in _oMediaElement)) {
-			log.logError('[Аудиоустройства] Браузер не поддерживает MediaElement.setSinkId');
+			log.logError('[AudioDevices] Browser does not support MediaElement.setSinkId');
 			return;
 		}
 		if (!('addEventListener' in navigator.mediaDevices)) {
-			log.logError('[Аудиоустройства] Браузер не поддерживает MediaDevices.ondevicechange');
+			log.logError('[AudioDevices] Browser does not support MediaDevices.ondevicechange');
 		} else {
 			navigator.mediaDevices.addEventListener('devicechange', wrapErrors(refreshDevicesAndSelect));
 		}
@@ -3672,7 +3672,7 @@ const volumeBoostModule = (() => {
 	let _boostObject = null;
 	function resume() {
 		if (_oAudioContext && _oAudioContext.state === 'suspended') {
-			_oAudioContext.resume().catch(reasonValue => log.logError(`[Усиление громкости] Не удалось возобновить звук: ${reasonValue}`));
+			_oAudioContext.resume().catch(reasonValue => log.logError(`[VolumeBoost] Failed to resume audio: ${reasonValue}`));
 		}
 	}
 	function create() {
@@ -3688,10 +3688,10 @@ const volumeBoostModule = (() => {
 			_oAudioContext = context;
 			_boostObject = amplifier;
 			selectDevice(_oMediaElement.sinkId);
-			log.logInfo('[Усиление громкости] Усиление звука включено');
+			log.logInfo('[VolumeBoost] Audio boost enabled');
 			return true;
 		} catch (exception) {
-			log.logError(`[Усиление громкости] Не удалось включить усиление: ${exception}`);
+			log.logError(`[VolumeBoost] Failed to enable boost: ${exception}`);
 			return false;
 		}
 	}
@@ -3704,7 +3704,7 @@ const volumeBoostModule = (() => {
 			create();
 		}
 		if (_boostObject) {
-			// После подключения к Web Audio громкостью управляет усилитель.
+			// After connecting to Web Audio, gain is controlled by the amplifier.
 			mediaElement.volume = 1;
 			mediaElement.muted = false;
 			_boostObject.gain.value = isMuted ? 0 : volume / maxVolume;
@@ -3718,7 +3718,7 @@ const volumeBoostModule = (() => {
 		if (!_oAudioContext || typeof idString !== 'string' || typeof _oAudioContext.setSinkId !== 'function') {
 			return;
 		}
-		_oAudioContext.setSinkId(idString).catch(reasonValue => log.logError(`[Усиление громкости] Не удалось выбрать устройство: ${reasonValue}`));
+		_oAudioContext.setSinkId(idString).catch(reasonValue => log.logError(`[VolumeBoost] Failed to select device: ${reasonValue}`));
 	}
 	function startInternal() {
 		for (let eventName of [ 'pointerdown', 'keydown' ]) {
@@ -3822,7 +3822,7 @@ const player = (() => {
 				for (let areaIndex = 0; areaIndex <= lastArea; ++areaIndex) {
 					if (seekToTime < buffer.start(areaIndex)) {
 						requiredForPlaybackCount = minBufferSize;
-						seekReason += 'Перепрыгиваю яму. ';
+						seekReason += 'Jumping over gap. ';
 						seekToTime = buffer.start(areaIndex);
 					}
 					if (buffer.end(areaIndex) - seekToTime >= requiredForPlaybackCount) {
@@ -3833,15 +3833,15 @@ const player = (() => {
 					break;
 				}
 				if (shouldStartFromBeginning) {
-					showState('logError', `Бесконечная перемотка Время=${time}`);
+					showState('logError', `Infinite seek Time=${time}`);
 					return;
 				}
 				seekToTime = scale.getStart();
-				seekReason += 'Начинаю сначала. ';
+				seekReason += 'Starting over. ';
 				shouldStartFromBeginning = true;
 			}
 			if (seekToTime !== currentTime) {
-				showState('logOk', `${seekReason}Перематываю до ${seekToTime}`);
+				showState('logOk', `${seekReason}Seeking to ${seekToTime}`);
 				_oMediaElement.currentTime = seekToTime;
 			}
 		}
@@ -3858,7 +3858,7 @@ const player = (() => {
 		if (_oMediaElement.error || !isRangesEqual) {
 			importanceName = 'logError';
 		}
-		log[importanceName](`${record.charAt(0) === '[' ? '' : '[Проигрыватель] '}${record} •••` + (buffer && buffer.updating ? ' [U]' : '') + (_oMediaElement.paused ? ' [P]' : '') + (_oMediaElement.seeking ? ' [S]' : '') + (_oMediaElement.ended ? ' [E]' : '') + (_oMediaElement.error ? ` error=${_oMediaElement.error.code}` : '') + (_oMediaElement.src.startsWith('blob:') || _oMediaElement.src.startsWith('mediasource:') ? '' : ` src=${_oMediaElement.src}`) + (_oMediaSource.readyState === 'open' ? '' : ` MSE.readyState=${_oMediaSource.readyState}`) + (_oMediaSource.sourceBuffers.length === 1 ? '' : ` MSE.buffers=${_oMediaSource.sourceBuffers.length}`) + (_oMediaElement.networkState === HTMLMediaElement.NETWORK_LOADING ? '' : ` networkState=${_oMediaElement.networkState}`) + ` readyState=${_oMediaElement.readyState}` + ` currentTime=${_oMediaElement.currentTime}` + (isRangesEqual ? ` buffered=${rangesString}` : ` MSE.buffered=${bufferRangesString} buffered=${rangesString}`) + (_oMediaElement.duration === Infinity ? '' : ` duration=${_oMediaElement.duration}`) + ` seekable=${convertRangesToString(_oMediaElement.seekable)}` + ` played=${convertRangesToString(_oMediaElement.played)}`);
+		log[importanceName](`${record.charAt(0) === '[' ? '' : '[Player] '}${record} •••` + (buffer && buffer.updating ? ' [U]' : '') + (_oMediaElement.paused ? ' [P]' : '') + (_oMediaElement.seeking ? ' [S]' : '') + (_oMediaElement.ended ? ' [E]' : '') + (_oMediaElement.error ? ` error=${_oMediaElement.error.code}` : '') + (_oMediaElement.src.startsWith('blob:') || _oMediaElement.src.startsWith('mediasource:') ? '' : ` src=${_oMediaElement.src}`) + (_oMediaSource.readyState === 'open' ? '' : ` MSE.readyState=${_oMediaSource.readyState}`) + (_oMediaSource.sourceBuffers.length === 1 ? '' : ` MSE.buffers=${_oMediaSource.sourceBuffers.length}`) + (_oMediaElement.networkState === HTMLMediaElement.NETWORK_LOADING ? '' : ` networkState=${_oMediaElement.networkState}`) + ` readyState=${_oMediaElement.readyState}` + ` currentTime=${_oMediaElement.currentTime}` + (isRangesEqual ? ` buffered=${rangesString}` : ` MSE.buffered=${bufferRangesString} buffered=${rangesString}`) + (_oMediaElement.duration === Infinity ? '' : ` duration=${_oMediaElement.duration}`) + ` seekable=${convertRangesToString(_oMediaElement.seekable)}` + ` played=${convertRangesToString(_oMediaElement.played)}`);
 	}
 	function convertRangesToString(regions) {
 		let resultText = '';
@@ -3916,7 +3916,7 @@ const player = (() => {
 	function calculateStreamOffset(segment) {
 		if (Number.isFinite(segment.dataValue.encodePositionMs) && Number.isFinite(segment.dataValue.streamPosition)) {
 			const streamOffset = segment.dataValue.streamPosition - segment.dataValue.encodePositionMs;
-			log[Math.abs(streamOffset - _streamOffsetMs) > 2 ? 'logError' : 'logInfo'](`[Проигрыватель] Смещение трансляции: ${log.F1(streamOffset)}с`);
+			log[Math.abs(streamOffset - _streamOffsetMs) > 2 ? 'logError' : 'logInfo'](`[Player] Stream offset: ${log.F1(streamOffset)}s`);
 			_streamOffsetMs = streamOffset;
 		}
 	}
@@ -3925,7 +3925,7 @@ const player = (() => {
 			const receiveTime = (performance.now() + globalExactTimeMs - segment.dataValue.encodingTime) / 1e3;
 			const playbackTime = segment.dataValue.encodePositionMs - _oMediaElement.currentTime;
 			const delayString = `${receiveTime.toFixed(1)} + ${playbackTime.toFixed(1)} = ${(receiveTime + playbackTime).toFixed(1)}`;
-			log[receiveTime > 0 && playbackTime > -.1 ? 'logInfo' : 'logError'](`[Проигрыватель] Задержка трансляции: ${delayString}с`);
+			log[receiveTime > 0 && playbackTime > -.1 ? 'logInfo' : 'logError'](`[Player] Stream delay: ${delayString}s`);
 			element('stats-stream-delay').textContent = delayString;
 		}
 	}
@@ -3939,7 +3939,7 @@ const player = (() => {
 		reloadPlayer(newStateNumber);
 	}
 	function reloadPlayer(newStateNumber) {
-		showState('logOk', 'Перезагрузка проигрывателя');
+		showState('logOk', 'Reloading player');
 		control.setState(newStateNumber);
 		_behavior = _liveStream;
 		_oMediaSourceBuffer = null;
@@ -4013,7 +4013,7 @@ const player = (() => {
 			break;
 
 		  case 'timeupdate':
-			log.logInfo(`${record} readyState=${_oMediaElement.readyState} currentTime=${_oMediaElement.currentTime} НеПросмотрено=${log.F2(getBufferFill().unwatchedCount)}`);
+			log.logInfo(`${record} readyState=${_oMediaElement.readyState} currentTime=${_oMediaElement.currentTime} Unwatched=${log.F2(getBufferFill().unwatchedCount)}`);
 			_behavior.handleTimeUpdate();
 			break;
 
@@ -4040,14 +4040,14 @@ const player = (() => {
 			if (_playbackStarted === 2) {
 				events.sendEvent('player-buffer-overflow', unwatchedCount - bufferSize);
 			}
-			seekReason += `Переполнен буфер проигрывателя ${unwatchedCount.toFixed(2)}с > ${overflowAmount}с. `;
+			seekReason += `Player buffer overflow ${unwatchedCount.toFixed(2)}s > ${overflowAmount}s. `;
 			seekToTime = buffer.end(lastArea) - bufferSize - .1;
 		}
 		if (checkSourceId === assertPlaybackStarted && _playbackStarted !== 2) {
 			_playbackStarted = 2;
 			const overflowAmount = settings.get('maxBufferSizeSetting') + stats.getTargetDuration() / 2;
 			if (unwatchedCount > overflowAmount) {
-				seekReason += `Превышена задержка трансляции ${unwatchedCount.toFixed(2)}с > ${overflowAmount}с. `;
+				seekReason += `Stream delay exceeded ${unwatchedCount.toFixed(2)}s > ${overflowAmount}s. `;
 				seekToTime = buffer.end(lastArea) - overflowAmount;
 			}
 		}
@@ -4058,7 +4058,7 @@ const player = (() => {
 		for (let areaIndex = 0; areaIndex <= lastArea; ++areaIndex) {
 			if (seekToTime < buffer.start(areaIndex)) {
 				requiredForPlaybackCount = minBufferSize;
-				seekReason += 'Перепрыгиваю яму. ';
+				seekReason += 'Jumping over gap. ';
 				seekToTime = buffer.start(areaIndex);
 			}
 			remainingInRegionMs = buffer.end(areaIndex) - seekToTime;
@@ -4074,7 +4074,7 @@ const player = (() => {
 			if (seekToTime === currentTime) {
 				seekToTime = _oMediaElement.currentTime;
 			}
-			showState(seekReason ? 'logError' : 'logOk', `${seekReason}Перематываю до ${seekToTime}`);
+			showState(seekReason ? 'logError' : 'logOk', `${seekReason}Seeking to ${seekToTime}`);
 			_needsSeek = false;
 			_oMediaElement.currentTime = seekToTime;
 			return playbackPossibleAfterSeek;
@@ -4089,21 +4089,21 @@ const player = (() => {
 			const {unwatchedCount} = getBufferFill();
 			const bufferSize = settings.get(_bufferSizeString);
 			if (unwatchedCount < bufferSize) {
-				log.logInfo(`[Проигрыватель] В буфере не просмотрено ${log.F3(unwatchedCount)}с < ${bufferSize}с`);
+				log.logInfo(`[Player] Unwatched in buffer ${log.F3(unwatchedCount)}s < ${bufferSize}s`);
 				return;
 			}
-			log.logOk(`[Проигрыватель] В буфере не просмотрено ${log.F3(unwatchedCount)}с >= ${bufferSize}с`);
+			log.logOk(`[Player] Unwatched in buffer ${log.F3(unwatchedCount)}s >= ${bufferSize}s`);
 		} else {
-			log.logOk('[Проигрыватель] Не нужно ждать заполнения буфера');
+			log.logOk('[Player] No need to wait for buffer fill');
 		}
 		switch (assertPlaybackPosition(assertPlaybackStarted)) {
 		  case playbackImpossible:
-			showState('logError', `Не найдена область >= ${minBufferSize}с для начала воспроизведения`);
+			showState('logError', `No region >= ${minBufferSize}s found for playback start`);
 			_shouldWaitForBufferFill = true;
 			break;
 
 		  case playbackPossible:
-			showState('logOk', 'Начало воспроизведения');
+			showState('logOk', 'Playback started');
 			_shouldWaitForBufferFill = true;
 			_oMediaElement.play();
 			control.setState(playbackStartState);
@@ -4123,15 +4123,15 @@ const player = (() => {
 		_bufferSizeString = 'maxBufferSizeSetting';
 		const bufferSize = settings.get(_bufferSizeString);
 		if (lastRangeRemaining + willBeAddedCount >= minBufferSize && unwatchedCount + willBeAddedCount >= bufferSize) {
-			showState(isEarly ? 'logError' : 'logOk', `Буфер исчерпан, остановка не нужна БудетДобавлено=${log.F3(willBeAddedCount)}с ДоКонцаПоследнейОбласти=${log.F3(lastRangeRemaining)}с НеПросмотрено=${log.F3(unwatchedCount)}с РазмерБуфера=${bufferSize}с`);
+			showState(isEarly ? 'logError' : 'logOk', `Buffer exhausted, no stop needed WillBeAdded=${log.F3(willBeAddedCount)}s ToEndOfLastRegion=${log.F3(lastRangeRemaining)}s Unwatched=${log.F3(unwatchedCount)}s BufferSize=${bufferSize}s`);
 		} else {
-			showState(isEarly ? 'logError' : 'logOk', `Приостанавливаю воспроизведение для заполнения буфера ДоКонцаПоследнейОбласти=${log.F3(lastRangeRemaining)}с НеПросмотрено=${log.F3(unwatchedCount)}с РазмерБуфера=${bufferSize}с`);
+			showState(isEarly ? 'logError' : 'logOk', `Pausing playback to fill buffer ToEndOfLastRegion=${log.F3(lastRangeRemaining)}s Unwatched=${log.F3(unwatchedCount)}s BufferSize=${bufferSize}s`);
 			_needsSeek = true;
 			stopPlayback(loadingState);
 		}
 	}
 	function terminateStream(segment) {
-		showState('logOk', `Сегмент ${segment.number} вызвал окончание потока`);
+		showState('logOk', `Segment ${segment.number} triggered stream end`);
 		if (_oMediaElement.buffered.length === 0 || _oMediaElement.paused && getBufferFill().unwatchedCount < bufferExhausted + .1) {
 			reloadAndWaitForBuffer(loadingState);
 		} else {
@@ -4156,7 +4156,7 @@ const player = (() => {
 		}
 		const removeBefore = _oMediaElement.currentTime - replayDurationMs;
 		return new Promise((execute, reject) => {
-			showState('logInfo', `Удаляю просмотренное видео Просмотрено=${log.F3(watchedCount)}с УдалитьДо=${log.F3(removeBefore)}с`);
+			showState('logInfo', `Removing watched video Watched=${log.F3(watchedCount)}s RemoveBefore=${log.F3(removeBefore)}s`);
 			_oMediaSourceBuffer.addEventListener('updateend', removed);
 			let elapsedTimeMs = -performance.now();
 			_oMediaSourceBuffer.remove(0, removeBefore);
@@ -4168,7 +4168,7 @@ const player = (() => {
 						elapsedTimeMs += performance.now();
 						_oMediaSourceBuffer.removeEventListener('updateend', removed);
 						const {watchedCount} = getBufferFill(_oMediaSourceBuffer.buffered);
-						showState(elapsedTimeMs > 100 || watchedCount < minBufferSize ? 'logError' : 'logInfo', `Просмотренное видео удалено за ${log.F0(elapsedTimeMs)}мс Просмотрено=${log.F0(watchedCount)}с`);
+						showState(elapsedTimeMs > 100 || watchedCount < minBufferSize ? 'logError' : 'logInfo', `Watched video removed in ${log.F0(elapsedTimeMs)}ms Watched=${log.F0(watchedCount)}s`);
 						execute(segment);
 					}
 				} catch (exception) {
@@ -4178,7 +4178,7 @@ const player = (() => {
 		});
 	}
 	function addInitializationSegment(segment) {
-		return addSegment(segment, segment.dataValue.isInitSegment, 'сегмент инициализации');
+		return addSegment(segment, segment.dataValue.isInitSegment, 'initialization segment');
 	}
 	function addMediaSegment(segment) {
 		return addSegment(segment, segment.dataValue.mediaSegmentData, 'media-segment');
@@ -4186,7 +4186,7 @@ const player = (() => {
 	function addSegment(segment, maybeAdd, addString) {
 		watchErrors();
 		return new Promise((execute, reject) => {
-			showState('logInfo', `Добавляю ${addString} ${segment.number}`);
+			showState('logInfo', `Adding ${addString} ${segment.number}`);
 			_oMediaSourceBuffer.addEventListener('updateend', added);
 			let elapsedTimeMs = -performance.now();
 			_oMediaSourceBuffer.appendBuffer(maybeAdd);
@@ -4197,7 +4197,7 @@ const player = (() => {
 					} else {
 						elapsedTimeMs += performance.now();
 						_oMediaSourceBuffer.removeEventListener('updateend', added);
-						showState(elapsedTimeMs > 100 ? 'logError' : 'logInfo', `Добавлен ${addString} ${segment.number} за ${log.F0(elapsedTimeMs)}мс`);
+						showState(elapsedTimeMs > 100 ? 'logError' : 'logInfo', `Added ${addString} ${segment.number} in ${log.F0(elapsedTimeMs)}ms`);
 						execute(segment);
 					}
 				} catch (exception) {
@@ -4234,7 +4234,7 @@ const player = (() => {
 			return;
 		}
 		if (reasonValue === cancelPromise.reason) {
-			log.logInfo('[Проигрыватель] Отменено добавление сегмента');
+			log.logInfo('[Player] Segment addition cancelled');
 		} else {
 			throw reasonValue;
 		}
@@ -4242,7 +4242,7 @@ const player = (() => {
 	function preventQueueOverflow() {
 		const {duration} = globalQueue.countConvertedSegments();
 		if (duration >= bufferOverflow) {
-			log.logError(`[Проигрыватель] MediaSource закрыт слишком долго ${duration}с >= ${bufferOverflow}с`);
+			log.logError(`[Player] MediaSource closed for too long ${duration}s >= ${bufferOverflow}s`);
 			assert(control.getState() === launchState || control.getState() === streamStartState);
 			control.stopWatchingStream();
 		}
@@ -4290,7 +4290,7 @@ const player = (() => {
 		}
 		const readinessText = _oMediaSource.readyState;
 		if (readinessText !== 'open') {
-			log.logInfo(`[Проигрыватель] Добавление сегмента ${segment.number} отложено MediaSource.readyState=${readinessText} MediaElement.src=${_oMediaElement.src}`);
+			log.logInfo(`[Player] Segment ${segment.number} addition deferred MediaSource.readyState=${readinessText} MediaElement.src=${_oMediaElement.src}`);
 			if (readinessText === 'closed' && _playbackStarted === 0) {
 				preventQueueOverflow();
 			}
@@ -4335,10 +4335,10 @@ const player = (() => {
 	function togglePause() {
 		assert(control.getState() === repeatState);
 		if (_repeat.isPaused = !_repeat.isPaused) {
-			log.logOk('[Проигрыватель] Ставлю replay на паузу');
+			log.logOk('[Player] Pausing replay');
 			_oMediaElement.pause();
 		} else {
-			log.logOk('[Проигрыватель] Снимаю replay с паузы');
+			log.logOk('[Player] Resuming replay');
 			_repeat.assertPlaybackPosition(assertPlaybackStarted);
 			_oMediaElement.play();
 		}
@@ -4347,7 +4347,7 @@ const player = (() => {
 	function setReplaySpeed(speedValue) {
 		assert(speedValue > 0);
 		assert(control.getState() === repeatState);
-		log.logOk(`[Проигрыватель] Задана speed ${speedValue}`);
+		log.logOk(`[Player] Speed set to ${speedValue}`);
 		_oMediaElement.playbackRate = speedValue;
 	}
 	function startReplay() {
@@ -4358,11 +4358,11 @@ const player = (() => {
 			_oMediaSource.endOfStream();
 		}
 		if (_oMediaElement.played.length === 0 || getBufferFill().watchedCount < REPLAY_AVAILABLE_IF_WATCHED) {
-			showState('logOk', 'Повторять нечего');
+			showState('logOk', 'Nothing to replay');
 			control.setState(stoppedState);
 			return;
 		}
-		showState('logOk', 'Запуск повтора');
+		showState('logOk', 'Starting replay');
 		events.sendEvent('player-pause', _repeat.isPaused);
 		scale.setStartAndEnd(_oMediaElement.buffered.start(0), _oMediaElement.buffered.end(_oMediaElement.buffered.length - 1));
 		scale.setWatched(_oMediaElement.currentTime);
@@ -4370,7 +4370,7 @@ const player = (() => {
 		setReplaySpeed(control.getReplaySpeed());
 	}
 	function addBuffers(segment) {
-		log.logOk(`[Проигрыватель] Добавляю буфер ${segment.dataValue.codecString}`);
+		log.logOk(`[Player] Adding buffer ${segment.dataValue.codecString}`);
 		assert(segment.isGap && segment.dataValue.codecString);
 		try {
 			_oMediaSourceBuffer = _oMediaSource.addSourceBuffer(segment.dataValue.codecString);
@@ -4466,7 +4466,7 @@ const listModule = (() => {
 		}
 		stopInternal() {
 			if (this._promiseCancellation) {
-				log.logInfo(`[Список] Останавливаю обновление списков ${+this._isAdFree}`);
+				log.logInfo(`[List] Stopping list updates ${+this._isAdFree}`);
 				this._promiseCancellation.cancel();
 				this._promiseCancellation = null;
 			}
@@ -4489,15 +4489,15 @@ const listModule = (() => {
 					}
 				}
 			}
-			log.logInfo(`[Список] Для списка ${+this._isAdFree} выбран вариант трансляции ${selectedOption.identifier}/${selectedOption.bitrateKbps}. Сохраненный ${savedId}/${savedBitrate}`);
+			log.logInfo(`[List] For list ${+this._isAdFree}, selected stream variant ${selectedOption.identifier}/${selectedOption.bitrateKbps}. Saved ${savedId}/${savedBitrate}`);
 			return selectedOption;
 		}
 		_update(promiseCancellation, delay) {
 			assert(thisNumber(delay));
 			if (delay >= minListsUpdateInterval || delay === -Infinity) {
-				log.logInfo(`[Список] Обновление списков ${+this._isAdFree} начнется через ${log.F0(delay)}мс`);
+				log.logInfo(`[List] List updates ${+this._isAdFree} will start in ${log.F0(delay)}ms`);
 			} else {
-				log.logError(`[Список] Обновление списков ${+this._isAdFree} начнется через ${minListsUpdateInterval}мс вместо ${log.F0(delay)}мс`);
+				log.logError(`[List] List updates ${+this._isAdFree} will start in ${minListsUpdateInterval}ms instead of ${log.F0(delay)}ms`);
 				delay = minListsUpdateInterval;
 			}
 			let promise = wait(promiseCancellation, delay);
@@ -4506,12 +4506,12 @@ const listModule = (() => {
 				let absoluteVariantListUrl;
 				promise = promise.then(() => Twitch.getAbsoluteOptionListUrl(promiseCancellation, false, this._isAdFree)).then(resultText => {
 					absoluteVariantListUrl = resultText;
-					return loader.loadText(promiseCancellation, absoluteVariantListUrl, VARIANT_LIST_LOAD_TIMEOUT, `список вариантов ${+this._isAdFree}`, false);
+					return loader.loadText(promiseCancellation, absoluteVariantListUrl, VARIANT_LIST_LOAD_TIMEOUT, `variant list ${+this._isAdFree}`, false);
 				}).then(resultText => {
 					debug.saveVariantList(resultText);
 					optionList = parseList(true, absoluteVariantListUrl, resultText);
 					if (optionList.options.length === 0) {
-						throw `Список вариантов пуст`;
+						throw `Variant list is empty`;
 					}
 				});
 			}
@@ -4521,7 +4521,7 @@ const listModule = (() => {
 					selectedOption = this.selectStreamVariant(optionList.options);
 				}
 				updateStart = performance.now();
-				return loader.loadText(promiseCancellation, selectedOption.absoluteSegmentListUrl, SEGMENT_LIST_LOAD_TIMEOUT, `список сегментов ${+this._isAdFree}`, false);
+				return loader.loadText(promiseCancellation, selectedOption.absoluteSegmentListUrl, SEGMENT_LIST_LOAD_TIMEOUT, `segment list ${+this._isAdFree}`, false);
 			}).then(resultText => {
 				debug.saveSegmentList(resultText);
 				const segmentList = parseList(false, selectedOption.absoluteSegmentListUrl, resultText);
@@ -4532,7 +4532,7 @@ const listModule = (() => {
 							globalFmp4Codecs = newFmp4Codecs;
 							globalFmp4HasVideo = /avc1|avc3|hvc1|hev1|av01|vp09/i.test(selectedOption.codecString);
 							globalFmp4HasAudio = /mp4a|ac-3|ec-3|opus|flac/i.test(selectedOption.codecString);
-							log.logOk(`[Список] Обнаружен fMP4 поток Кодеки=${globalFmp4Codecs}`);
+							log.logOk(`[List] Detected fMP4 stream Codecs=${globalFmp4Codecs}`);
 						}
 						globalFmp4Initialization = segmentList.initialization;
 						if (!globalFmp4InitBuffer) {
@@ -4560,7 +4560,7 @@ const listModule = (() => {
 					this._listNotUpdated(promiseCancellation, reasonValue);
 					loader.loadNextSegment();
 				} else if (reasonValue === cancelPromise.reason) {
-					log.logInfo(`[Список] Отменено обновление списков ${+this._isAdFree}`);
+					log.logInfo(`[List] List updates cancelled ${+this._isAdFree}`);
 				} else {
 					throw reasonValue;
 				}
@@ -4570,7 +4570,7 @@ const listModule = (() => {
 			const sessionSwitchThreshold = 5;
 			assert(this.optionList === null == (this.segmentList === null));
 			if (segmentList.segments.length === 0) {
-				log.logError(`[Список] Список сегментов ${+this._isAdFree} пуст`);
+				log.logError(`[List] Segment list ${+this._isAdFree} is empty`);
 				return true;
 			}
 			if (this.segmentList === null) {
@@ -4578,7 +4578,7 @@ const listModule = (() => {
 			}
 			assert(!(this.optionList.streamId !== optionList.streamId && this.optionList.sessionId === optionList.sessionId));
 			if (this.segmentList.nTargetDuration !== segmentList.nTargetDuration) {
-				log.logError(`[Список] В списке ${+this._isAdFree} изменился target duration ${this.segmentList.nTargetDuration} ==> ${segmentList.nTargetDuration}`);
+				log.logError(`[List] In list ${+this._isAdFree}, target duration changed ${this.segmentList.nTargetDuration} ==> ${segmentList.nTargetDuration}`);
 			}
 			if (this.selectedOption !== null) {
 				const difference = segmentList.sequenceNumber - this.segmentList.sequenceNumber;
@@ -4586,7 +4586,7 @@ const listModule = (() => {
 				const endTime = Math.min(this.segmentList.segments.length - difference, segmentList.segments.length);
 				for (let newNumber = startTime, oldValue = startTime + difference; newNumber < endTime; newNumber++, oldValue++) {
 					if (segmentList.segments[newNumber].address !== this.segmentList.segments[oldValue].address) {
-						log.logError(`[Список] В списке ${+this._isAdFree} у сегмента ${segmentList.sequenceNumber + newNumber} изменился адрес ${clampStringLength(this.segmentList.segments[oldValue].address, 100)} ==> ${clampStringLength(segmentList.segments[newNumber].address, 100)}`);
+						log.logError(`[List] In list ${+this._isAdFree}, segment ${segmentList.sequenceNumber + newNumber} address changed ${clampStringLength(this.segmentList.segments[oldValue].address, 100)} ==> ${clampStringLength(segmentList.segments[newNumber].address, 100)}`);
 						segmentList.isChaos = true;
 						break;
 					}
@@ -4595,19 +4595,19 @@ const listModule = (() => {
 			const difference = this.segmentList.sequenceNumber + this.segmentList.segments.length - segmentList.sequenceNumber - segmentList.segments.length;
 			if (difference > 0) {
 				if (this.selectedOption === null && difference <= sessionSwitchThreshold) {
-					log.logError(`[Список] При переключении варианта в списке ${+this._isAdFree} уменьшился порядковый номер ${this.segmentList.sequenceNumber} + ${this.segmentList.segments.length} ==> ${segmentList.sequenceNumber} + ${segmentList.segments.length}`);
+					log.logError(`[List] When switching variant in list ${+this._isAdFree}, sequence number decreased ${this.segmentList.sequenceNumber} + ${this.segmentList.segments.length} ==> ${segmentList.sequenceNumber} + ${segmentList.segments.length}`);
 					return false;
 				}
 				if (segmentList.sequenceNumber === 0 || difference > sessionSwitchThreshold) {
-					log.logError(`[Список] Меняю ИдСессии: в списке ${+this._isAdFree} уменьшился порядковый номер ${this.segmentList.sequenceNumber} + ${this.segmentList.segments.length} ==> ${segmentList.sequenceNumber} + ${segmentList.segments.length}`);
+					log.logError(`[List] Changing session ID: in list ${+this._isAdFree}, sequence number decreased ${this.segmentList.sequenceNumber} + ${this.segmentList.segments.length} ==> ${segmentList.sequenceNumber} + ${segmentList.segments.length}`);
 					optionList.sessionId = _sessionId++;
 					return false;
 				}
-				log.logError(`[Список] Получен протухший список ${+this._isAdFree}: порядковый номер ${this.segmentList.sequenceNumber} + ${this.segmentList.segments.length} ==> ${segmentList.sequenceNumber} + ${segmentList.segments.length}`);
+				log.logError(`[List] Received stale list ${+this._isAdFree}: sequence number ${this.segmentList.sequenceNumber} + ${this.segmentList.segments.length} ==> ${segmentList.sequenceNumber} + ${segmentList.segments.length}`);
 				return true;
 			}
 			if (this.segmentList.sequenceNumber > segmentList.sequenceNumber) {
-				log.logError(`[Список] В списке ${+this._isAdFree} уменьшился порядковый номер ${this.segmentList.sequenceNumber} ==> ${segmentList.sequenceNumber}`);
+				log.logError(`[List] In list ${+this._isAdFree}, sequence number decreased ${this.segmentList.sequenceNumber} ==> ${segmentList.sequenceNumber}`);
 			}
 			return false;
 		}
@@ -4633,7 +4633,7 @@ const listModule = (() => {
 				control.stopWatchingStream();
 				notification.showButt();
 			} else {
-				log[reasonText === 'КОНЕЦ_СПИСКА' ? 'logOk' : 'logError'](`[Список] Трансляция завершена. ${reasonText}`);
+				log[reasonText === 'КОНЕЦ_СПИСКА' ? 'logOk' : 'logError'](`[List] Stream ended. ${reasonText}`);
 				endStream();
 				this._update(promiseCancellation, getVariantListUpdateInterval());
 			}
@@ -4649,7 +4649,7 @@ const listModule = (() => {
 		}
 		_segmentListUpdated(isShortenedInterval) {
 			if (thisListEndsWithAd(this.segmentList)) {
-				throw 'Найдена ad';
+				throw 'Ad found';
 			}
 			isShortenedInterval = enqueueSegments(this.optionList, this.segmentList, this.selectedOption) || isShortenedInterval;
 			if (this.segmentList.isEndOfList) {
@@ -4658,7 +4658,7 @@ const listModule = (() => {
 			return getSegmentListUpdateInterval(this.segmentList, isShortenedInterval);
 		}
 		_listNotUpdated(promiseCancellation, reasonText) {
-			log.logError(`[Список] Список 1 не обновлен. ${reasonText}`);
+			log.logError(`[List] List 1 not updated. ${reasonText}`);
 			this.stopInternal();
 		}
 	}
@@ -4674,7 +4674,7 @@ const listModule = (() => {
 			debug.finishAndShowMessage('J0220');
 		}
 		if (!parsedList.startsWith('#EXTM3U')) {
-			throw `Вместо списка загружена какая-то фигня длиною ${parsedList.length}\n${parsedList}`;
+			throw `Loaded something that is not a list, length ${parsedList.length}\n${parsedList}`;
 		}
 		let versionNumber = 1;
 		let mapRenditionGroups, options, newOption, streamId, watchTrackingUrl;
@@ -4736,11 +4736,11 @@ const listModule = (() => {
 						newSegment.time = time;
 						time++;
 						if (newSegment.duration < 0) {
-							log.logError(`[Список] У сегмента ${sequenceNumber + segments.length} отрицательная длительность ${tagValue}`);
+							log.logError(`[List] Segment ${sequenceNumber + segments.length} has negative duration ${tagValue}`);
 							newSegment.duration = 0;
 						}
 						if (Math.round(newSegment.duration) > nTargetDuration) {
-							log.logError(`[Список] Длительность сегмента ${sequenceNumber + segments.length} больше target duration на ${newSegment.duration - nTargetDuration}с`);
+							log.logError(`[List] Segment ${sequenceNumber + segments.length} duration exceeds target duration by ${newSegment.duration - nTargetDuration}s`);
 							if (newSegment.duration > nTargetDuration * 3) {
 								newSegment.duration = 0;
 							}
@@ -4836,7 +4836,7 @@ const listModule = (() => {
 							}
 						} catch (exception) {
 							adType = '';
-							log.logError(`[Список] Ошибка разбора рекламы: ${tagValue}`);
+							log.logError(`[List] Ad parsing error: ${tagValue}`);
 						}
 						break;
 					}
@@ -4855,7 +4855,7 @@ const listModule = (() => {
 							assert(!mapRenditionGroups.has(groupName));
 							mapRenditionGroups.set(groupName, name);
 						} else {
-							log.logError(`[Список] Найден #EXT-X-MEDIA TYPE=${typeName}`);
+							log.logError(`[List] Found #EXT-X-MEDIA TYPE=${typeName}`);
 						}
 						break;
 					}
@@ -4895,9 +4895,9 @@ const listModule = (() => {
 							assert(address.startsWith('https://'));
 							watchTrackingUrl = address;
 						} catch (exception) {
-							log.logError(`[Список] Не удалось разобрать адрес слежения за просмотром: ${exception}`);
+							log.logError(`[List] Failed to parse view-tracking URL: ${exception}`);
 						}
-						log[Math.abs(timeDesync) > 5e3 ? 'logError' : 'logOk'](`[Список] РассинхронизацияВремени=${timeDesync}мс ИдТрансляции=${streamId}`);
+						log[Math.abs(timeDesync) > 5e3 ? 'logError' : 'logOk'](`[List] TimeDesync=${timeDesync}ms StreamId=${streamId}`);
 						break;
 					}
 
@@ -4908,7 +4908,7 @@ const listModule = (() => {
 					break;
 
 				  case '-X-START':
-					log.logError(`[Список] Найден #EXT-X-START=${tagValue}`);
+					log.logError(`[List] Found #EXT-X-START=${tagValue}`);
 					break;
 
 				  case 'M3U':
@@ -4917,7 +4917,7 @@ const listModule = (() => {
 				}
 			} catch (exception) {
 				if (exception instanceof Error && exception.message === 'БРАКОВАТЬ') {
-					throw `Ошибка разбора строки списка:\n${convertExceptionToString(exception)}\n${address}`;
+					throw `List line parsing error:\n${convertExceptionToString(exception)}\n${address}`;
 				}
 			}
 		}
@@ -4932,7 +4932,7 @@ const listModule = (() => {
 					option.title = `${i18n.formatNumber(option.bitrateKbps / 1e6, 1)} ${getMessageText('J0114')}`;
 				}
 			}
-			log.logInfo(`[Список] Количество вариантов в списке: ${options.length}`);
+			log.logInfo(`[List] Variant count in list: ${options.length}`);
 			return Twitch.sortVariantList({
 				streamId,
 				sessionId: _sessionId++,
@@ -4963,9 +4963,9 @@ const listModule = (() => {
 				initialization,
 				isFMP4: initialization !== null
 			};
-			log.logInfo(`[Список] Разобран список сегментов TargetDuration=${nTargetDuration} ПорядковыйНомер=${sequenceNumber} КонецСписка=${isEndOfList} КоличествоСегментов=${segments.length} РекламныхСегментов=${adSegmentCount}`);
+			log.logInfo(`[List] Parsed segment list TargetDuration=${nTargetDuration} SequenceNumber=${sequenceNumber} EndOfList=${isEndOfList} SegmentCount=${segments.length} AdSegments=${adSegmentCount}`);
 			if (adType) {
-				log.logOk(`[Список] Найдена ad ТипРекламы=${adType} ТокенРекламы=${adToken.slice(-10)} Роликов=${clipCount} НомерРолика=${clipNumber} ПродолжительностьРолика=${clipDuration} НомерКвартеля=${quarterNumber} ЗаканчиваетсяРекламой=${thisListEndsWithAd(segmentList)}`);
+				log.logOk(`[List] Ad found AdType=${adType} AdToken=${adToken.slice(-10)} Clips=${clipCount} ClipNumber=${clipNumber} ClipDuration=${clipDuration} QuarterNumber=${quarterNumber} EndsWithAd=${thisListEndsWithAd(segmentList)}`);
 			}
 			stats.segmentListParsed(segmentList);
 			return segmentList;
@@ -5068,14 +5068,14 @@ const listModule = (() => {
 			}
 		}
 		if (_addedStreamId !== newOptions.streamId) {
-			log.logOk(`[Список] Изменился ИдТрансляции ${_addedStreamId} ==> ${newOptions.streamId}`);
+			log.logOk(`[List] Stream ID changed ${_addedStreamId} ==> ${newOptions.streamId}`);
 			_addedTimeMs = -1;
 			_shouldAddGap = true;
 			for (let addedSegment; addedSegment = newSegments.segments[addedSegmentIndex]; addedSegmentIndex++) {
 				enqueueSegment(addedSegment, newSegments.sequenceNumber + addedSegmentIndex);
 			}
 		} else if (_addedSessionId !== newOptions.sessionId) {
-			log.logOk(`[Список] Изменился ИдСессии ${_addedSessionId} ==> ${newOptions.sessionId}`);
+			log.logOk(`[List] Session ID changed ${_addedSessionId} ==> ${newOptions.sessionId}`);
 			_shouldAddGap = true;
 			for (let addedSegment; addedSegment = newSegments.segments[addedSegmentIndex]; addedSegmentIndex++) {
 				if (addedSegment.time > _addedTimeMs) {
@@ -5084,7 +5084,7 @@ const listModule = (() => {
 			}
 		} else {
 			if (_addedVariantId !== selectedOption.identifier) {
-				log.logOk(`[Список] Изменился ИдВарианта ${_addedVariantId} ==> ${selectedOption.identifier}`);
+				log.logOk(`[List] Variant ID changed ${_addedVariantId} ==> ${selectedOption.identifier}`);
 				_shouldAddGap = true;
 			}
 			for (let addedSegment; addedSegment = newSegments.segments[addedSegmentIndex]; addedSegmentIndex++) {
@@ -5098,20 +5098,20 @@ const listModule = (() => {
 		function enqueueSegment(segment, sequenceNumber) {
 			startStream();
 			if (segment.isAd) {
-				log.logInfo(`[Список] Не добавляю рекламу ПорядковыйНомер=${sequenceNumber}`);
+				log.logInfo(`[List] Not adding ad SequenceNumber=${sequenceNumber}`);
 				return;
 			}
 			if (segment.duration === 0) {
-				log.logError(`[Список] Не добавляю сегмент ПорядковыйНомер=${sequenceNumber} Время=${segment.time} Длительность=0`);
+				log.logError(`[List] Not adding segment SequenceNumber=${sequenceNumber} Time=${segment.time} Duration=0`);
 				return;
 			}
 			if (_addedSessionId === newOptions.sessionId && _addedSequenceNumber + 1 < sequenceNumber) {
-				log.logError(`[Список] Пропущены сегменты с ${_addedSequenceNumber + 1} по ${sequenceNumber - 1}`);
+				log.logError(`[List] Skipped segments from ${_addedSequenceNumber + 1} to ${sequenceNumber - 1}`);
 				stats.segmentsSkipped(sequenceNumber - _addedSequenceNumber - 1);
 				_shouldAddGap = true;
 			}
 			const addedObj = globalQueue.add(new segmentItem(processingAwaitingLoad, segment.address, segment.duration, segment.isGap || _shouldAddGap));
-			log[addedObj.isGap ? 'logOk' : 'logInfo'](`[Список] Добавлен сегмент ${addedObj.number} ПорядковыйНомер=${sequenceNumber} Время=${segment.time} Длительность=${addedObj.duration} Разрыв=${addedObj.isGap}`);
+			log[addedObj.isGap ? 'logOk' : 'logInfo'](`[List] Segment added ${addedObj.number} SequenceNumber=${sequenceNumber} Time=${segment.time} Duration=${addedObj.duration} Gap=${addedObj.isGap}`);
 			segmentsAddedCount++;
 			secondsAddedCount += addedObj.duration;
 			_addedStreamId = newOptions.streamId;
@@ -5137,10 +5137,10 @@ const listModule = (() => {
 		}
 		if (segmentCount !== 0) {
 			averageSegmentDurationMs = listDurationMs / segmentCount;
-			log.logInfo(`[Список] ДлительностьСегментов=${log.F2(minSegmentDuration)}<${log.F2(averageSegmentDurationMs)}<${log.F2(maxSegmentDuration)} ДлительностьСписка=${log.F1(listDurationMs)} НеЗагружать=${segmentList.segments.length - segmentCount}`);
+			log.logInfo(`[List] SegmentDurations=${log.F2(minSegmentDuration)}<${log.F2(averageSegmentDurationMs)}<${log.F2(maxSegmentDuration)} ListDuration=${log.F1(listDurationMs)} NotToLoad=${segmentList.segments.length - segmentCount}`);
 		} else {
 			averageSegmentDurationMs = minSegmentDuration = maxSegmentDuration = Math.max(segmentList.nTargetDuration / 3, 1);
-			log.logError(`[Список] Предполагаемая длительность сегментов ${log.F1(averageSegmentDurationMs)}`);
+			log.logError(`[List] Estimated segment duration ${log.F1(averageSegmentDurationMs)}`);
 		}
 		return isShortenedInterval ? averageSegmentDurationMs / 2 * 1e3 : averageSegmentDurationMs * 1e3 - 16;
 	}
@@ -5215,23 +5215,23 @@ const converterModule = (() => {
 				break;
 			}
 			if (_lastLoadedNumber !== -1 && _lastLoadedNumber + 1 !== segment.number) {
-				log.logError(`[Преобразование] Не загружены сегменты между ${_lastLoadedNumber} и ${segment.number}`);
+				log.logError(`[Conversion] Segments not loaded between ${_lastLoadedNumber} and ${segment.number}`);
 				segment.isGap = true;
 			}
 			_lastLoadedNumber = segment.number;
 			if (typeof segment.dataValue == 'number' && _worker === null) {
-				log.logInfo(`[Преобразование] Пропускаю сегмент ${segment.number} Состояние=${segment.dataValue}`);
+				log.logInfo(`[Conversion] Skipping segment ${segment.number} State=${segment.dataValue}`);
 				segment.processingCount = processingTransformed;
 				if (segment.dataValue === streamStartState && !globalIsFmp4) {
 					createWorker();
 				}
 			} else if (globalIsFmp4 && typeof segment.dataValue != 'number') {
 				if (segment.isGap && (!globalFmp4InitBuffer || (globalFmp4Initialization && globalFmp4LoadedInitUrl !== globalFmp4Initialization.address))) {
-					log.logInfo(`[Преобразование] Жду сегмент инициализации fMP4 для сегмента ${segment.number}`);
+					log.logInfo(`[Conversion] Waiting for fMP4 initialization segment for segment ${segment.number}`);
 					loadFmp4Init();
 					break;
 				}
-				log.logInfo(`[Преобразование] fMP4 сегмент ${segment.number} без преобразования`);
+				log.logInfo(`[Conversion] fMP4 segment ${segment.number} without conversion`);
 				const dataValue = {
 					mediaSegmentData: segment.dataValue,
 					hasVideo: globalFmp4HasVideo,
@@ -5245,12 +5245,12 @@ const converterModule = (() => {
 				segment.processingCount = processingTransformed;
 			} else {
 				if (typeof segment.dataValue == 'number') {
-					log.logInfo(`[Преобразование] Отсылаю сегмент ${segment.number} Состояние=${segment.dataValue}`);
+					log.logInfo(`[Conversion] Sending segment ${segment.number} State=${segment.dataValue}`);
 					_worker.postMessage(segment);
 				} else {
 					debug.saveTransportStream(segment);
 					stats.originalSegmentReceived();
-					log.logInfo(`[Преобразование] Отсылаю сегмент ${segment.number}`);
+					log.logInfo(`[Conversion] Sending segment ${segment.number}`);
 					_worker.postMessage(segment, [ segment.dataValue ]);
 				}
 				if (++deleteCount == 1) {
@@ -5270,7 +5270,7 @@ const converterModule = (() => {
 		  case 1:
 			assert(dataModule.length === 2 && isObject(dataModule[1]));
 			const segment = new segmentItem(processingTransformed, dataModule[1].dataValue, dataModule[1].duration, dataModule[1].isGap, dataModule[1].number);
-			log.logInfo(`[Преобразование] Получен сегмент ${segment.number} ПреобразованЗа=${log.F0(segment.dataValue.conversionTime)}мс`);
+			log.logInfo(`[Conversion] Segment received ${segment.number} ConvertedIn=${log.F0(segment.dataValue.conversionTime)}ms`);
 			if (typeof segment.dataValue != 'number') {
 				stats.convertedSegmentReceived(segment);
 				if (!segment.dataValue.hasOwnProperty('мбМедиасегмент')) {
@@ -5311,10 +5311,10 @@ const converterModule = (() => {
 		}
 	});
 	function handleConversionError(event) {
-		debug.finishAndSendReport(`Произошло событие ${event.type} в рабочем потоке в строке ${event.lineno}. ${event.message}`);
+		debug.finishAndSendReport(`Event ${event.type} occurred in worker at line ${event.lineno}. ${event.message}`);
 	}
 	function createWorker() {
-		log.logInfo('[Преобразование] Создаю рабочий поток');
+		log.logInfo('[Conversion] Creating worker');
 		_worker = new Worker('/worker.js');
 		_worker.addEventListener('message', handleConversionEnd);
 		_worker.addEventListener('error', handleConversionError);
@@ -5331,7 +5331,7 @@ const converterModule = (() => {
 		globalFmp4HasVideo = false;
 		globalFmp4HasAudio = false;
 		if (_worker) {
-			log.logInfo('[Преобразование] Убиваю рабочий поток');
+			log.logInfo('[Conversion] Terminating worker');
 			_worker.terminate();
 			_worker = null;
 		}
@@ -5363,7 +5363,7 @@ const loader = (() => {
 		if (promiseCancellation && promiseCancellation.isCancelled) {
 			return Promise.reject(cancelPromise.reason);
 		}
-		log.logInfo(`[Загрузчик] ${method} ${title} не дольше ${log.F0(maxDuration)}мс`);
+		log.logInfo(`[Loader] ${method} ${title} within ${log.F0(maxDuration)}ms`);
 		Twitch.checkUrlAvailability(address);
 		const request = new XMLHttpRequest();
 		request._method = method;
@@ -5399,7 +5399,7 @@ const loader = (() => {
 			return false;
 		}
 		if (isRetry) {
-			log.logError(`[Загрузчик] Повторно загружаю ${request._name}`);
+			log.logError(`[Loader] Retrying load of ${request._name}`);
 		}
 		request._attemptsLeft--;
 		request.open(request._method, request._url);
@@ -5420,7 +5420,7 @@ const loader = (() => {
 	}
 	function getPromiseCancelHandler(request) {
 		return () => {
-			log.logInfo(`[Загрузчик] Отменяю загрузку ${request._name} readyState=${request.readyState}`);
+			log.logInfo(`[Loader] Cancelling load of ${request._name} readyState=${request.readyState}`);
 			request.removeEventListener('abort', handleError);
 			request.abort();
 			request._rejectCallback(cancelPromise.reason);
@@ -5434,13 +5434,13 @@ const loader = (() => {
 		}
 	});
 	const handleError = wrapErrors(({target: request, type: eventType}) => {
-		log.logError(`[Загрузчик] Не удалось загрузить ${request._name}. Произошло событие ${eventType}` + ` readyState=${request.readyState}` + (request._shouldLog && typeof request._dataType == 'number' ? ` ОжиданиеОтвета=${request._responseWaitTimeout}мс` : ``));
+		log.logError(`[Loader] Failed to load ${request._name}. Event ${eventType} occurred` + ` readyState=${request.readyState}` + (request._shouldLog && typeof request._dataType == 'number' ? ` ResponseWait=${request._responseWaitTimeout}ms` : ``));
 		if (eventType === 'abort' || !sendRequest2(request, true)) {
 			if (request.responseType === 'arraybuffer') {
 				stats.segmentLoaded(NaN, NaN, NaN, request._responseWaitTimeout);
 			}
 			request._promiseCancellation && request._promiseCancellation.replaceHandler(null);
-			request._rejectCallback(`Произошло событие ${eventType}`);
+			request._rejectCallback(`Event ${eventType} occurred`);
 		}
 	});
 	const handleLoadEnd = wrapErrors(({target: request}) => {
@@ -5449,7 +5449,7 @@ const loader = (() => {
 		if (code >= 200 && code <= 299 && (request._dataType === 'none' || request.response !== null)) {
 			const loadDurationMs = Math.round(performance.now() - request._requestSentAt);
 			request._promiseCancellation && request._promiseCancellation.replaceHandler(null);
-			log.logInfo(`[Загрузчик] Загрузил ${request._name} за ${loadDurationMs}мс` + (request._shouldLog && typeof request._dataType == 'number' ? ` ОжиданиеОтвета=${request._responseWaitTimeout}мс` : ``) + (typeof request._dataType == 'number' ? ` Отношение=${log.F1(loadDurationMs / request._dataType / 1e3)}` : ``) + (code === 200 ? `` : ` Код=${code} ${request.statusText}`) + (request._dataType === 'none' ? '' : request._shouldLog && isNonEmptyString(request.response) ? `\n${request.response}` : request.responseType === 'arraybuffer' ? ` Размер=${request.response.byteLength}байт` : ` Размер=${request.response.length}символов`));
+			log.logInfo(`[Loader] Loaded ${request._name} in ${loadDurationMs}ms` + (request._shouldLog && typeof request._dataType == 'number' ? ` ResponseWait=${request._responseWaitTimeout}ms` : ``) + (typeof request._dataType == 'number' ? ` Ratio=${log.F1(loadDurationMs / request._dataType / 1e3)}` : ``) + (code === 200 ? `` : ` Code=${code} ${request.statusText}`) + (request._dataType === 'none' ? '' : request._shouldLog && isNonEmptyString(request.response) ? `\n${request.response}` : request.responseType === 'arraybuffer' ? ` Size=${request.response.byteLength}bytes` : ` Size=${request.response.length}chars`));
 			if (request._maxDuration !== 0) {
 				stats.someDataDownloaded(getResponseSize(request));
 			}
@@ -5466,8 +5466,8 @@ const loader = (() => {
 				try {
 					request._resolveCallback(JSON.parse(request.response));
 				} catch (exception) {
-					log.logError(`[Загрузчик] Не удалось разобрать ${request._name}. ${exception}`);
-					request._rejectCallback('Не удалось разобрать JSON');
+					log.logError(`[Loader] Failed to parse ${request._name}. ${exception}`);
+					request._rejectCallback('Failed to parse JSON');
 				}
 				break;
 
@@ -5476,7 +5476,7 @@ const loader = (() => {
 				request._resolveCallback(request.response);
 			}
 		} else {
-			log.logError(`[Загрузчик] Не удалось загрузить ${request._name}. ${responseCode + code} ${request.statusText}` + (request._shouldLog && typeof request._dataType == 'number' ? ` ОжиданиеОтвета=${request._responseWaitTimeout}мс` : ``) + (isNonEmptyString(request.response) ? `\n${request.response}` : request.response === null ? ' response=null' : request.responseType === 'arraybuffer' ? ` Размер=${request.response.byteLength}байт` : ` Размер=${request.response.length}символов`));
+			log.logError(`[Loader] Failed to load ${request._name}. ${responseCode + code} ${request.statusText}` + (request._shouldLog && typeof request._dataType == 'number' ? ` ResponseWait=${request._responseWaitTimeout}ms` : ``) + (isNonEmptyString(request.response) ? `\n${request.response}` : request.response === null ? ' response=null' : request.responseType === 'arraybuffer' ? ` Size=${request.response.byteLength}bytes` : ` Size=${request.response.length}chars`));
 			if (code >= 400 && code <= 499 || request.response === null || !sendRequest2(request, true)) {
 				if (request.responseType === 'arraybuffer') {
 					stats.segmentLoaded(NaN, NaN, NaN, request._responseWaitTimeout);
@@ -5535,7 +5535,7 @@ const loader = (() => {
 			}
 			const queueOverflow = settings.get('maxBufferSizeSetting') + settings.get('bufferStretchMs');
 			if (allLoadsDuration > queueOverflow) {
-				log.logError(`[Загрузчик] Длительность всех загрузок в очереди ${log.F1(allLoadsDuration)}с > ${log.F1(queueOverflow)}с`);
+				log.logError(`[Loader] Total duration of queued loads ${log.F1(allLoadsDuration)}s > ${log.F1(queueOverflow)}s`);
 				handleSegmentLoadFailure(null);
 				loadNextSegment();
 				return;
@@ -5547,7 +5547,7 @@ const loader = (() => {
 		const address = segment.dataValue;
 		segment.dataValue = new cancelPromise();
 		segment.processingCount = processingLoading;
-		load(segment.dataValue, 'GET', address, segmentLoadTimeout(segment), null, null, `сегмент ${segment.number}`, stats.isWindowOpen(), segment.duration).then(bufferData => {
+		load(segment.dataValue, 'GET', address, segmentLoadTimeout(segment), null, null, `segment ${segment.number}`, stats.isWindowOpen(), segment.duration).then(bufferData => {
 			assert(globalQueue.includes(segment));
 			segment.dataValue = bufferData;
 			segment.processingCount = processingLoaded;
@@ -5559,7 +5559,7 @@ const loader = (() => {
 				assert(!globalQueue.includes(segment));
 				loadNextSegment();
 			} else if (reasonValue === cancelPromise.reason) {
-				log.logInfo(`[Загрузчик] Отменена загрузка сегмента ${segment.number}`);
+				log.logInfo(`[Loader] Segment ${segment.number} load cancelled`);
 				assert(!globalQueue.includes(segment));
 			} else {
 				throw reasonValue;
@@ -5594,7 +5594,7 @@ const loader = (() => {
 		stats.segmentsNotLoaded(queuedCount - globalQueue.length);
 	}
 	const handleNetworkChange = wrapErrors(event => {
-		log.logError(`[Загрузчик] Событие ${event.type} navigator.onLine=${navigator.onLine} connection.type=${navigator.connection && navigator.connection.type}`);
+		log.logError(`[Loader] Event ${event.type} navigator.onLine=${navigator.onLine} connection.type=${navigator.connection && navigator.connection.type}`);
 	});
 	if (navigator.connection) {
 		navigator.connection.addEventListener('onchange' in navigator.connection ? 'change' : 'typechange', handleNetworkChange);
@@ -5603,7 +5603,7 @@ const loader = (() => {
 		window.addEventListener('offline', handleNetworkChange);
 	}
 	if (!navigator.onLine) {
-		log.logError('[Загрузчик] navigator.onLine=false');
+		log.logError('[Loader] navigator.onLine=false');
 	}
 	return {
 		load,
@@ -5637,7 +5637,7 @@ const Twitch = (() => {
 			return;
 		}
 		_isRaidHandled = true;
-		log.logOk(`[Twitch] Рейд на канал ${channelCode}, переключаю плеер`);
+		log.logOk(`[Twitch] Raid on channel ${channelCode}, switching player`);
 		location.replace(getPlayerUrl(channelCode));
 	}
 	document.addEventListener('tw5-raid', wrapErrors(event => {
@@ -5672,7 +5672,7 @@ const Twitch = (() => {
 			return;
 		}
 		if (!/^https?:\/\/(?:[^/]+\.)?(?:twitch\.tv|twitchcdn\.net|ttvnw\.net|jtvnw\.net|live-video\.net|akamaized\.net|cloudfront\.net)\//.test(address)) {
-			throw new Error(`Неизвестный адрес: ${address}`);
+			throw new Error(`Unknown URL: ${address}`);
 		}
 	}
 	function createUniqueId(lengthCount) {
@@ -5690,7 +5690,7 @@ const Twitch = (() => {
 		const WAIT_FOR_TOKEN = 3e4;
 		if (getGqlToken._promise === null) {
 			getGqlToken._promise = new Promise((execute, reject) => {
-				log.logOk('[Twitch] Вставляю фрейм для перехвата токена GQL');
+				log.logOk('[Twitch] Inserting frame to intercept GQL token');
 				const frame = document.createElement('iframe');
 				frame.src = 'https://www.twitch.tv/popout/';
 				frame.id = 'gql-token';
@@ -5698,7 +5698,7 @@ const Twitch = (() => {
 				assert(!document.getElementById(frame.id));
 				document.body.appendChild(frame);
 				const timerId = setTimeout(wrapErrors(() => {
-					log.logError('[Twitch] Истекло время получения токена GQL');
+					log.logError('[Twitch] Timed out waiting for GQL token');
 					frame.remove();
 					getGqlToken._promise = getGqlToken.onGqlTokenChanged = null;
 					reject('ОТКАЗАНО_В_ДОСТУПЕ');
@@ -5734,7 +5734,7 @@ const Twitch = (() => {
 		let promise;
 		if (shouldSendGqlToken) {
 			if (_gqlToken !== '' && _gqlTokenExpiresAt > Date.now()) {
-				log.logInfo(`[Twitch] Токен GQL протухнет через ${log.F0((_gqlTokenExpiresAt - Date.now()) / 1e3)}с`);
+				log.logInfo(`[Twitch] GQL token expires in ${log.F0((_gqlTokenExpiresAt - Date.now()) / 1e3)}s`);
 				requestHeaders['Client-Integrity'] = _gqlToken;
 				promise = Promise.resolve();
 			} else {
@@ -5752,7 +5752,7 @@ const Twitch = (() => {
 			}
 			let promise;
 			if (result.errors.some(({message}) => message === 'failed integrity check')) {
-				log.logError('[Twitch] Серверу не понравился токен GQL');
+				log.logError('[Twitch] Server rejected GQL token');
 				if (requestHeaders['Client-Integrity'] === _gqlToken && _gqlToken !== '') {
 					clearGqlToken();
 				}
@@ -5769,26 +5769,26 @@ const Twitch = (() => {
 				}
 			} else if (result.errors.some(({message}) => message === 'service timeout')) {
 				if (!shouldRetryRequest) {
-					log.logError('[Twitch] Сервер GQL занят');
+					log.logError('[Twitch] GQL server busy');
 					return result;
 				}
 				const retryAfter = retryRequestDelay + retryRequestDelay / 2 * Math.random();
-				log.logError(`[Twitch] Сервер GQL занят. Запрос будет повторно отправлен через ${retryAfter.toFixed()}мс`);
+				log.logError(`[Twitch] GQL server busy. Request will be retried in ${retryAfter.toFixed()}ms`);
 				promise = wait(promiseCancellation, retryAfter);
 			} else {
-				log.logError('[Twitch] В ответе GQL есть неизвестные ошибки');
+				log.logError('[Twitch] Unknown errors in GQL response');
 				return result;
 			}
 			return promise.then(() => loader.load(promiseCancellation, 'POST', 'https://gql.twitch.tv/gql', maxLoadDuration, requestHeaders, requestText, downloadName, true, 'json')).then(result => {
 				if (result.errors) {
 					if (result.errors.some(({message}) => message === 'failed integrity check')) {
-						log.logError('[Twitch] Серверу не понравился токен GQL');
+						log.logError('[Twitch] Server rejected GQL token');
 						if (requestHeaders['Client-Integrity'] === _gqlToken && _gqlToken !== '') {
 							clearGqlToken();
 						}
 						throw 'ОТКАЗАНО_В_ДОСТУПЕ';
 					}
-					log.logError(result.errors.some(({message}) => message === 'service timeout') ? '[Twitch] Сервер GQL занят' : '[Twitch] В ответе GQL есть неизвестные ошибки');
+					log.logError(result.errors.some(({message}) => message === 'service timeout') ? '[Twitch] GQL server busy' : '[Twitch] Unknown errors in GQL response');
 				}
 				return result;
 			});
@@ -5816,16 +5816,16 @@ const Twitch = (() => {
 			input: {
 				targetID: _channelId
 			}
-		}, true, true, true, 'не отслеживать channel').then(result => {
+		}, true, true, true, 'unfollow channel').then(result => {
 			if (result.errors || !result.data || !result.data.unfollowUser) {
-				throw 'Сервер не смог выполнить операцию';
+				throw 'Server could not complete the operation';
 			}
 			events.sendEvent('twitch-viewer-metadata-received', {
 				subscriptionCount: subscriptionNotSubscribed
 			});
 		}).catch(reasonValue => {
 			if (typeof reasonValue == 'string') {
-				log.logError(`[Twitch] Не удалось не отслеживать channel. ${reasonValue}`);
+				log.logError(`[Twitch] Failed to unfollow channel. ${reasonValue}`);
 				notification.showButt();
 				events.sendEvent('twitch-viewer-metadata-received', {
 					subscriptionCount: subscriptionUnavailable
@@ -5852,16 +5852,16 @@ const Twitch = (() => {
 				disableNotifications: subscriptionCount === subscriptionDoNotNotify,
 				targetID: _channelId
 			}
-		}, true, true, true, 'отслеживать channel').then(result => {
+		}, true, true, true, 'follow channel').then(result => {
 			if (result.errors || !result.data || !result.data.followUser || !result.data.followUser.follow || !result.data.followUser.follow.user || result.data.followUser.error) {
-				throw 'Сервер не смог выполнить операцию';
+				throw 'Server could not complete the operation';
 			}
 			events.sendEvent('twitch-viewer-metadata-received', {
 				subscriptionCount
 			});
 		}).catch(reasonValue => {
 			if (typeof reasonValue == 'string') {
-				log.logError(`[Twitch] Не удалось отслеживать channel. ${reasonValue}`);
+				log.logError(`[Twitch] Failed to follow channel. ${reasonValue}`);
 				notification.showButt();
 				events.sendEvent('twitch-viewer-metadata-received', {
 					subscriptionCount: subscriptionUnavailable
@@ -5890,12 +5890,12 @@ const Twitch = (() => {
 		}).then(resultsMap => {
 			for (const result of resultsMap) {
 				if (result.errors || !result.data || !result.data.recordAdEvent || result.data.recordAdEvent.error) {
-					throw `Сервер не смог выполнить операцию: ${log.O(result)}`;
+					throw `Server could not complete the operation: ${log.O(result)}`;
 				}
 			}
 		}).catch(reasonValue => {
 			if (typeof reasonValue == 'string') {
-				log.logError(`[Twitch] Не удалось отправить данные слежения за рекламой. ${reasonValue}`);
+				log.logError(`[Twitch] Failed to send ad tracking data. ${reasonValue}`);
 			} else {
 				debug.exceptionCaught(reasonValue);
 			}
@@ -5952,7 +5952,7 @@ const Twitch = (() => {
 		if (!isAdFree) {
 			const expiresIn = getAbsoluteOptionListUrl._expiresAt - performance.now();
 			if (expiresIn > 0) {
-				log.logInfo(`[Twitch] До протухания токена трансляции осталось ${log.F0(expiresIn / 1e3)}с`);
+				log.logInfo(`[Twitch] Stream token expires in ${log.F0(expiresIn / 1e3)}s`);
 				return Promise.resolve(getAbsoluteOptionListUrl._url);
 			}
 		}
@@ -5977,13 +5977,13 @@ const Twitch = (() => {
 			login: _channelCode,
 			playerType: isAdFree ? 'picture-by-picture' : 'site',
 			disableHTTPS: isHttpsDisabled
-		}, true, false, true, `токен трансляции ${+isAdFree}`).then(result => {
+		}, true, false, true, `stream token ${+isAdFree}`).then(result => {
 			const token = chain(result.data, 'streamPlaybackAccessToken', 'value');
 			const signature = chain(result.data, 'streamPlaybackAccessToken', 'signature');
-			debug.saveStreamToken(`ИдУстройства=${_deviceId} ТокенЗрителя=${Boolean(_viewerToken)}\n${token}`, isAdFree);
+			debug.saveStreamToken(`DeviceId=${_deviceId} ViewerToken=${Boolean(_viewerToken)}\n${token}`, isAdFree);
 			if (!isNonEmptyString(token) || !isNonEmptyString(signature)) {
 				if (result.errors) {
-					throw 'Сервер не смог выполнить операцию';
+					throw 'Server could not complete the operation';
 				}
 				debug.finishAndShowMessage('J0203');
 			}
@@ -6023,7 +6023,7 @@ const Twitch = (() => {
 				assert(isObject(objectRef) && isNonEmptyString(objectRef.id) && isNonEmptyString(objectRef.login) && isNonEmptyString(objectRef.authToken));
 				return objectRef;
 			} catch (_) {}
-			log.logError(`[Twitch] Не удалось разобрать печеньку авторизации: ${cookieString}`);
+			log.logError(`[Twitch] Failed to parse auth cookie: ${cookieString}`);
 		}
 		return {
 			id: '',
@@ -6039,7 +6039,7 @@ const Twitch = (() => {
 				assert(isNonEmptyString(objectRef.token) && Number.isSafeInteger(objectRef.expiresAfterMs));
 				return [ objectRef.token, objectRef.expiresAfterMs ];
 			} catch (_) {
-				log.logError(`[Twitch] Не удалось разобрать печеньку токена GQL: ${cookieString}`);
+				log.logError(`[Twitch] Failed to parse GQL token cookie: ${cookieString}`);
 			}
 		}
 		return [ '', 0 ];
@@ -6085,7 +6085,7 @@ const Twitch = (() => {
 				parseCookie(1, cookie);
 			}
 			if (_deviceId === '') {
-				log.logError('[Twitch] Не найден идентификатор устройства');
+				log.logError('[Twitch] Device ID not found');
 				_deviceId = getUniqueDeviceId();
 			}
 			chrome.cookies.onChanged.addListener(wrapErrors(({removed, cause, cookie}) => {
@@ -6127,9 +6127,9 @@ const Twitch = (() => {
 			}`, {
 			login: _channelCode,
 			skip: _channelCode === _viewerCode
-		}, true, false, true, 'метаданные канала').then(result => {
+		}, true, false, true, 'channel metadata').then(result => {
 			if (!result.data) {
-				throw 'В ответе сервера нет метаданных';
+				throw 'No metadata in server response';
 			}
 			const oUser = result.data.user;
 			if (!oUser) {
@@ -6160,7 +6160,7 @@ const Twitch = (() => {
 			});
 		}).catch(reasonValue => {
 			if (typeof reasonValue == 'string') {
-				log.logError(`[Twitch] Не удалось получить метаданные канала. ${reasonValue}`);
+				log.logError(`[Twitch] Failed to get channel metadata. ${reasonValue}`);
 				events.sendEvent('twitch-channel-metadata-received', {
 					name: _channelCode,
 					avatarUrl: 'player.svg#svg-missingavatar',
@@ -6179,7 +6179,7 @@ const Twitch = (() => {
 	}
 	function updateStreamMetadata(promiseCancellation, delay) {
 		assert(_channelId);
-		log.logInfo(`[Twitch] Загрузка метаданных трансляции начнется через ${log.F0(delay)}мс`);
+		log.logInfo(`[Twitch] Stream metadata loading will start in ${log.F0(delay)}ms`);
 		wait(promiseCancellation, delay).then(() => {
 			return sendGqlRequest(promiseCancellation, `query($id: ID!, $all: Boolean!) {
 					user(id: $id) {
@@ -6204,12 +6204,12 @@ const Twitch = (() => {
 				}`, {
 				id: _channelId,
 				all: _streamId === ''
-			}, false, false, true, 'метаданные трансляции');
+			}, false, false, true, 'stream metadata');
 		}).then(result => {
 			const oUser = chain(result.data, 'user');
 			const channelCode = chain(oUser, 'login');
 			if (channelCode !== _channelCode && isNonEmptyString(channelCode)) {
-				log.logError(`[Twitch] Новый код канала ${channelCode}`);
+				log.logError(`[Twitch] New channel code ${channelCode}`);
 				location.replace(`?channel=${encodeURIComponent(channelCode)}`);
 				return;
 			}
@@ -6218,7 +6218,7 @@ const Twitch = (() => {
 			};
 			const streamId = chain(oUser, 'stream', 'id');
 			if (_streamId === '' && isNonEmptyString(streamId)) {
-				log.logOk(`[Twitch] Идентификатор трансляции ${streamId}`);
+				log.logOk(`[Twitch] Stream ID ${streamId}`);
 				_streamId = streamId;
 				startWatchingView();
 				const recordId = chain(oUser, 'stream', 'archiveVideo', 'id');
@@ -6242,10 +6242,10 @@ const Twitch = (() => {
 			updateStreamMetadata(promiseCancellation, streamMetadataUpdateInterval);
 		}).catch(wrapErrors(reasonValue => {
 			if (typeof reasonValue == 'string') {
-				log.logError(`[Twitch] Не удалось загрузить метаданные трансляции. ${reasonValue}`);
+				log.logError(`[Twitch] Failed to load stream metadata. ${reasonValue}`);
 				updateStreamMetadata(promiseCancellation, streamMetadataUpdateInterval / 2);
 			} else if (reasonValue === cancelPromise.reason) {
-				log.logInfo('[Twitch] Отменено обновление метаданных трансляции');
+				log.logInfo('[Twitch] Stream metadata update cancelled');
 			} else {
 				throw reasonValue;
 			}
@@ -6262,7 +6262,7 @@ const Twitch = (() => {
 			clearStreamData();
 		}
 		if (_metadataUpdateCancel) {
-			log.logInfo(`[Twitch] Отменяю цепочку обновления метаданных трансляции ТрансляцияЗавершена=${isStreamEnded}`);
+			log.logInfo(`[Twitch] Cancelling stream metadata update chain StreamEnded=${isStreamEnded}`);
 			_metadataUpdateCancel.cancel();
 			_metadataUpdateCancel = null;
 		}
@@ -6270,7 +6270,7 @@ const Twitch = (() => {
 	}
 	function startWatchingView() {
 		if (_viewerId !== '') {
-			log.logInfo('[Twitch] Начинаю слежение за просмотром');
+			log.logInfo('[Twitch] Starting view tracking');
 			assert(_watchTrackingTimerId === 0);
 			_watchTrackingTimerId = setInterval(sendViewTrackingData, WATCH_TRACKING_INTERVAL);
 			sendViewTrackingData();
@@ -6278,7 +6278,7 @@ const Twitch = (() => {
 	}
 	function stopWatchingView() {
 		if (_watchTrackingTimerId !== 0) {
-			log.logInfo('[Twitch] Завершаю слежение за просмотром');
+			log.logInfo('[Twitch] Stopping view tracking');
 			clearInterval(_watchTrackingTimerId);
 			_watchTrackingTimerId = 0;
 		}
@@ -6295,9 +6295,9 @@ const Twitch = (() => {
 				player: 'site'
 			}
 		} ])));
-		loader.load(null, 'POST', _viewTrackingUrl, metadataLoadMaxDuration, null, sendOptions, 'слежение за просмотром', false, 'none').catch(reasonValue => {
+		loader.load(null, 'POST', _viewTrackingUrl, metadataLoadMaxDuration, null, sendOptions, 'view tracking', false, 'none').catch(reasonValue => {
 			if (typeof reasonValue == 'string') {
-				log.logError(`[Twitch] Не удалось отправить данные слежения за просмотром. ${reasonValue}`);
+				log.logError(`[Twitch] Failed to send view tracking data. ${reasonValue}`);
 			} else {
 				debug.exceptionCaught(reasonValue);
 			}
@@ -6305,12 +6305,12 @@ const Twitch = (() => {
 	});
 	function getRecordUrlForCurrentPosition() {
 		if (_recordUrl === '') {
-			log.logError('[Twitch] Адрес записи не известен');
+			log.logError('[Twitch] Recording URL unknown');
 			return '';
 		}
 		const positionNumber = player.getStreamPlaybackPosition(false);
 		if (positionNumber === -1) {
-			log.logInfo('[Twitch] Адрес записи создан без позиции воспроизведения');
+			log.logInfo('[Twitch] Recording URL created without playback position');
 			return _recordUrl;
 		}
 		return `${_recordUrl}?t=${Math.floor(positionNumber / 60 / 60)}h${Math.floor(positionNumber / 60 % 60)}m${Math.floor(positionNumber % 60)}s`;
@@ -6318,10 +6318,10 @@ const Twitch = (() => {
 	function createClip() {
 		const positionNumber = player.getStreamPlaybackPosition(true);
 		if (_streamId === '' || positionNumber <= 0) {
-			log.logError(`[Twitch] Недостаточно данных для создания клипа ИдТрансляции=${_streamId} Позиция=${positionNumber}`);
+			log.logError(`[Twitch] Insufficient data to create clip StreamId=${_streamId} Position=${positionNumber}`);
 			notification.showButt();
 		} else {
-			log.logOk(`[Twitch] Создаю клип ИдТрансляции=${_streamId} Позиция=${positionNumber} ИдЗрителя=${_viewerId}`);
+			log.logOk(`[Twitch] Creating clip StreamId=${_streamId} Position=${positionNumber} ViewerId=${_viewerId}`);
 			notification.show('svg-cut', false);
 			openAddressInNewTab(`https://clips.twitch.tv/create?${new URLSearchParams({
 				broadcastID: _streamId,
@@ -6352,7 +6352,7 @@ const Twitch = (() => {
 		return optionList;
 	}
 	const handleChatMessage = wrapErrors((message, senderObject, replyCallback) => {
-		// console.log('[player.js] Message received:', оСообщение, 'Sender:', оОтправитель);
+		// console.log('[player.js] Message received:', message, 'Sender:', senderObject);
 		const isInsertRequest = message.requestText === 'ВставитьСторонниеРасширения' || message.requestText === 'InsertThirdPartyExtensions';
 		const isRaidRequest = message.requestText === 'Рейд' || message.requestText === 'Raid';
 		if (!isInsertRequest && !isRaidRequest) {
@@ -6366,14 +6366,14 @@ const Twitch = (() => {
 			goToRaidChannel(message.channelCode);
 			return false;
 		}
-		log.logInfo('[Twitch] Получен запрос на вставку сторонних расширений');
+		log.logInfo('[Twitch] Received request to insert third-party extensions');
 		chrome.management.getAll(wrapErrors(extensionsMap => {
 			if (chrome.runtime.lastError) {
-				throw new Error(`Не удалось получить список расширений: ${chrome.runtime.lastError.message}`);
+				throw new Error(`Failed to get extension list: ${chrome.runtime.lastError.message}`);
 			}
 		//! Debug: log all extensions (enabled and disabled)
-			// console.log('[player.js] All extensions (enabled):', моРасширения.filter(e => e.enabled).map(e => ({name: e.name, id: e.id})));
-			// console.log('[player.js] All extensions (disabled):', моРасширения.filter(e => !e.enabled).map(e => ({name: e.name, id: e.id})));
+			// console.log('[player.js] All extensions (enabled):', extensionsMap.filter(e => e.enabled).map(e => ({name: e.name, id: e.id})));
+			// console.log('[player.js] All extensions (disabled):', extensionsMap.filter(e => !e.enabled).map(e => ({name: e.name, id: e.id})));
 			
 			//! Send to content script a list of known browser extensions that are currently installed and enabled in the browser.
 			//! These extensions will be loaded into <iframe>. See insertThirdPartyExtensions() in content.js.
@@ -6382,7 +6382,7 @@ const Twitch = (() => {
 						message.thirdPartyExtensions = '';
 			for (let extensionObject of extensionsMap) {
 				if (extensionObject.enabled) {
-					// console.log('[player.js] Checking extension:', оРасширение.name, оРасширение.id);
+					// console.log('[player.js] Checking extension:', extensionObject.name, extensionObject.id);
 					switch (extensionObject.id) {
 					  case /*! Chrome */ 'ajopnjidmegmdimjlfnijceegpefgped':
 					  case /*! Opera  */ 'deofbbdfofnmppcjbhjibgodpcdchjii':
@@ -6404,11 +6404,11 @@ const Twitch = (() => {
 					}
 				}
 			}
-			log.logInfo(`[Twitch] Посылаю ответ на вставку сторонних расширений: ${message.thirdPartyExtensions}`);
+			log.logInfo(`[Twitch] Sending response to third-party extension insertion: ${message.thirdPartyExtensions}`);
 			try {
 				replyCallback(message);
 			} catch (exception) {
-				log.logError(`[Twitch] Ошибка при посылке ответа: ${exception}`);
+				log.logError(`[Twitch] Error sending response: ${exception}`);
 			}
 		}));
 		return true;
@@ -6442,14 +6442,14 @@ const Twitch = (() => {
 function finishWork(isFast) {
 	try {
 		globalIsWorkFinished = true;
-		log.logOk('[Запускалка] Завершаю работу');
+		log.logOk('[Launcher] Finishing work');
 		window.stop();
 		if (!isFast) {
 			converterModule.stop();
 			player.stop();
 			trashModule.burn();
 		}
-		log.logOk('[Запускалка] Работа завершена');
+		log.logOk('[Launcher] Work finished');
 	} catch (_) {}
 }
 
@@ -6466,7 +6466,7 @@ wrapErrors(() => {
 		});
 		chrome.runtime.onMessage.addListener(wrapErrors((message, _, replyCallback) => {
 			if (message.requestText === 'ЭтотКаналУжеОткрыт' || message.requestText === 'ThisChannelIsAlreadyOpen') {
-				log.logError(`[Запускалка] В другой вкладке открыт канал ${message.channelName}`);
+				log.logError(`[Launcher] Channel ${message.channelName} is open in another tab`);
 				if (message.channelName === channelName) {
 					replyCallback(true);
 				}
@@ -6474,12 +6474,12 @@ wrapErrors(() => {
 		}));
 	}
 	function handlePageUnload(event) {
-		log.logOk(`[Запускалка] window.on${event.type}`);
+		log.logOk(`[Launcher] window.on${event.type}`);
 		finishWork(true);
 	}
 	function startWork() {
 		assert(!globalIsWorkFinished);
-		log.logInfo(`[Запускалка] Начало работы ${performance.now().toFixed()}мс`);
+		log.logInfo(`[Launcher] Start of work ${performance.now().toFixed()}ms`);
 		window.addEventListener('unload', handlePageUnload);
 		control.start();
 		if (player.start()) {

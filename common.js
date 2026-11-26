@@ -84,7 +84,7 @@ const placeholder = () => {};
 
 function assert(conditionValue) {
 	if (!conditionValue) {
-		throw new Error('Проверка не пройдена');
+		throw new Error('Assertion failed');
 	}
 }
 
@@ -229,7 +229,7 @@ const log = (() => {
 	}
 	if (!isContentScript) {
 		_logParts = new Array(1500);
-		logInfo(`[Журнал] Журнал запущен ${performance.now().toFixed()}мс`);
+		logInfo(`[Log] Log started ${performance.now().toFixed()}ms`);
 	}
 	return {
 		logInfo,
@@ -294,7 +294,7 @@ const i18n = (() => {
 		assert(sSubstitution === void 0 || typeof sSubstitution == 'string');
 		const sMessageText = chrome.i18n.getMessage(sMessageName, sSubstitution);
 		if (!sMessageText) {
-			throw new Error(`Не найден текст ${sMessageName}`);
+			throw new Error(`No text found for ${sMessageName}`);
 		}
 		return sMessageText;
 	}
@@ -313,7 +313,7 @@ const i18n = (() => {
 		return elInsertTo;
 	}
 	function TranslateDocument(document) {
-		log.logInfo('[i18n] Перевод документа');
+		log.logInfo('[i18n] Translating document');
 		for (let elTranslate, celTranslate = document.querySelectorAll('*[data-i18n]'), i = 0; elTranslate = celTranslate[i]; ++i) {
 			const sNames = elTranslate.getAttribute('data-i18n');
 			const sNamesDelimiter = sNames.indexOf('^');
@@ -358,7 +358,7 @@ const i18n = (() => {
 	function getLanguageName(languageCode) {
 		const languageName = languageNames[languageCode.toUpperCase()];
 		if (!languageName) {
-			throw new Error(`Неизвестный код языка: ${languageCode}`);
+			throw new Error(`Unknown language code: ${languageCode}`);
 		}
 		return languageName;
 	}
@@ -603,7 +603,7 @@ const settings = (() => {
 	let _isDeletionDeferred = false;
 	let _deferredLegacyKeys = [];
 	function restore() {
-		log.logInfo('[Настройки] Восстанавливаю settings');
+		log.logInfo('[Settings] Restoring settings');
 		return new Promise((execute, reject) => {
 			chrome.storage.local.get(null, restoredSettings => {
 				if (globalIsWorkFinished) {
@@ -614,7 +614,7 @@ const settings = (() => {
 						console.error('storage.local.get', chrome.runtime.lastError.message);
 						debug.finishAndShowMessage('J0221');
 					}
-					log.logInfo(`[Настройки] Настройки прочитаны из хранилища: ${log.O(restoredSettings)}`);
+					log.logInfo(`[Settings] Settings read from storage: ${log.O(restoredSettings)}`);
 					const legacyKeys = Object.keys(restoredSettings).filter(name => normalizeSettingName(name) !== name);
 					finishRestore(translateRestoredSettings(restoredSettings), legacyKeys);
 					execute();
@@ -679,7 +679,7 @@ const settings = (() => {
 		assert(isObject(save));
 		if (Object.keys(save).length !== 0 || shouldRemoveRest || legacyKeys.length !== 0) {
 			if (_deferredSaveTimer === 0) {
-				log.logInfo(`[Настройки] Откладываю сохранение настроек на ${saveDelay}мс`);
+				log.logInfo(`[Settings] Deferring settings save for ${saveDelay}ms`);
 				_deferredSave = save;
 				_isDeletionDeferred = shouldRemoveRest;
 				_deferredLegacyKeys = legacyKeys;
@@ -695,7 +695,7 @@ const settings = (() => {
 		}
 	}
 	function finishSave() {
-		log.logInfo('[Настройки] Завершаю отложенное сохранение');
+		log.logInfo('[Settings] Finishing deferred save');
 		assert(_deferredSaveTimer !== 0);
 		_deferredSaveTimer = 0;
 		assert(isObject(_deferredSave));
@@ -706,12 +706,12 @@ const settings = (() => {
 	function save2(save, shouldRemoveRest, legacyKeys = []) {
 		if (shouldRemoveRest) {
 			chrome.storage.local.clear(assertSaveResult);
-			log.logInfo('[Настройки] Все settings удалены из хранилища');
+			log.logInfo('[Settings] All settings removed from storage');
 		} else if (legacyKeys.length !== 0) {
 			chrome.storage.local.remove(legacyKeys, assertSaveResult);
 		}
 		chrome.storage.local.set(save, assertSaveResult);
-		log.logInfo(`[Настройки] Настройки записаны в хранилище: ${log.O(save)}`);
+		log.logInfo(`[Settings] Settings written to storage: ${log.O(save)}`);
 	}
 	function assertSaveResult() {
 		if (chrome.runtime.lastError) {
@@ -720,7 +720,7 @@ const settings = (() => {
 		}
 	}
 	function reset() {
-		log.logOk('[Настройки] Сбрасываю settings');
+		log.logOk('[Settings] Resetting settings');
 		assert(_settings.settingsVersion.currentValue);
 		const save = {};
 		for (let name of _persistentSettings) {
@@ -730,7 +730,7 @@ const settings = (() => {
 		window.location.reload(true);
 	}
 	function exportSettings() {
-		log.logOk('[Настройки] Экспортирую settings');
+		log.logOk('[Settings] Exporting settings');
 		assert(_settings.settingsVersion.currentValue);
 		const exportDataObj = {
 			settingsVersion: SETTINGS_VERSION
@@ -740,25 +740,25 @@ const settings = (() => {
 				exportDataObj[name] = _settings[name].currentValue;
 			}
 		}
-		log.logInfo(`[Настройки] Отобраны settings для экспорта: ${log.O(exportDataObj)}`);
+		log.logInfo(`[Settings] Selected settings for export: ${log.O(exportDataObj)}`);
 		writeTextToLocalFile(JSON.stringify(exportDataObj), 'application/json', getMessageText('J0133'));
 	}
 	function importSettings(fromFileData) {
-		log.logOk(`[Настройки] Импортирую settings из файла ${fromFileData.name}`);
+		log.logOk(`[Settings] Importing settings from file ${fromFileData.name}`);
 		assert(_settings.settingsVersion.currentValue);
 		if (fromFileData.size === 0 || fromFileData.size > 1e4) {
-			log.logError(`[Настройки] Размер файла: ${fromFileData.size}`);
+			log.logError(`[Settings] File size: ${fromFileData.size}`);
 			notification.showButt();
 			return;
 		}
 		const reader = new FileReader();
 		reader.addEventListener('loadend', wrapErrors(() => {
 			if (!isNonEmptyString(reader.result)) {
-				log.logError(`[Настройки] Результат чтения файла: ${reader.result}`);
+				log.logError(`[Settings] File read result: ${reader.result}`);
 				notification.showButt();
 				return;
 			}
-			log.logInfo(`[Настройки] Настройки прочитаны из файла: ${reader.result}`);
+			log.logInfo(`[Settings] Settings read from file: ${reader.result}`);
 			let save;
 			try {
 				save = translateRestoredSettings(JSON.parse(reader.result));
@@ -779,7 +779,7 @@ const settings = (() => {
 					}
 				}
 			} catch (exception) {
-				log.logError(`[Настройки] Поймано исключение во время разбора настроек: ${exception}`);
+				log.logError(`[Settings] Caught exception while parsing settings: ${exception}`);
 				notification.showButt();
 				return;
 			}

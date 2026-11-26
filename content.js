@@ -28,7 +28,7 @@ function finishWork2(errorOrMessageCode) {
 		console.error(errorOrMessageCode);
 		try {
 			globalIsWorkFinished = true;
-			log.logOk('[content.js] Работа завершена');
+			log.logOk('[content.js] Work finished');
 		} catch (_) {}
 	}
 	throw void 0;
@@ -78,7 +78,7 @@ function parseAddress(addressObject) {
 			channelCode = decodeURIComponent(parts[2]);
 		}
 	}
-	log.logOk(`[content.js] Адрес разобран: Страница=${page} КодКанала=${channelCode} МожноПеренаправлять=${canRedirect}`);
+	log.logOk(`[content.js] Address parsed: Page=${page} ChannelCode=${channelCode} CanRedirect=${canRedirect}`);
 	return {
 		isMobileVersion,
 		page,
@@ -130,13 +130,13 @@ function onPageUrlChanged(modeName) {
 
 function abortRequest() {
 	if (globalRequest) {
-		log.logOk('[content.js] Отменяю незавершенный запрос');
+		log.logOk('[content.js] Cancelling pending request');
 		globalRequest.abort();
 	}
 }
 
 function sendRequest() {
-	log.logOk(`[content.js] Посылаю запрос для канала ${globalChannelCode}`);
+	log.logOk(`[content.js] Sending request for channel ${globalChannelCode}`);
 	globalRequest = new XMLHttpRequest();
 	globalRequest.addEventListener('loadend', handleResponse);
 	globalRequest.open('POST', 'https://gql.twitch.tv/gql#origin=twilight');
@@ -188,14 +188,14 @@ function handleResponse({target: request}) {
 
 function launchOurPlayer(channelCode) {
 	const playerUrl = getPlayerUrl(channelCode);
-	log.logOk(`[content.js] Перехожу на страницу ${playerUrl}`);
+	log.logOk(`[content.js] Navigating to page ${playerUrl}`);
 	disableAutoRedirectForThisPage();
 	setPageUrl(playerUrl);
 }
 
 function redirectToOurPlayer(channelCode) {
 	const playerUrl = getPlayerUrl(channelCode);
-	log.logOk(`[content.js] Меняю адрес страницы с ${location.href} на ${playerUrl}`);
+	log.logOk(`[content.js] Changing page URL from ${location.href} to ${playerUrl}`);
 	document.documentElement.setAttribute('data-tw5-redirect', playerUrl);
 	setPageUrl(playerUrl, true);
 }
@@ -204,7 +204,7 @@ function handlePointerDownAndClick(event) {
 	if (globalParsedAddress) {
 		const linkElement = event.target.closest('a[href]');
 		if (linkElement && event.isPrimary !== false && event.button === leftButton && !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey) {
-			log.logOk(`[content.js] Произошло событие ${event.type} у ссылки ${linkElement.href}`);
+			log.logOk(`[content.js] Event ${event.type} occurred at link ${linkElement.href}`);
 			requestChannelState(parseAddress(linkElement));
 		}
 	}
@@ -212,20 +212,20 @@ function handlePointerDownAndClick(event) {
 
 function handlePopState(event) {
 	if (globalParsedAddress) {
-		log.logOk(`[content.js] Произошло событие popstate ${location.href}`);
+		log.logOk(`[content.js] popstate event occurred ${location.href}`);
 		if (getBrowserEngineVersion() < 67) {
 			document.title = 'Twitch';
 		}
 		onPageUrlChanged('POPSTATE');
 		if (document.documentElement.hasAttribute('data-tw5-redirect')) {
-			log.logOk('[content.js] Скрываю событие popstate');
+			log.logOk('[content.js] Suppressing popstate event');
 			event.stopImmediatePropagation();
 		}
 	}
 }
 
 function handlePushState() {
-	log.logOk(`[content.js] Обнаружен переход на страницу ${location.href}`);
+	log.logOk(`[content.js] Detected navigation to page ${location.href}`);
 	onPageUrlChanged('PUSHSTATE');
 }
 
@@ -235,21 +235,21 @@ function handleOurPlayerLaunch(event) {
 	if (event.button === leftButton && addressObject.page === 'POSSIBLE_LIVE_STREAM') {
 		launchOurPlayer(addressObject.channelCode);
 	} else {
-		log.logOk(`[content.js] Не запускать player Кнопка=${event.button} Страница=${addressObject.page}`);
+		log.logOk(`[content.js] Not launching player Button=${event.button} Page=${addressObject.page}`);
 	}
 }
 
 function handleAutoRedirectToggle(event) {
 	event.preventDefault();
 	const isFlag = !settings.get('isAutoRedirectAllowed');
-	log.logOk(`[content.js] Автоперенаправление разрешено: ${isFlag}`);
+	log.logOk(`[content.js] Auto-redirect allowed: ${isFlag}`);
 	settings.set('isAutoRedirectAllowed', isFlag);
 	updateOurButton();
 }
 
 function handleHelpClose(event) {
 	event.preventDefault();
-	log.logOk('[content.js] Закрываю справку');
+	log.logOk('[content.js] Closing help');
 	event.currentTarget.classList.remove('tw5-help');
 	event.currentTarget.removeEventListener('mouseover', handleHelpClose);
 	event.currentTarget.removeEventListener('touchstart', handleHelpClose, {
@@ -291,7 +291,7 @@ function insertOurButton() {
 		return false;
 	}
 	if (globalParsedAddress.isMobileVersion) {
-		log.logOk('[content.js] Вставляю нашу кнопку для мобильного сайта');
+		log.logOk('[content.js] Inserting our button for mobile site');
 		location.elementRef.insertAdjacentHTML(location.method2, `
 		<div class="tw5-auto-redirect tw5-js-remove">
 			<button id="tw5-auto-redirect">
@@ -343,7 +343,7 @@ function insertOurButton() {
 		</div>
 		`);
 	} else {
-		log.logOk('[content.js] Вставляю нашу кнопку');
+		log.logOk('[content.js] Inserting our button');
 		location.elementRef.insertAdjacentHTML(location.method2, `
 		<div class="tw5-auto-redirect tw5-js-remove">
 			<button id="tw5-auto-redirect">
@@ -493,7 +493,7 @@ function checkUrlChange() {
 		return;
 	}
 	globalLastUrl = location.href;
-	log.logOk(`[content.js] Обнаружена смена адреса ${location.href}`);
+	log.logOk(`[content.js] Detected URL change ${location.href}`);
 	handlePushState();
 	insertOurButtonIfNeeded();
 }
@@ -571,7 +571,7 @@ function setChatBehavior() {
 		if (!linkElement) {
 			return;
 		}
-		log.logOk(`[content.js] Открываю ссылку в новой вкладке: ${linkElement.getAttribute('href')}`);
+		log.logOk(`[content.js] Opening link in new tab: ${linkElement.getAttribute('href')}`);
 		linkElement.target = '_blank';
 		event.stopImmediatePropagation();
 	}, true);
@@ -602,7 +602,7 @@ function watchRaidInChat() {
 			return;
 		}
 		previousChannelCode = addressObject.channelCode;
-		log.logOk(`[content.js] Чат перешел на канал ${previousChannelCode}, сообщаю о рейде`);
+		log.logOk(`[content.js] Chat moved to channel ${previousChannelCode}, notifying about raid`);
 		chrome.runtime.sendMessage({
 			requestText: 'Raid',
 			channelCode: previousChannelCode
@@ -613,7 +613,7 @@ function watchRaidInChat() {
 function removeOldVersionLeftovers() {}
 
 wrapErrors(() => {
-	log.logOk(`[content.js] Запущен ${performance.now().toFixed()}мс ${location.href}`);
+	log.logOk(`[content.js] Started ${performance.now().toFixed()}ms ${location.href}`);
 	if (parseAddress(location).page === 'CHANNEL_CHAT') {
 		insertIntoPage(allowChat);
 		if (window.top !== window) {
