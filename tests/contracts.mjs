@@ -46,6 +46,9 @@ export const PLAYER_RUNTIME_JS = [
 ];
 
 export const CONTENT_ENTRY_JS = 'src/entries/content.js';
+export const BACKGROUND_ENTRY_JS = 'src/entries/background.js';
+export const AUTOCLAIM_ENTRY_JS = 'src/entries/autoclaim.js';
+export const GQLTOKEN_ENTRY_JS = 'src/entries/gqltoken.js';
 
 export const CONTENT_RUNTIME_JS = [
 	...SHARED_RUNTIME_JS,
@@ -61,9 +64,9 @@ export const FIRST_PARTY_JS = [
 		'src/shared/contracts.js',
 		PLAYER_ENTRY_JS,
 		CONTENT_ENTRY_JS,
-		'background.js',
-		'autoclaim.js',
-		'gqltoken.js'
+		BACKGROUND_ENTRY_JS,
+		AUTOCLAIM_ENTRY_JS,
+		GQLTOKEN_ENTRY_JS
 	])
 ];
 

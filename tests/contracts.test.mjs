@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import vm from 'node:vm';
-import { AUDIO_DEVICE_PERMISSION, CONTENT_ENTRY_JS, CONTENT_RUNTIME_JS, INTERFACE_LANGUAGE_KEYS, INTERFACE_LANGUAGE_SETTING, INTERFACE_LANGUAGE_VALUES, LEGACY_MESSAGE_PROTOCOL, LEGACY_WORKER_LOG_PROTOCOL, LOCALES, MESSAGE_PROTOCOL, PLAYER_ENTRY_JS, PLAYER_RUNTIME_JS, SHARED_RUNTIME_JS, TEST_EVENT, WORKER_DATA_FIELDS, WORKER_LOG_PROTOCOL, WORKER_SEGMENT_FIELDS } from './contracts.mjs';
+import { AUDIO_DEVICE_PERMISSION, BACKGROUND_ENTRY_JS, CONTENT_ENTRY_JS, CONTENT_RUNTIME_JS, INTERFACE_LANGUAGE_KEYS, INTERFACE_LANGUAGE_SETTING, INTERFACE_LANGUAGE_VALUES, LEGACY_MESSAGE_PROTOCOL, LEGACY_WORKER_LOG_PROTOCOL, LOCALES, MESSAGE_PROTOCOL, PLAYER_ENTRY_JS, PLAYER_RUNTIME_JS, SHARED_RUNTIME_JS, TEST_EVENT, WORKER_DATA_FIELDS, WORKER_LOG_PROTOCOL, WORKER_SEGMENT_FIELDS } from './contracts.mjs';
 import { loadCommon, read } from './harness.mjs';
 
 const html = read('player.html') + '\n' + read('report.html');
@@ -11,7 +11,7 @@ const stringLiterals = source => [...source.matchAll(/'([^'\r\n]*)'|"([^"\r\n]*)
 const content = read(CONTENT_ENTRY_JS);
 const contentSources = [ content, ...CONTENT_RUNTIME_JS.filter(path => path.startsWith('src/content/')).map(read) ];
 const contentCode = contentSources.join('\n');
-const background = read('background.js');
+const background = read(BACKGROUND_ENTRY_JS);
 const css = read('player.css');
 const manifest = JSON.parse(read('manifest.json'));
 const sharedSources = SHARED_RUNTIME_JS.map(read);
