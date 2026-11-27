@@ -53,6 +53,7 @@ export const GQLTOKEN_ENTRY_JS = 'src/entries/gqltoken.js';
 export const CONTENT_RUNTIME_JS = [
 	...SHARED_RUNTIME_JS,
 	'src/content/pageState.js',
+	'src/content/chatTheme.js',
 	'src/content/navigation.js',
 	'src/content/raid.js'
 ];

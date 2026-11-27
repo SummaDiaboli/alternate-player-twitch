@@ -21,6 +21,7 @@
 		let _metadataUpdateCancel = null;
 		let _watchTrackingTimerId = 0;
 		let _isRaidHandled = false;
+		let _isSiteDarkTheme = false;
 		function goToRaidChannel(channelCode) {
 			if (_isRaidHandled || !isNonEmptyString(channelCode) || !settings.get('followRaids') || channelCode === _channelCode) {
 				return;
@@ -40,7 +41,7 @@
 		}
 		function getChatPanelUrl() {
 			if (settings.get('isFullChat')) {
-				return `https://www.twitch.tv/popout/${encodeURIComponent(_channelCode)}/chat?no-mobile-redirect=true&popout=`;
+				return `https://www.twitch.tv/popout/${encodeURIComponent(_channelCode)}/chat?no-mobile-redirect=true&popout=${_isSiteDarkTheme ? '&darkpopout' : ''}`;
 			}
 			return `https://www.twitch.tv/embed/${encodeURIComponent(_channelCode)}/chat?${settings.get('shouldDimChat') ? 'darkpopout&' : ''}parent=localhost`;
 		}
@@ -457,6 +458,16 @@
 				}
 				break;
 	
+			  case 'tw5~chat-theme':
+				if ((domain === '.twitch.tv' || domain === 'www.twitch.tv' || domain === 'm.twitch.tv') && path === '/tw5~storage/') {
+					const isDarkTheme = value === 'dark';
+					if (_isSiteDarkTheme !== isDarkTheme) {
+						_isSiteDarkTheme = isDarkTheme;
+						events.sendEvent('twitch-chat-theme-changed');
+					}
+				}
+				break;
+
 			  case 'tw5~gqltoken':
 				if (domain === 'www.twitch.tv' && path === '/tw5~storage/') {
 					[_gqlToken, _gqlTokenExpiresAt] = parseGqlTokenCookie(value);

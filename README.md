@@ -45,7 +45,7 @@ When you visit a Twitch channel page, the extension detects whether the channel 
 |---|---|
 | `src/entries/background.js` | MV3 service worker that detects FFZ/BTTV extensions and injects them into chat |
 | `src/entries/content.js` | Content script entry point for twitch.tv page integration |
-| `src/content/*.js` | Page state, navigation, and raid detection split from the content script |
+| `src/content/*.js` | Page state, Twitch chat theme sync, navigation, and raid detection split from the content script |
 | `src/shared/*.js` | Shared utilities: namespace, messages, logging, settings, i18n, GQL helpers |
 | `src/player/*.js` | Player features split from the main player script |
 | `src/entries/player.js` | Custom HLS player entry point, UI, and buffering engine |
