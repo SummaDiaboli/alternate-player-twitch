@@ -157,6 +157,19 @@ test('worker adapter translates segment and result fields at runtime', () => {
 	assert.equal(api.fromWorkerData(9), 9);
 });
 
+test('playback module exposes the player API through a factory', () => {
+	const playback = read('src/player/playback.js');
+	const { context } = loadCommon();
+	vm.runInContext(playback, context, { filename: 'src/player/playback.js' });
+	const api = vm.runInContext('TW5.player.playback.create()', context);
+	assert.deepEqual(Object.keys(api).sort(), [
+		'addNextSegment', 'applyVolume', 'getBufferFill', 'getDroppedFrameCount',
+		'getStreamPlaybackPosition', 'reload', 'seekReplayBack', 'seekReplayForward',
+		'setReplaySpeed', 'showState', 'start', 'stop', 'togglePause'
+	].sort());
+	assert.match(player, /const player = TW5\.player\.playback\.create\(\)/);
+});
+
 test('interface language selector is wired to the saved setting', () => {
 	assert.match(html, new RegExp(`data-i18n=${INTERFACE_LANGUAGE_KEYS.label}`));
 	assert.match(html, new RegExp(`data-i18n=\\^${INTERFACE_LANGUAGE_KEYS.tooltip}`));
