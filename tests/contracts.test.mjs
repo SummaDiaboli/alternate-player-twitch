@@ -209,6 +209,22 @@ test('chat module exposes the chat panel API through a factory', () => {
 	assert.match(player, /const chat = TW5\.player\.chat\.create\(\)/);
 });
 
+test('stats module exposes the statistics API through a factory', () => {
+	const stats = read('src/player/stats.js');
+	const { context } = loadCommon();
+	vm.runInContext('var events = { addHandler() {} };', context);
+	vm.runInContext(stats, context, { filename: 'src/player/stats.js' });
+	const api = vm.runInContext('TW5.player.stats.create()', context);
+	assert.deepEqual(Object.keys(api).sort(), [
+		'clearHistory', 'closeWindow', 'convertedSegmentReceived', 'getFrameDurationSeconds',
+		'getReportData', 'getTargetDuration', 'isWindowOpen', 'openWindow',
+		'originalSegmentReceived', 'playerBufferExhausted', 'segmentListParsed',
+		'segmentLoaded', 'segmentRejected', 'segmentsNotLoaded', 'segmentsQueued',
+		'segmentsSkipped', 'someDataDownloaded', 'start', 'updateBufferFullness', 'updateValue'
+	].sort());
+	assert.match(player, /const stats = TW5\.player\.stats\.create\(\)/);
+});
+
 test('interface language selector is wired to the saved setting', () => {
 	assert.match(html, new RegExp(`data-i18n=${INTERFACE_LANGUAGE_KEYS.label}`));
 	assert.match(html, new RegExp(`data-i18n=\\^${INTERFACE_LANGUAGE_KEYS.tooltip}`));
