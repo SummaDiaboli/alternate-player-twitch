@@ -1,3 +1,4 @@
+// @ts-check
 'use strict';
 
 {
@@ -5,7 +6,8 @@
 		const originalFunction = window.fetch;
 		window.fetch = function(addressValue, params2) {
 			const promise2 = originalFunction(addressValue, params2);
-			if (addressValue === 'https://gql.twitch.tv/integrity' && params2 && params2.method && params2.method.toUpperCase() === 'POST' && params2.headers && params2.headers.Authorization) {
+			const requestHeaders = /** @type {{ Authorization?: unknown }} */ (params2?.headers);
+			if (addressValue === 'https://gql.twitch.tv/integrity' && params2 && params2.method && params2.method.toUpperCase() === 'POST' && params2.headers && requestHeaders.Authorization) {
 				promise2.then(reply => {
 					if (reply.ok && reply.status === 200) {
 						return reply.clone().json().then(({token: token, expiration: expiresAfterMs}) => {

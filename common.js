@@ -1,3 +1,4 @@
+// @ts-nocheck: enabled as this script is split into checked modules.
 'use strict';
 
 const isContentScript = !document.currentScript;

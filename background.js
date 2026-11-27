@@ -1,3 +1,4 @@
+// @ts-check
 'use strict';
 
 // Service worker for Manifest V3
