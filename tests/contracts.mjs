@@ -16,7 +16,8 @@ export const PLAYER_RUNTIME_JS = [
 	...SHARED_RUNTIME_JS,
 	'src/player/workerAdapter.js',
 	'src/player/playback.js',
-	'src/player/variants.js'
+	'src/player/variants.js',
+	'src/player/controls.js'
 ];
 
 export const FIRST_PARTY_JS = [

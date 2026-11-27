@@ -13,6 +13,9 @@ const background = read('background.js');
 const css = read('player.css');
 const manifest = JSON.parse(read('manifest.json'));
 const sharedSources = SHARED_RUNTIME_JS.map(read);
+const playerModuleSources = PLAYER_RUNTIME_JS.filter(path => path.startsWith('src/player/')).map(read);
+const playerSources = [ player, ...playerModuleSources ];
+const playerCode = playerSources.join('\n');
 
 function htmlIds(source) {
 	return new Set([...source.matchAll(/\bid=(?:"([^"]+)"|'([^"]+)'|([^\s>]+))/g)].map(match => match[1] || match[2] || match[3]));
@@ -47,7 +50,7 @@ test('every literal element lookup targets an element declared in markup', () =>
 		ids.add(match[1] || match[2] || match[3]);
 	}
 	const referenced = new Set();
-	for (const source of [player, content, ...sharedSources]) {
+	for (const source of [ ...playerSources, content, ...sharedSources ]) {
 		for (const match of source.matchAll(/\belement\(\s*(['"])([^'"]+)\1\s*\)/g)) {
 			referenced.add(match[2]);
 		}
@@ -73,8 +76,8 @@ test('log severity names resolve to exported log methods', () => {
 	const logSource = read('src/shared/log.js');
 	const exported = new Set([...logSource.matchAll(/^\t\t(log[A-Za-z]+),$/gm)].map(match => match[1]));
 	assert.deepEqual([...exported].sort(), Object.values(WORKER_LOG_PROTOCOL).sort());
-	assert.doesNotMatch(player, /showState\(\s*'(?:Вот|Окак|Ой)'/);
-	for (const match of player.matchAll(/showState\(\s*'(log[A-Za-z]+)'/g)) {
+	assert.doesNotMatch(playerCode, /showState\(\s*'(?:Вот|Окак|Ой)'/);
+	for (const match of playerCode.matchAll(/showState\(\s*'(log[A-Za-z]+)'/g)) {
 		assert.ok(exported.has(match[1]), `unknown log severity ${match[1]}`);
 	}
 });
@@ -180,6 +183,20 @@ test('variants module exposes the stream list API through a factory', () => {
 	assert.match(player, /const listModule = TW5\.player\.variants\.create\(\)/);
 });
 
+test('controls module exposes the player UI API through a factory', () => {
+	const controls = read('src/player/controls.js');
+	const { context } = loadCommon();
+	vm.runInContext(controls, context, { filename: 'src/player/controls.js' });
+	assert.equal(typeof vm.runInContext('TW5.player.controls.create', context), 'function');
+	const apiBlock = controls.slice(controls.lastIndexOf('\t\treturn {'));
+	const exported = [...apiBlock.matchAll(/^\t\t\t([A-Za-z][A-Za-z0-9]*),?$/gm)].map(match => match[1]);
+	assert.deepEqual(exported.sort(), [
+		'getReplaySpeed', 'getState', 'setState', 'start',
+		'stopWatchingStream', 'updateTrackCount'
+	].sort());
+	assert.match(player, /const control = TW5\.player\.controls\.create\(\)/);
+});
+
 test('interface language selector is wired to the saved setting', () => {
 	assert.match(html, new RegExp(`data-i18n=${INTERFACE_LANGUAGE_KEYS.label}`));
 	assert.match(html, new RegExp(`data-i18n=\\^${INTERFACE_LANGUAGE_KEYS.tooltip}`));
@@ -187,9 +204,9 @@ test('interface language selector is wired to the saved setting', () => {
 	for (const languageCode of LOCALES) {
 		assert.match(html, new RegExp(`<option value=${languageCode}>`), `missing option ${languageCode}`);
 	}
-	assert.match(player, new RegExp(`i18n\\.prepare\\(settings\\.get\\('${INTERFACE_LANGUAGE_SETTING}'\\)\\)`));
-	assert.match(player, new RegExp(`settings\\.set\\('${INTERFACE_LANGUAGE_SETTING}', languageCode\\)`));
-	assert.match(player, /window\.location\.reload\(\)/);
+	assert.match(playerCode, new RegExp(`i18n\\.prepare\\(settings\\.get\\('${INTERFACE_LANGUAGE_SETTING}'\\)\\)`));
+	assert.match(playerCode, new RegExp(`settings\\.set\\('${INTERFACE_LANGUAGE_SETTING}', languageCode\\)`));
+	assert.match(playerCode, /window\.location\.reload\(\)/);
 });
 
 test('audio device permission is declared as optional and requested at runtime', () => {
@@ -240,7 +257,7 @@ test('CSS class selectors refer to classes declared in markup or script', () => 
 	for (const match of html.matchAll(/\bclass=(?:"([^"]+)"|'([^"]+)'|([^\s>]+))/g)) {
 		for (const name of (match[1] || match[2] || match[3]).split(/\s+/)) declared.add(name);
 	}
-	for (const source of [html, player, content, ...sharedSources]) {
+	for (const source of [html, ...playerSources, content, ...sharedSources]) {
 		for (const literal of stringLiterals(source)) {
 			for (const name of literal.split(/\s+/)) declared.add(name);
 		}
