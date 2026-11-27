@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import vm from 'node:vm';
-import { AUDIO_DEVICE_PERMISSION, INTERFACE_LANGUAGE_KEYS, INTERFACE_LANGUAGE_SETTING, INTERFACE_LANGUAGE_VALUES, LEGACY_MESSAGE_PROTOCOL, LEGACY_WORKER_LOG_PROTOCOL, LOCALES, MESSAGE_PROTOCOL, PLAYER_RUNTIME_JS, SHARED_RUNTIME_JS, TEST_EVENT, WORKER_DATA_FIELDS, WORKER_LOG_PROTOCOL, WORKER_SEGMENT_FIELDS } from './contracts.mjs';
+import { AUDIO_DEVICE_PERMISSION, INTERFACE_LANGUAGE_KEYS, INTERFACE_LANGUAGE_SETTING, INTERFACE_LANGUAGE_VALUES, LEGACY_MESSAGE_PROTOCOL, LEGACY_WORKER_LOG_PROTOCOL, LOCALES, MESSAGE_PROTOCOL, PLAYER_ENTRY_JS, PLAYER_RUNTIME_JS, SHARED_RUNTIME_JS, TEST_EVENT, WORKER_DATA_FIELDS, WORKER_LOG_PROTOCOL, WORKER_SEGMENT_FIELDS } from './contracts.mjs';
 import { loadCommon, read } from './harness.mjs';
 
 const html = read('player.html') + '\n' + read('report.html');
-const player = read('player.js');
+const player = read(PLAYER_ENTRY_JS);
 const workerAdapter = read('src/player/workerAdapter.js');
 const stringLiterals = source => [...source.matchAll(/'([^'\r\n]*)'|"([^"\r\n]*)"|`([^`]*)`/g)].map(match => match[1] ?? match[2] ?? match[3]);
 const content = read('content.js');
@@ -23,7 +23,7 @@ function htmlIds(source) {
 
 test('shared scripts load before their consumers', () => {
 	const playerScripts = [...read('player.html').matchAll(/<script src=([^\s>]+)/g)].map(match => match[1]);
-	assert.deepEqual(playerScripts, [...PLAYER_RUNTIME_JS, 'player.js']);
+	assert.deepEqual(playerScripts, [...PLAYER_RUNTIME_JS, PLAYER_ENTRY_JS]);
 
 	const contentEntry = manifest.content_scripts.find(entry => entry.js.includes('content.js'));
 	assert.ok(contentEntry, 'content script entry not found');

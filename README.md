@@ -47,7 +47,7 @@ When you visit a Twitch channel page, the extension detects whether the channel 
 | `content.js` | Content script on twitch.tv that detects live channels, triggers the redirect, and reports chat raid navigation |
 | `src/shared/*.js` | Shared utilities: namespace, messages, logging, settings, i18n, GQL helpers |
 | `src/player/*.js` | Player features split from the main player script |
-| `player.js` | Custom HLS player entry point, UI, and buffering engine |
+| `src/entries/player.js` | Custom HLS player entry point, UI, and buffering engine |
 | `player.html` | Player page shell |
 | `gqltoken.js` | Intercepts Twitch GQL integrity tokens for authenticated stream requests |
 | `betterttv.js` | BTTV integration script injected into the chat frame |

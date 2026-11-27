@@ -12,6 +12,8 @@ export const SHARED_RUNTIME_JS = [
 	'src/shared/settings.js'
 ];
 
+export const PLAYER_ENTRY_JS = 'src/entries/player.js';
+
 export const PLAYER_RUNTIME_JS = [
 	...SHARED_RUNTIME_JS,
 	'src/player/workerAdapter.js',
@@ -46,7 +48,7 @@ export const PLAYER_RUNTIME_JS = [
 export const FIRST_PARTY_JS = [
 	...PLAYER_RUNTIME_JS,
 	'src/shared/contracts.js',
-	'player.js',
+	PLAYER_ENTRY_JS,
 	'content.js',
 	'background.js',
 	'autoclaim.js',
