@@ -93,7 +93,7 @@ test('worker log severities map legacy wire values to English log methods', () =
 		assert.match(worker, new RegExp(`Добавить\\('${legacy}',`));
 		assert.match(workerAdapter, new RegExp(`\\[\\s*'${legacy}',\\s*'${english}'\\s*\\]`));
 	}
-	assert.match(player, /getWorkerLogSeverityName\(importance\[yMarker\]\)/);
+	assert.match(playerCode, /getWorkerLogSeverityName\(importance\[yMarker\]\)/);
 });
 
 test('worker segment fields are translated at the player boundary', () => {
@@ -106,12 +106,12 @@ test('worker segment fields are translated at the player boundary', () => {
 		assert.ok(worker.includes(workerName), `worker.js does not emit ${workerName}`);
 		assert.match(workerAdapter, new RegExp(`\\[\\s*'${workerName}',\\s*'${playerName}'\\s*\\]`));
 	}
-	assert.match(player, /_worker\.postMessage\(toWorkerSegment\(segment\)/);
-	assert.doesNotMatch(player, /_worker\.postMessage\(segment\b/);
-	assert.match(player, /fromWorkerSegment\(dataModule\[1\]\)/);
-	assert.match(player, /fromWorkerData\(workerSegment\.dataValue\)/);
-	assert.doesNotMatch(player, /hasOwnProperty\('мбМедиасегмент'\)/);
-	assert.match(player, /TW5\.player\.workerAdapter/);
+	assert.match(playerCode, /_worker\.postMessage\(toWorkerSegment\(segment\)/);
+	assert.doesNotMatch(playerCode, /_worker\.postMessage\(segment\b/);
+	assert.match(playerCode, /fromWorkerSegment\(dataModule\[1\]\)/);
+	assert.match(playerCode, /fromWorkerData\(workerSegment\.dataValue\)/);
+	assert.doesNotMatch(playerCode, /hasOwnProperty\('мбМедиасегмент'\)/);
+	assert.match(playerCode, /TW5\.player\.workerAdapter/);
 	assert.doesNotMatch(player, /const workerSegmentFields/);
 });
 
@@ -297,6 +297,25 @@ test('UI modules expose their APIs through factories', () => {
 	}
 });
 
+test('media modules expose their APIs through factories', () => {
+	const modules = {
+		audioDevices: { variable: 'audioDeviceModule', exported: [ 'startInternal' ] },
+		volumeBoost: { variable: 'volumeBoostModule', exported: [ 'apply', 'resume', 'selectDevice', 'startInternal' ] },
+		converter: { variable: 'converterModule', exported: [ 'convertNextSegment', 'stop' ] },
+		loader: { variable: 'loader', exported: [ 'load', 'loadJson', 'loadText', 'loadNextSegment' ] }
+	};
+	for (const [name, { variable, exported }] of Object.entries(modules)) {
+		const source = read(`src/player/${name}.js`);
+		const { context } = loadCommon();
+		vm.runInContext(source, context, { filename: `src/player/${name}.js` });
+		assert.equal(typeof vm.runInContext(`TW5.player.${name}.create`, context), 'function');
+		const apiBlock = source.slice(source.lastIndexOf('\t\treturn {'));
+		const actual = [...apiBlock.matchAll(/^\t\t\t([A-Za-z][A-Za-z0-9]*),?$/gm)].map(match => match[1]);
+		assert.deepEqual(actual.sort(), exported.sort(), `${name} API mismatch`);
+		assert.match(player, new RegExp(`const ${variable} = TW5\\.player\\.${name}\\.create\\(\\)`));
+	}
+});
+
 test('interface language selector is wired to the saved setting', () => {
 	assert.match(html, new RegExp(`data-i18n=${INTERFACE_LANGUAGE_KEYS.label}`));
 	assert.match(html, new RegExp(`data-i18n=\\^${INTERFACE_LANGUAGE_KEYS.tooltip}`));
@@ -312,8 +331,8 @@ test('interface language selector is wired to the saved setting', () => {
 test('audio device permission is declared as optional and requested at runtime', () => {
 	assert.ok(manifest.optional_permissions?.includes(AUDIO_DEVICE_PERMISSION), `${AUDIO_DEVICE_PERMISSION} must be declared as optional`);
 	assert.ok(!manifest.permissions?.includes(AUDIO_DEVICE_PERMISSION), `${AUDIO_DEVICE_PERMISSION} should not be a required permission`);
-	assert.match(player, new RegExp(`permissions: \\[ '${AUDIO_DEVICE_PERMISSION}' \\]`));
-	assert.match(player, /chrome\.contentSettings\.microphone\.set\(/);
+	assert.match(playerCode, new RegExp(`permissions: \\[ '${AUDIO_DEVICE_PERMISSION}' \\]`));
+	assert.match(playerCode, /chrome\.contentSettings\.microphone\.set\(/);
 });
 
 test('runtime message values agree between senders and listeners', () => {

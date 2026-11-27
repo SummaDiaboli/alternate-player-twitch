@@ -35,7 +35,11 @@ export const PLAYER_RUNTIME_JS = [
 	'src/player/autoHide.js',
 	'src/player/mediaQuery.js',
 	'src/player/notification.js',
-	'src/player/scale.js'
+	'src/player/scale.js',
+	'src/player/audioDevices.js',
+	'src/player/volumeBoost.js',
+	'src/player/converter.js',
+	'src/player/loader.js'
 ];
 
 export const FIRST_PARTY_JS = [
