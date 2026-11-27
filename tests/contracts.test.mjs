@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import vm from 'node:vm';
-import { AUDIO_DEVICE_PERMISSION, INTERFACE_LANGUAGE_KEYS, INTERFACE_LANGUAGE_SETTING, INTERFACE_LANGUAGE_VALUES, LEGACY_MESSAGE_PROTOCOL, LEGACY_WORKER_LOG_PROTOCOL, LOCALES, MESSAGE_PROTOCOL, SHARED_RUNTIME_JS, TEST_EVENT, WORKER_DATA_FIELDS, WORKER_LOG_PROTOCOL, WORKER_SEGMENT_FIELDS } from './contracts.mjs';
+import { AUDIO_DEVICE_PERMISSION, INTERFACE_LANGUAGE_KEYS, INTERFACE_LANGUAGE_SETTING, INTERFACE_LANGUAGE_VALUES, LEGACY_MESSAGE_PROTOCOL, LEGACY_WORKER_LOG_PROTOCOL, LOCALES, MESSAGE_PROTOCOL, PLAYER_RUNTIME_JS, SHARED_RUNTIME_JS, TEST_EVENT, WORKER_DATA_FIELDS, WORKER_LOG_PROTOCOL, WORKER_SEGMENT_FIELDS } from './contracts.mjs';
 import { loadCommon, read } from './harness.mjs';
 
 const html = read('player.html') + '\n' + read('report.html');
 const player = read('player.js');
+const workerAdapter = read('src/player/workerAdapter.js');
 const stringLiterals = source => [...source.matchAll(/'([^'\r\n]*)'|"([^"\r\n]*)"|`([^`]*)`/g)].map(match => match[1] ?? match[2] ?? match[3]);
 const content = read('content.js');
 const background = read('background.js');
@@ -19,7 +20,7 @@ function htmlIds(source) {
 
 test('shared scripts load before their consumers', () => {
 	const playerScripts = [...read('player.html').matchAll(/<script src=([^\s>]+)/g)].map(match => match[1]);
-	assert.deepEqual(playerScripts, [...SHARED_RUNTIME_JS, 'player.js']);
+	assert.deepEqual(playerScripts, [...PLAYER_RUNTIME_JS, 'player.js']);
 
 	const contentEntry = manifest.content_scripts.find(entry => entry.js.includes('content.js'));
 	assert.ok(contentEntry, 'content script entry not found');
@@ -87,7 +88,7 @@ test('worker log severities map legacy wire values to English log methods', () =
 	];
 	for (const [legacy, english] of pairs) {
 		assert.match(worker, new RegExp(`Добавить\\('${legacy}',`));
-		assert.match(player, new RegExp(`\\[\\s*'${legacy}',\\s*'${english}'\\s*\\]`));
+		assert.match(workerAdapter, new RegExp(`\\[\\s*'${legacy}',\\s*'${english}'\\s*\\]`));
 	}
 	assert.match(player, /getWorkerLogSeverityName\(importance\[yMarker\]\)/);
 });
@@ -96,26 +97,26 @@ test('worker segment fields are translated at the player boundary', () => {
 	const worker = read('worker.js');
 	for (const [playerName, workerName] of Object.entries(WORKER_SEGMENT_FIELDS)) {
 		assert.ok(worker.includes(workerName), `worker.js does not use ${workerName}`);
-		assert.match(player, new RegExp(`\\[\\s*'${playerName}',\\s*'${workerName}'\\s*\\]`));
+		assert.match(workerAdapter, new RegExp(`\\[\\s*'${playerName}',\\s*'${workerName}'\\s*\\]`));
 	}
 	for (const [workerName, playerName] of Object.entries(WORKER_DATA_FIELDS)) {
 		assert.ok(worker.includes(workerName), `worker.js does not emit ${workerName}`);
-		assert.match(player, new RegExp(`\\[\\s*'${workerName}',\\s*'${playerName}'\\s*\\]`));
+		assert.match(workerAdapter, new RegExp(`\\[\\s*'${workerName}',\\s*'${playerName}'\\s*\\]`));
 	}
 	assert.match(player, /_worker\.postMessage\(toWorkerSegment\(segment\)/);
 	assert.doesNotMatch(player, /_worker\.postMessage\(segment\b/);
 	assert.match(player, /fromWorkerSegment\(dataModule\[1\]\)/);
 	assert.match(player, /fromWorkerData\(workerSegment\.dataValue\)/);
 	assert.doesNotMatch(player, /hasOwnProperty\('мбМедиасегмент'\)/);
+	assert.match(player, /TW5\.player\.workerAdapter/);
+	assert.doesNotMatch(player, /const workerSegmentFields/);
 });
 
 test('worker adapter translates segment and result fields at runtime', () => {
-	const start = player.indexOf('\tconst workerSegmentFields = [');
-	const end = player.indexOf('\tfunction getWorkerLogSeverityName', start);
-	assert.ok(start !== -1 && end !== -1, 'worker adapter block not found');
-	const context = { isObject: value => typeof value == 'object' && value !== null };
-	vm.createContext(context);
-	const api = vm.runInContext(`${player.slice(start, end)}\n({ toWorkerSegment, fromWorkerSegment, fromWorkerData })`, context);
+	const { context } = loadCommon();
+	vm.runInContext(workerAdapter, context, { filename: 'src/player/workerAdapter.js' });
+	const api = vm.runInContext('TW5.player.workerAdapter', context);
+	assert.ok(api, 'worker adapter is not exposed on TW5.player');
 	const buffer = new ArrayBuffer(8);
 	const outbound = api.toWorkerSegment({ dataValue: buffer, isGap: true, number: 7, duration: 2 });
 	assert.equal(outbound.пДанные, buffer);
