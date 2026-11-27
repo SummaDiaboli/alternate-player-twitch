@@ -375,7 +375,9 @@
 		}
 		
 		function isOurButtonPage() {
-			return !!globalParsedAddress && (globalParsedAddress.page === 'CHANNEL_CHAT' || globalParsedAddress.page === 'POSSIBLE_LIVE_STREAM');
+			// Show the toggle on the homepage and other top-frame pages too.
+			// Launching is still restricted to channel pages in handleOurPlayerLaunch().
+			return !!globalParsedAddress;
 		}
 
 		function insertOurButtonIfNeeded() {
