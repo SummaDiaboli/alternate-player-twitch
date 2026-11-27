@@ -39,7 +39,8 @@ export const PLAYER_RUNTIME_JS = [
 	'src/player/audioDevices.js',
 	'src/player/volumeBoost.js',
 	'src/player/converter.js',
-	'src/player/loader.js'
+	'src/player/loader.js',
+	'src/player/twitch.js'
 ];
 
 export const FIRST_PARTY_JS = [

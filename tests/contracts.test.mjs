@@ -68,8 +68,8 @@ test('every literal element lookup targets an element declared in markup', () =>
 });
 
 test('raid test seam is present and stable', () => {
-	assert.match(player, new RegExp(`addEventListener\\('${TEST_EVENT}'`));
-	assert.match(player, /detail, 'channel'\)/);
+	assert.match(playerCode, new RegExp(`addEventListener\\('${TEST_EVENT}'`));
+	assert.match(playerCode, /detail, 'channel'\)/);
 });
 
 test('log severity names resolve to exported log methods', () => {
@@ -316,6 +316,23 @@ test('media modules expose their APIs through factories', () => {
 	}
 });
 
+test('Twitch module exposes the integration API through a factory', () => {
+	const twitch = read('src/player/twitch.js');
+	const { context } = loadCommon();
+	vm.runInContext(twitch, context, { filename: 'src/player/twitch.js' });
+	assert.equal(typeof vm.runInContext('TW5.player.twitch.create', context), 'function');
+	const apiBlock = twitch.slice(twitch.lastIndexOf('\t\treturn {'));
+	const exported = [...apiBlock.matchAll(/^\t\t\t([A-Za-z][A-Za-z0-9]*),?$/gm)].map(match => match[1]);
+	assert.deepEqual(exported.sort(), [
+		'changeViewerSubscriptionToChannel', 'checkUrlAvailability', 'closeChat',
+		'createClip', 'finishStreamMetadataCollection', 'getAbsoluteOptionListUrl',
+		'getAbsoluteSegmentListUrl', 'getChannelUrl', 'getRecordUrlForCurrentPosition',
+		'isAdSegment', 'openChat', 'sendAdTrackingData', 'sortVariantList',
+		'startCollectingStreamMetadata', 'startInternal'
+	].sort());
+	assert.match(player, /const Twitch = TW5\.player\.twitch\.create\(\)/);
+});
+
 test('interface language selector is wired to the saved setting', () => {
 	assert.match(html, new RegExp(`data-i18n=${INTERFACE_LANGUAGE_KEYS.label}`));
 	assert.match(html, new RegExp(`data-i18n=\\^${INTERFACE_LANGUAGE_KEYS.tooltip}`));
@@ -339,11 +356,11 @@ test('runtime message values agree between senders and listeners', () => {
 	assert.match(content, new RegExp(`request: '${MESSAGE_PROTOCOL.insertThirdParty}'`));
 	assert.match(background, new RegExp(`message\\.request === '${MESSAGE_PROTOCOL.insertThirdParty}' \\|\\| message\\.request === '${LEGACY_MESSAGE_PROTOCOL.insertThirdParty}'`));
 	assert.match(content, new RegExp(`requestText: '${MESSAGE_PROTOCOL.raid}'`));
-	assert.match(player, new RegExp(`isRaidRequest = message\\.requestText === '${LEGACY_MESSAGE_PROTOCOL.raid}' \\|\\| message\\.requestText === '${MESSAGE_PROTOCOL.raid}'`));
-	assert.match(player, new RegExp(`message\\.requestText === '${LEGACY_MESSAGE_PROTOCOL.alreadyOpen}' \\|\\| message\\.requestText === '${MESSAGE_PROTOCOL.alreadyOpen}'`));
-	assert.ok(player.split(MESSAGE_PROTOCOL.alreadyOpen).length >= 2, 'already-open request is sent and handled');
+	assert.match(playerCode, new RegExp(`isRaidRequest = message\\.requestText === '${LEGACY_MESSAGE_PROTOCOL.raid}' \\|\\| message\\.requestText === '${MESSAGE_PROTOCOL.raid}'`));
+	assert.match(playerCode, new RegExp(`message\\.requestText === '${LEGACY_MESSAGE_PROTOCOL.alreadyOpen}' \\|\\| message\\.requestText === '${MESSAGE_PROTOCOL.alreadyOpen}'`));
+	assert.ok(playerCode.split(MESSAGE_PROTOCOL.alreadyOpen).length >= 2, 'already-open request is sent and handled');
 	assert.doesNotMatch(content, new RegExp(`requestText: '${LEGACY_MESSAGE_PROTOCOL.raid}'`));
-	assert.doesNotMatch(player, new RegExp(`requestText: '${LEGACY_MESSAGE_PROTOCOL.alreadyOpen}'`));
+	assert.doesNotMatch(playerCode, new RegExp(`requestText: '${LEGACY_MESSAGE_PROTOCOL.alreadyOpen}'`));
 });
 
 test('dynamic scroll indicator id matches player.html', () => {
