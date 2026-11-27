@@ -2,7 +2,7 @@
 'use strict';
 
 // Message lookup is shared by the player page and content scripts. The i18n
-// object is injected by common.js once it has been initialized.
+// object is injected by i18n.js once it has been initialized.
 (function () {
 	/** @type {{ GetMessage: (code: string, substitution?: unknown) => string } | null} */
 	let i18nApi = null;

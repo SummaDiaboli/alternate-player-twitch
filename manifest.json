@@ -79,7 +79,11 @@
 			"js": [
 				"src/shared/namespace.js",
 				"src/shared/messages.js",
-				"common.js",
+				"src/shared/state.js",
+				"src/shared/helpers.js",
+				"src/shared/log.js",
+				"src/shared/i18n.js",
+				"src/shared/settings.js",
 				"content.js"
 			],
 			"all_frames": true,

@@ -2,16 +2,24 @@
 // the spelling of internal identifiers, so they can be updated layer by layer
 // as the migration progresses.
 
+export const SHARED_RUNTIME_JS = [
+	'src/shared/namespace.js',
+	'src/shared/messages.js',
+	'src/shared/state.js',
+	'src/shared/helpers.js',
+	'src/shared/log.js',
+	'src/shared/i18n.js',
+	'src/shared/settings.js'
+];
+
 export const FIRST_PARTY_JS = [
-	'common.js',
+	...SHARED_RUNTIME_JS,
+	'src/shared/contracts.js',
 	'content.js',
 	'player.js',
 	'background.js',
 	'autoclaim.js',
-	'gqltoken.js',
-	'src/shared/contracts.js',
-	'src/shared/namespace.js',
-	'src/shared/messages.js'
+	'gqltoken.js'
 ];
 
 export const VENDOR_OR_GENERATED = [

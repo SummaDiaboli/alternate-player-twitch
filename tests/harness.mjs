@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
+import { SHARED_RUNTIME_JS } from './contracts.mjs';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -62,9 +63,9 @@ function makeChrome(messages, storageData, calls) {
 	};
 }
 
-// Loads common.js in a VM with browser APIs stubbed. Top-level declarations in
-// common.js stay in the script's lexical scope, so a second script in the same
-// context is used to expose the API under test.
+// Loads the shared modules in a VM with browser APIs stubbed. Top-level
+// declarations stay in the scripts' lexical scope, so a second script in the
+// same context is used to expose the API under test.
 export function loadCommon({ locale = 'en', storage = {} } = {}) {
 	const messages = readJson(`_locales/${locale}/messages.json`);
 	const storageData = { ...storage };
@@ -120,9 +121,9 @@ export function loadCommon({ locale = 'en', storage = {} } = {}) {
 	context.globalThis = context;
 
 	vm.createContext(context);
-	vm.runInContext(read('src/shared/namespace.js'), context, { filename: 'src/shared/namespace.js' });
-	vm.runInContext(read('src/shared/messages.js'), context, { filename: 'src/shared/messages.js' });
-	vm.runInContext(read('common.js'), context, { filename: 'common.js' });
+	for (const file of SHARED_RUNTIME_JS) {
+		vm.runInContext(read(file), context, { filename: file });
+	}
 	const api = vm.runInContext(`({
 		settings,
 		i18n,

@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import vm from 'node:vm';
-import { AUDIO_DEVICE_PERMISSION, INTERFACE_LANGUAGE_KEYS, INTERFACE_LANGUAGE_SETTING, INTERFACE_LANGUAGE_VALUES, LEGACY_MESSAGE_PROTOCOL, LEGACY_WORKER_LOG_PROTOCOL, LOCALES, MESSAGE_PROTOCOL, TEST_EVENT, WORKER_DATA_FIELDS, WORKER_LOG_PROTOCOL, WORKER_SEGMENT_FIELDS } from './contracts.mjs';
-import { read } from './harness.mjs';
+import { AUDIO_DEVICE_PERMISSION, INTERFACE_LANGUAGE_KEYS, INTERFACE_LANGUAGE_SETTING, INTERFACE_LANGUAGE_VALUES, LEGACY_MESSAGE_PROTOCOL, LEGACY_WORKER_LOG_PROTOCOL, LOCALES, MESSAGE_PROTOCOL, SHARED_RUNTIME_JS, TEST_EVENT, WORKER_DATA_FIELDS, WORKER_LOG_PROTOCOL, WORKER_SEGMENT_FIELDS } from './contracts.mjs';
+import { loadCommon, read } from './harness.mjs';
 
 const html = read('player.html') + '\n' + read('report.html');
 const player = read('player.js');
@@ -11,6 +11,7 @@ const content = read('content.js');
 const background = read('background.js');
 const css = read('player.css');
 const manifest = JSON.parse(read('manifest.json'));
+const sharedSources = SHARED_RUNTIME_JS.map(read);
 
 function htmlIds(source) {
 	return new Set([...source.matchAll(/\bid=(?:"([^"]+)"|'([^"]+)'|([^\s>]+))/g)].map(match => match[1] || match[2] || match[3]));
@@ -18,17 +19,25 @@ function htmlIds(source) {
 
 test('shared scripts load before their consumers', () => {
 	const playerScripts = [...read('player.html').matchAll(/<script src=([^\s>]+)/g)].map(match => match[1]);
-	const namespaceIndex = playerScripts.indexOf('src/shared/namespace.js');
-	const messagesIndex = playerScripts.indexOf('src/shared/messages.js');
-	const commonIndex = playerScripts.indexOf('common.js');
-	assert.ok(namespaceIndex >= 0);
-	assert.ok(messagesIndex > namespaceIndex);
-	assert.ok(commonIndex > messagesIndex);
+	assert.deepEqual(playerScripts, [...SHARED_RUNTIME_JS, 'player.js']);
 
 	const contentEntry = manifest.content_scripts.find(entry => entry.js.includes('content.js'));
-	const contentScripts = contentEntry.js;
-	assert.ok(contentScripts.indexOf('src/shared/namespace.js') < contentScripts.indexOf('src/shared/messages.js'));
-	assert.ok(contentScripts.indexOf('src/shared/messages.js') < contentScripts.indexOf('common.js'));
+	assert.ok(contentEntry, 'content script entry not found');
+	assert.deepEqual(contentEntry.js, [...SHARED_RUNTIME_JS, 'content.js']);
+});
+
+test('shared modules expose their APIs on TW5', () => {
+	const { context } = loadCommon();
+	const api = vm.runInContext(`({
+		messages: TW5.messages,
+		helpers: TW5.helpers,
+		log: TW5.log,
+		i18n: TW5.i18n,
+		settings: TW5.settings
+	})`, context);
+	for (const [name, value] of Object.entries(api)) {
+		assert.ok(value, `TW5.${name} is not exposed`);
+	}
 });
 
 test('every literal element lookup targets an element declared in markup', () => {
@@ -37,7 +46,7 @@ test('every literal element lookup targets an element declared in markup', () =>
 		ids.add(match[1] || match[2] || match[3]);
 	}
 	const referenced = new Set();
-	for (const source of [player, content, read('common.js')]) {
+	for (const source of [player, content, ...sharedSources]) {
 		for (const match of source.matchAll(/\belement\(\s*(['"])([^'"]+)\1\s*\)/g)) {
 			referenced.add(match[2]);
 		}
@@ -60,8 +69,8 @@ test('raid test seam is present and stable', () => {
 });
 
 test('log severity names resolve to exported log methods', () => {
-	const common = read('common.js');
-	const exported = new Set([...common.matchAll(/^\t\t(log[A-Za-z]+),$/gm)].map(match => match[1]));
+	const logSource = read('src/shared/log.js');
+	const exported = new Set([...logSource.matchAll(/^\t\t(log[A-Za-z]+),$/gm)].map(match => match[1]));
 	assert.deepEqual([...exported].sort(), Object.values(WORKER_LOG_PROTOCOL).sort());
 	assert.doesNotMatch(player, /showState\(\s*'(?:Вот|Окак|Ой)'/);
 	for (const match of player.matchAll(/showState\(\s*'(log[A-Za-z]+)'/g)) {
@@ -192,7 +201,7 @@ test('theme color inputs map to settings and CSS custom properties', () => {
 	];
 	const colorIds = [...html.matchAll(/<input[^>]*\bid=([^\s>]+)[^>]*\btype=color\b/g)].map(match => match[1]);
 	assert.deepEqual(colorIds.sort(), pairs.map(([id]) => id).sort());
-	const settingsSource = read('common.js');
+	const settingsSource = read('src/shared/settings.js');
 	for (const [id, settingName] of pairs) {
 		assert.match(html, new RegExp(`\\bid=${id}\\b`));
 		assert.match(css, new RegExp(`--${id}\\b`));
@@ -207,7 +216,7 @@ test('CSS class selectors refer to classes declared in markup or script', () => 
 	for (const match of html.matchAll(/\bclass=(?:"([^"]+)"|'([^"]+)'|([^\s>]+))/g)) {
 		for (const name of (match[1] || match[2] || match[3]).split(/\s+/)) declared.add(name);
 	}
-	for (const source of [html, player, content, read('common.js')]) {
+	for (const source of [html, player, content, ...sharedSources]) {
 		for (const literal of stringLiterals(source)) {
 			for (const name of literal.split(/\s+/)) declared.add(name);
 		}
