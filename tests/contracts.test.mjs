@@ -243,6 +243,36 @@ test('news module exposes the help API through a factory', () => {
 	assert.match(player, /const newsModule = TW5\.player\.news\.create\(\)/);
 });
 
+test('support modules expose their APIs through factories', () => {
+	const modules = {
+		debug: { variable: 'debug', exported: [
+			'exceptionCaught', 'finishAndSendFeedback', 'finishAndSendReport',
+			'finishAndShowMessage', 'saveConvertedSegment', 'saveSegmentList',
+			'saveStreamToken', 'saveTransportStream', 'saveVariantList'
+		] },
+		events: { variable: 'events', exported: [ 'addHandler', 'removeHandler', 'sendEvent' ] },
+		focus: { variable: 'magicianModule', exported: [ 'getState' ] },
+		pulse: { variable: 'pulseModule', exported: [ 'getReportData' ] }
+	};
+	for (const [name, { variable, exported }] of Object.entries(modules)) {
+		const source = read(`src/player/${name}.js`);
+		const { context } = loadCommon();
+		vm.runInContext(source, context, { filename: `src/player/${name}.js` });
+		assert.equal(typeof vm.runInContext(`TW5.player.${name}.create`, context), 'function');
+		const apiBlock = source.slice(source.lastIndexOf('\t\treturn {'));
+		const actual = [...apiBlock.matchAll(/^\t\t\t([A-Za-z][A-Za-z0-9]*),?$/gm)].map(match => match[1]);
+		assert.deepEqual(actual.sort(), exported.sort(), `${name} API mismatch`);
+		assert.match(player, new RegExp(`const ${variable} = TW5\\.player\\.${name}\\.create\\(\\)`));
+	}
+	const trash = read('src/player/trash.js');
+	const { context } = loadCommon();
+	vm.runInContext(trash, context, { filename: 'src/player/trash.js' });
+	assert.equal(typeof vm.runInContext('TW5.player.trash.create', context), 'function');
+	assert.match(trash, /discard: placeholder/);
+	assert.match(trash, /new dumpsterInMessageChannel\(\)/);
+	assert.match(player, /const trashModule = TW5\.player\.trash\.create\(\)/);
+});
+
 test('interface language selector is wired to the saved setting', () => {
 	assert.match(html, new RegExp(`data-i18n=${INTERFACE_LANGUAGE_KEYS.label}`));
 	assert.match(html, new RegExp(`data-i18n=\\^${INTERFACE_LANGUAGE_KEYS.tooltip}`));

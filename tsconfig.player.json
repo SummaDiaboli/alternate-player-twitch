@@ -3,5 +3,5 @@
   "compilerOptions": {
     "lib": ["ES2020", "DOM"]
   },
-  "files": ["src/shared/contracts.js", "src/shared/namespace.js", "src/shared/messages.js", "src/shared/state.js", "src/shared/helpers.js", "src/shared/log.js", "src/shared/i18n.js", "src/shared/settings.js", "src/player/workerAdapter.js", "src/player/playback.js", "src/player/variants.js", "src/player/controls.js", "src/player/chat.js", "src/player/stats.js", "src/player/theme.js", "src/player/news.js", "player.js"]
+  "files": ["src/shared/contracts.js", "src/shared/namespace.js", "src/shared/messages.js", "src/shared/state.js", "src/shared/helpers.js", "src/shared/log.js", "src/shared/i18n.js", "src/shared/settings.js", "src/player/workerAdapter.js", "src/player/playback.js", "src/player/variants.js", "src/player/controls.js", "src/player/chat.js", "src/player/stats.js", "src/player/theme.js", "src/player/news.js", "src/player/debug.js", "src/player/events.js", "src/player/trash.js", "src/player/focus.js", "src/player/pulse.js", "player.js"]
 }
