@@ -39,7 +39,7 @@
 					if (junkBuffer.byteLength) {
 						log.logInfo(`[Trash] Discarding ${junkBuffer.byteLength} bytes`);
 						if (this._worker === null) {
-							this._worker = new Worker('/recycler.js');
+							this._worker = new Worker('/worker/recycler.js');
 						}
 						this._trashByteCount += junkBuffer.byteLength;
 						this._worker.postMessage(junkBuffer, [ junkBuffer ]);

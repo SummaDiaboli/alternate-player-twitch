@@ -119,7 +119,7 @@
 		}
 		function createWorker() {
 			log.logInfo('[Conversion] Creating worker');
-			_worker = new Worker('/worker.js');
+			_worker = new Worker('/worker/worker.js');
 			_worker.addEventListener('message', handleConversionEnd);
 			_worker.addEventListener('error', handleConversionError);
 			_worker.addEventListener('messageerror', handleConversionError);

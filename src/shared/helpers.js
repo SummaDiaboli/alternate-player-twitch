@@ -75,7 +75,7 @@ if (!HTMLCollection.prototype[Symbol.iterator]) {
 
 if (!isContentScript && !window.PointerEvent) {
 	const scriptElement = document.createElement('script');
-	scriptElement.src = 'pointerevent.js';
+	scriptElement.src = 'vendor/pointerevent.js';
 	document.currentScript.parentNode.appendChild(scriptElement);
 }
 
