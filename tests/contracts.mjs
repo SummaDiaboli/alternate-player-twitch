@@ -20,7 +20,8 @@ export const PLAYER_RUNTIME_JS = [
 	'src/player/controls.js',
 	'src/player/chat.js',
 	'src/player/stats.js',
-	'src/player/theme.js'
+	'src/player/theme.js',
+	'src/player/news.js'
 ];
 
 export const FIRST_PARTY_JS = [

@@ -234,6 +234,15 @@ test('theme module exposes the appearance API through a factory', () => {
 	assert.match(player, /const themeModule = TW5\.player\.theme\.create\(\)/);
 });
 
+test('news module exposes the help API through a factory', () => {
+	const news = read('src/player/news.js');
+	const { context } = loadCommon();
+	vm.runInContext(news, context, { filename: 'src/player/news.js' });
+	const api = vm.runInContext('TW5.player.news.create()', context);
+	assert.deepEqual(Object.keys(api).sort(), [ 'openHelp', 'openNews', 'start' ]);
+	assert.match(player, /const newsModule = TW5\.player\.news\.create\(\)/);
+});
+
 test('interface language selector is wired to the saved setting', () => {
 	assert.match(html, new RegExp(`data-i18n=${INTERFACE_LANGUAGE_KEYS.label}`));
 	assert.match(html, new RegExp(`data-i18n=\\^${INTERFACE_LANGUAGE_KEYS.tooltip}`));
