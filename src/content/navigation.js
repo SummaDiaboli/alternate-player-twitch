@@ -374,7 +374,16 @@
 			return true;
 		}
 		
+		function isOurButtonPage() {
+			// Show the toggle on the homepage and other top-frame pages too.
+			// Launching is still restricted to channel pages in handleOurPlayerLaunch().
+			return !!globalParsedAddress;
+		}
+
 		function insertOurButtonIfNeeded() {
+			if (!isOurButtonPage()) {
+				return false;
+			}
 			if (getOurButton()) {
 				return true;
 			}
@@ -454,11 +463,10 @@
 			window.addEventListener('popstate', handlePopState);
 			settings.restore().then(() => {
 				onPageUrlChanged('LOAD');
-				const addressValue = parseAddress(location);
-				if (addressValue.page === 'CHANNEL_CHAT' || addressValue.page === 'POSSIBLE_LIVE_STREAM') {
+				// Twitch switches channels with pushState, so URL polling must run
+				// from every top-frame page, not only from an initial channel URL.
+				if (window.top === window) {
 					watchPageMarkup();
-				}
-				if (addressValue.page === 'POSSIBLE_LIVE_STREAM' && window.top === window) {
 					watchUrl();
 				}
 			}).catch(debug.exceptionCaught);

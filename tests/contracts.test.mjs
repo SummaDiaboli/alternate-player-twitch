@@ -335,6 +335,16 @@ test('Twitch module exposes the integration API through a factory', () => {
 	assert.match(player, /const Twitch = TW5\.player\.twitch\.create\(\)/);
 });
 
+test('content button is available on every top-frame page', () => {
+	const navigation = read('src/content/navigation.js');
+	assert.match(navigation, /function isOurButtonPage\(\)/);
+	assert.match(navigation, /return !!globalParsedAddress;/);
+	assert.match(navigation, /if \(!isOurButtonPage\(\)\) \{\s*return false;\s*\}/);
+	assert.match(navigation, /if \(window\.top === window\) \{\s*watchPageMarkup\(\);\s*watchUrl\(\);\s*\}/);
+	assert.match(navigation, /event\.button === leftButton && addressObject\.page === 'POSSIBLE_LIVE_STREAM'/);
+	assert.doesNotMatch(navigation, /addressValue\.page === 'POSSIBLE_LIVE_STREAM' && window\.top === window/);
+});
+
 test('content modules expose their APIs through factories', () => {
 	const { context } = loadCommon();
 	for (const path of CONTENT_RUNTIME_JS.filter(path => path.startsWith('src/content/'))) {
