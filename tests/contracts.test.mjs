@@ -170,6 +170,16 @@ test('playback module exposes the player API through a factory', () => {
 	assert.match(player, /const player = TW5\.player\.playback\.create\(\)/);
 });
 
+test('variants module exposes the stream list API through a factory', () => {
+	const variants = read('src/player/variants.js');
+	const { context } = loadCommon();
+	vm.runInContext('var stoppedState = 7;', context);
+	vm.runInContext(variants, context, { filename: 'src/player/variants.js' });
+	const api = vm.runInContext('TW5.player.variants.create()', context);
+	assert.deepEqual(Object.keys(api).sort(), [ 'setStreamVariant', 'start', 'stop' ]);
+	assert.match(player, /const listModule = TW5\.player\.variants\.create\(\)/);
+});
+
 test('interface language selector is wired to the saved setting', () => {
 	assert.match(html, new RegExp(`data-i18n=${INTERFACE_LANGUAGE_KEYS.label}`));
 	assert.match(html, new RegExp(`data-i18n=\\^${INTERFACE_LANGUAGE_KEYS.tooltip}`));
