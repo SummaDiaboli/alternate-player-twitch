@@ -72,11 +72,13 @@ export const FIRST_PARTY_JS = [
 ];
 
 export const VENDOR_OR_GENERATED = [
-	'betterttv.js',
-	'avalon.js',
-	'worker.js',
-	'asmjs.js',
-	'pointerevent.js',
+	'vendor/betterttv.js',
+	'vendor/avalon.js',
+	'vendor/pointerevent.js',
+	'worker/worker.js',
+	'worker/asmjs.js',
+	'worker/recycler.js',
+	'worker/wasm.wasm',
 	'_metadata'
 ];
 
@@ -159,7 +161,7 @@ export const LEGACY_WORKER_LOG_PROTOCOL = {
 	error: 'Ой'
 };
 
-// worker.js is generated and unchanged. These are its wire field names.
+// worker/worker.js is generated and unchanged. These are its wire field names.
 // Keys are player names; values are worker names.
 export const WORKER_SEGMENT_FIELDS = {
 	dataValue: 'пДанные',

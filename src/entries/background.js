@@ -62,7 +62,7 @@ async function insertThirdPartyExtensions(tabId, frameId) {
         if (ffzEnabled) {
             chrome.scripting.executeScript({
                 target: { tabId: tabId, frameIds: [frameId] },
-                files: ['avalon.js'], // Inject local FFZ script
+                files: ['vendor/avalon.js'], // Inject local FFZ script
                 world: 'MAIN' // Inject into main world
             }).then(() => console.log('FFZ injection initiated.'));
         }

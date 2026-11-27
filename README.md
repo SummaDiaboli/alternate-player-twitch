@@ -52,11 +52,15 @@ When you visit a Twitch channel page, the extension detects whether the channel 
 | `player.html` | Player page shell |
 | `src/entries/gqltoken.js` | Intercepts Twitch GQL integrity tokens for authenticated stream requests |
 | `src/entries/autoclaim.js` | Auto-claims Twitch bonus drops |
-| `betterttv.js` | BTTV integration script injected into the chat frame |
-| `avalon.js` | Bundled FFZ script injected into the chat frame |
+| `vendor/betterttv.js` | BTTV integration script injected into the chat frame |
+| `vendor/avalon.js` | Bundled FFZ script injected into the chat frame |
+| `vendor/pointerevent.js` | PointerEvent fallback for older browsers |
+| `worker/worker.js` | Web worker for HLS segment processing |
+| `worker/asmjs.js` | Fallback segment-processing implementation used by the worker |
+| `worker/recycler.js` | Web worker that discards transferable buffers |
+| `worker/wasm.wasm` | WebAssembly module for stream processing |
 | `rules.json` | declarativeNetRequest rules for header spoofing and chat iframe CSP removal |
-| `worker.js` | Web worker for HLS segment processing |
-| `wasm.wasm` | WebAssembly module for stream processing |
+| `docs/SPLIT_STREAM_GOALS.md` | Notes on the deferred split-stream feature |
 
 ## Notes
 

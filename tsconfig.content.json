@@ -1,7 +1,8 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "lib": ["ES2020", "DOM"]
+    "lib": ["ES2020", "DOM"],
+    "tsBuildInfoFile": ".cache/tsconfig.content.tsbuildinfo"
   },
   "files": ["src/shared/contracts.js", "src/shared/namespace.js", "src/shared/messages.js", "src/shared/state.js", "src/shared/helpers.js", "src/shared/log.js", "src/shared/i18n.js", "src/shared/settings.js", "src/content/pageState.js", "src/content/chatTheme.js", "src/content/navigation.js", "src/content/raid.js", "src/entries/content.js", "src/entries/autoclaim.js", "src/entries/gqltoken.js"]
 }

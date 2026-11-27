@@ -84,8 +84,18 @@ test('log severity names resolve to exported log methods', () => {
 	}
 });
 
+test('vendored scripts and workers resolve from their grouped folders', () => {
+	const workerSource = read('worker/worker.js');
+	assert.match(read(BACKGROUND_ENTRY_JS), /files: \['vendor\/avalon\.js'\]/);
+	assert.match(read('src/shared/helpers.js'), /scriptElement\.src = 'vendor\/pointerevent\.js'/);
+	assert.match(playerCode, /new Worker\('\/worker\/worker\.js'\)/);
+	assert.match(playerCode, /new Worker\('\/worker\/recycler\.js'\)/);
+	assert.match(workerSource, /fetch\('wasm\.wasm'\)/);
+	assert.match(workerSource, /importScripts\('asmjs\.js'\)/);
+});
+
 test('worker log severities map legacy wire values to English log methods', () => {
-	const worker = read('worker.js');
+	const worker = read('worker/worker.js');
 	const pairs = [
 		[ LEGACY_WORKER_LOG_PROTOCOL.info, WORKER_LOG_PROTOCOL.info ],
 		[ LEGACY_WORKER_LOG_PROTOCOL.ok, WORKER_LOG_PROTOCOL.ok ],
@@ -99,13 +109,13 @@ test('worker log severities map legacy wire values to English log methods', () =
 });
 
 test('worker segment fields are translated at the player boundary', () => {
-	const worker = read('worker.js');
+	const worker = read('worker/worker.js');
 	for (const [playerName, workerName] of Object.entries(WORKER_SEGMENT_FIELDS)) {
-		assert.ok(worker.includes(workerName), `worker.js does not use ${workerName}`);
+		assert.ok(worker.includes(workerName), `worker/worker.js does not use ${workerName}`);
 		assert.match(workerAdapter, new RegExp(`\\[\\s*'${playerName}',\\s*'${workerName}'\\s*\\]`));
 	}
 	for (const [workerName, playerName] of Object.entries(WORKER_DATA_FIELDS)) {
-		assert.ok(worker.includes(workerName), `worker.js does not emit ${workerName}`);
+		assert.ok(worker.includes(workerName), `worker/worker.js does not emit ${workerName}`);
 		assert.match(workerAdapter, new RegExp(`\\[\\s*'${workerName}',\\s*'${playerName}'\\s*\\]`));
 	}
 	assert.match(playerCode, /_worker\.postMessage\(toWorkerSegment\(segment\)/);
