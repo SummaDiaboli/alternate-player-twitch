@@ -77,6 +77,8 @@
 				"https://www.twitch.tv/popout/"
 			],
 			"js": [
+				"src/shared/namespace.js",
+				"src/shared/messages.js",
 				"common.js",
 				"content.js"
 			],

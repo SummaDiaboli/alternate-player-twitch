@@ -8,7 +8,10 @@ export const FIRST_PARTY_JS = [
 	'player.js',
 	'background.js',
 	'autoclaim.js',
-	'gqltoken.js'
+	'gqltoken.js',
+	'src/shared/contracts.js',
+	'src/shared/namespace.js',
+	'src/shared/messages.js'
 ];
 
 export const VENDOR_OR_GENERATED = [

@@ -84,10 +84,6 @@ if (!navigator.clipboard.writeText) {
 	};
 }
 
-function getMessageText(code2, substitution) {
-	return i18n.GetMessage(code2, substitution);
-}
-
 function round(numericValue, precision) {
 	assert(typeof numericValue == 'number' && Number.isInteger(precision) && precision >= 0 && precision <= 20);
 	if (precision === 0) {
@@ -259,7 +255,7 @@ function updateButton(button, state) {
 		if (yMarker === stateNumber) {
 			const hintText = stateElements[yMarker].getAttributeNS('http://www.w3.org/1999/xlink', 'title');
 			if (hintText) {
-				buttonElement.title = getMessageText(hintText);
+				buttonElement.title = TW5.messages.getMessageText(hintText);
 			}
 			stateElements[yMarker].removeAttribute('display');
 		} else {
@@ -327,7 +323,7 @@ const debug = (() => {
 			document.getElementById('debug-message-text').textContent = messageText;
 			if (linkCode) {
 				const link = document.getElementById('debug-message-link');
-				link.textContent = getMessageText(linkCode);
+				link.textContent = TW5.messages.getMessageText(linkCode);
 				link.href = linkUrl;
 			}
 			showForm(document, 'debug-message', true);
@@ -465,7 +461,7 @@ const debug = (() => {
 	}
 	function getLanguages() {
 		try {
-			return `${navigator.language} | ${navigator.languages} | ${getMessageText('J0103')}`;
+			return `${navigator.language} | ${navigator.languages} | ${TW5.messages.getMessageText('J0103')}`;
 		} catch (_) {}
 	}
 	function getDateSettings() {
@@ -527,7 +523,7 @@ const debug = (() => {
 		if (!globalIsWorkFinished) {
 			console.error(messageCode);
 			finishWork(false);
-			showMessage(getMessageText(messageCode), linkCode, linkUrl);
+			showMessage(TW5.messages.getMessageText(messageCode), linkCode, linkUrl);
 		}
 		throw void 0;
 	}
@@ -791,7 +787,7 @@ class numberInput {
 		this.update();
 	}
 	update(numericValue = settings.get(this._settingName)) {
-		this._numberElement.value = numericValue === autoTune ? getMessageText(settings.getSettingParam(this._settingName).autoTuneName) : i18n.formatNumber(numericValue, this._precision);
+		this._numberElement.value = numericValue === autoTune ? TW5.messages.getMessageText(settings.getSettingParam(this._settingName).autoTuneName) : i18n.formatNumber(numericValue, this._precision);
 	}
 	_handleDrag(params) {
 		const VALUE_CHANGE_INTERVAL = 130;
@@ -1453,7 +1449,7 @@ const stats = (() => {
 						videoCompression += ' interlaced';
 					}
 					if (data.frameRate !== 0) {
-						videoCompression += ` ${data.frameRate < 0 ? '≈' : ''}${Math.abs(data.frameRate).toFixed(2)} ${getMessageText('J0140')}`;
+						videoCompression += ` ${data.frameRate < 0 ? '≈' : ''}${Math.abs(data.frameRate).toFixed(2)} ${TW5.messages.getMessageText('J0140')}`;
 					}
 					element('stats-video-compression').textContent = videoCompression;
 					element('stats-video-resolution').textContent = `${data.чШиринаКартинки}x${data.чВысотаКартинки}`;
@@ -1463,7 +1459,7 @@ const stats = (() => {
 				}
 				element('stats-frame-rate').textContent = '';
 				if (data.hasAudio) {
-					element('stats-audio-compression').textContent = [ 'AAC-Main', 'AAC-LC', 'AAC-SSR', 'AAC-LTP' ][data.nAudioObjectType - 1] + ` ${data.чЧастотаДискретизации} ${getMessageText('J0141')}` + ` ${data.чКоличествоКаналов} ${getMessageText('J0142')}`;
+					element('stats-audio-compression').textContent = [ 'AAC-Main', 'AAC-LC', 'AAC-SSR', 'AAC-LTP' ][data.nAudioObjectType - 1] + ` ${data.чЧастотаДискретизации} ${TW5.messages.getMessageText('J0141')}` + ` ${data.чКоличествоКаналов} ${TW5.messages.getMessageText('J0142')}`;
 				} else {
 					element('stats-audio-compression').textContent = '—';
 				}
@@ -1488,7 +1484,7 @@ const stats = (() => {
 				}
 			}
 			if (Number.isFinite(data.audioBitrate) && isWindowOpen2) {
-				element('stats-audio-bitrate').textContent = `${data.audioBitrate.toFixed()} ${getMessageText('J0143')}`;
+				element('stats-audio-bitrate').textContent = `${data.audioBitrate.toFixed()} ${TW5.messages.getMessageText('J0143')}`;
 			}
 		}
 		if (thisNumber(data.conversionTime) && isWindowOpen2) {
@@ -2228,17 +2224,17 @@ const newsModule = (() => {
 		}
 		const titleElement = document.createElement('h4');
 		if (newsDate === 0) {
-			titleElement.textContent = getMessageText(news[1]);
+			titleElement.textContent = TW5.messages.getMessageText(news[1]);
 		} else {
-			titleElement.textContent = `${i18n.formatDate(newsDate)} · ${getMessageText(news[1])}`;
+			titleElement.textContent = `${i18n.formatDate(newsDate)} · ${TW5.messages.getMessageText(news[1])}`;
 		}
 		addToElement.appendChild(titleElement);
-		if (getMessageText('M0010') !== 'ru') {
+		if (TW5.messages.getMessageText('M0010') !== 'ru') {
 			const link = titleElement.appendChild(document.createElement('a'));
 			link.className = 'translate-news';
 			link.href = 'translate:';
 			link.target = '_blank';
-			link.title = getMessageText('J0148');
+			link.title = TW5.messages.getMessageText('J0148');
 		}
 		for (let yMarker = 2; yMarker < news.length; ++yMarker) {
 			i18n.InsertAdjacentHtmlMessage(addToElement, 'beforeend', news[yMarker]);
@@ -2246,7 +2242,7 @@ const newsModule = (() => {
 	}
 	function openWindow(shouldConfirmRead) {
 		if (shouldConfirmRead) {
-			i18n.InsertAdjacentHtmlMessage('close-news', 'content', 'F0619').title = getMessageText('A0620');
+			i18n.InsertAdjacentHtmlMessage('close-news', 'content', 'F0619').title = TW5.messages.getMessageText('A0620');
 			showElement('postpone-news', true);
 		} else {
 			i18n.InsertAdjacentHtmlMessage('close-news', 'content', 'F0663').title = '';
@@ -2264,7 +2260,7 @@ const newsModule = (() => {
 			for (let textElement2 = event.target.parentElement; textElement2 && textElement2.nodeName !== 'HR'; textElement2 = textElement2.nextElementSibling) {
 				textString += `${textElement2.textContent}\n\n`;
 			}
-			event.target.href = `https://translate.google.com/?op=translate&sl=${getMessageText('M0010')}&text=${encodeURIComponent(textString)}`;
+			event.target.href = `https://translate.google.com/?op=translate&sl=${TW5.messages.getMessageText('M0010')}&text=${encodeURIComponent(textString)}`;
 		}
 	}
 	function openHelp() {
@@ -3041,9 +3037,9 @@ const control = (() => {
 			for (const option of options) {
 				let title = option.title;
 				if (title === 'audio_only') {
-					title = getMessageText('J0144');
+					title = TW5.messages.getMessageText('J0144');
 				} else if (title.endsWith('(source)')) {
-					title = title.slice(0, -8) + getMessageText('J0139');
+					title = title.slice(0, -8) + TW5.messages.getMessageText('J0139');
 				}
 				listElement.add(new Option(title, void 0, option === selectedOption, option === selectedOption));
 			}
@@ -3263,8 +3259,8 @@ const control = (() => {
 			const elementRef = element('stream-type');
 			if (typeof metadata.streamType == 'string') {
 				assert(_streamTypes.hasOwnProperty(metadata.streamType));
-				elementRef.textContent = getMessageText(_streamTypes[metadata.streamType][0]);
-				elementRef.parentElement.title = getMessageText(_streamTypes[metadata.streamType][1]);
+				elementRef.textContent = TW5.messages.getMessageText(_streamTypes[metadata.streamType][0]);
+				elementRef.parentElement.title = TW5.messages.getMessageText(_streamTypes[metadata.streamType][1]);
 				elementRef.classList.toggle('live-stream', _streamTypes[metadata.streamType][2]);
 				showElement(elementRef.parentElement, true);
 			} else {
@@ -3275,7 +3271,7 @@ const control = (() => {
 		if (metadata.streamTitle !== void 0) {
 			assert(metadata.streamTitle !== null);
 			const elementRef = element('stream-title');
-			elementRef.title = metadata.streamTitle + getMessageText('J0101');
+			elementRef.title = metadata.streamTitle + TW5.messages.getMessageText('J0101');
 			elementRef.textContent = metadata.streamTitle;
 			mediaQuery.refreshFast();
 		}
@@ -3283,7 +3279,7 @@ const control = (() => {
 			const elementRef = element('stream-category');
 			if (metadata.gameTitle) {
 				elementRef.textContent = metadata.gameTitle;
-				elementRef.title = elementRef.previousElementSibling.title = metadata.gameTitle + getMessageText('J0102');
+				elementRef.title = elementRef.previousElementSibling.title = metadata.gameTitle + TW5.messages.getMessageText('J0102');
 				if (metadata.gameAddress) {
 					elementRef.href = metadata.gameAddress;
 				} else {
@@ -4960,7 +4956,7 @@ const listModule = (() => {
 					option.title = mapRenditionGroups.get(option.identifier);
 				} else {
 					option.identifier = `CoolCmd${option.bitrateKbps}`;
-					option.title = `${i18n.formatNumber(option.bitrateKbps / 1e6, 1)} ${getMessageText('J0114')}`;
+					option.title = `${i18n.formatNumber(option.bitrateKbps / 1e6, 1)} ${TW5.messages.getMessageText('J0114')}`;
 				}
 			}
 			log.logInfo(`[List] Variant count in list: ${options.length}`);
@@ -6326,7 +6322,7 @@ const Twitch = (() => {
 			if (_streamId === '' || _streamId === streamId) {
 				const streamTitle = chain(oUser, 'broadcastSettings', 'title');
 				if (typeof streamTitle == 'string') {
-					metadata.streamTitle = streamTitle.trim() || getMessageText('J0103');
+					metadata.streamTitle = streamTitle.trim() || TW5.messages.getMessageText('J0103');
 				}
 				metadata.gameTitle = chain(oUser, 'broadcastSettings', 'game', 'displayName');
 				const gameAddress = chain(oUser, 'broadcastSettings', 'game', 'slug');

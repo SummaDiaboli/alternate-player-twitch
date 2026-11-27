@@ -16,6 +16,21 @@ function htmlIds(source) {
 	return new Set([...source.matchAll(/\bid=(?:"([^"]+)"|'([^"]+)'|([^\s>]+))/g)].map(match => match[1] || match[2] || match[3]));
 }
 
+test('shared scripts load before their consumers', () => {
+	const playerScripts = [...read('player.html').matchAll(/<script src=([^\s>]+)/g)].map(match => match[1]);
+	const namespaceIndex = playerScripts.indexOf('src/shared/namespace.js');
+	const messagesIndex = playerScripts.indexOf('src/shared/messages.js');
+	const commonIndex = playerScripts.indexOf('common.js');
+	assert.ok(namespaceIndex >= 0);
+	assert.ok(messagesIndex > namespaceIndex);
+	assert.ok(commonIndex > messagesIndex);
+
+	const contentEntry = manifest.content_scripts.find(entry => entry.js.includes('content.js'));
+	const contentScripts = contentEntry.js;
+	assert.ok(contentScripts.indexOf('src/shared/namespace.js') < contentScripts.indexOf('src/shared/messages.js'));
+	assert.ok(contentScripts.indexOf('src/shared/messages.js') < contentScripts.indexOf('common.js'));
+});
+
 test('every literal element lookup targets an element declared in markup', () => {
 	const ids = htmlIds(html);
 	for (const match of content.matchAll(/\bid=(?:"([^"]+)"|'([^"]+)'|([^\s>]+))/g)) {

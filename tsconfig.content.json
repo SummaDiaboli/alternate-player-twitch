@@ -3,5 +3,5 @@
   "compilerOptions": {
     "lib": ["ES2020", "DOM"]
   },
-  "files": ["src/shared/contracts.js", "common.js", "content.js", "autoclaim.js", "gqltoken.js"]
+  "files": ["src/shared/contracts.js", "src/shared/namespace.js", "src/shared/messages.js", "common.js", "content.js", "autoclaim.js", "gqltoken.js"]
 }

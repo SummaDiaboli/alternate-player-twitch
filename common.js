@@ -405,6 +405,8 @@ const i18n = (() => {
 	};
 })();
 
+TW5.messages.setI18n(i18n);
+
 // Persisted settings were renamed during the English-source migration.
 // Keep accepting every version-2 key so existing profiles keep their values.
 const SETTING_KEY_ALIASES = {
@@ -774,7 +776,7 @@ const settings = (() => {
 			}
 		}
 		log.logInfo(`[Settings] Selected settings for export: ${log.O(exportDataObj)}`);
-		writeTextToLocalFile(JSON.stringify(exportDataObj), 'application/json', getMessageText('J0133'));
+		writeTextToLocalFile(JSON.stringify(exportDataObj), 'application/json', TW5.messages.getMessageText('J0133'));
 	}
 	function importSettings(fromFileData) {
 		log.logOk(`[Settings] Importing settings from file ${fromFileData.name}`);
@@ -880,10 +882,10 @@ const settings = (() => {
 		listElement.length = 0;
 		const selectionName = _settings[metadata.chosenName].currentValue;
 		for (let name of metadata.dataMap.keys()) {
-			listElement.add(new Option(getMessageText(name), name, name === selectionName, name === selectionName));
+			listElement.add(new Option(TW5.messages.getMessageText(name), name, name === selectionName, name === selectionName));
 		}
 		if (_settings[metadata.filledString].currentValue) {
-			listElement.add(new Option(getMessageText(metadata.customizable), metadata.customizable, metadata.customizable === selectionName, metadata.customizable === selectionName));
+			listElement.add(new Option(TW5.messages.getMessageText(metadata.customizable), metadata.customizable, metadata.customizable === selectionName, metadata.customizable === selectionName));
 		}
 		assert(listElement.value);
 		return listElement;

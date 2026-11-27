@@ -120,6 +120,8 @@ export function loadCommon({ locale = 'en', storage = {} } = {}) {
 	context.globalThis = context;
 
 	vm.createContext(context);
+	vm.runInContext(read('src/shared/namespace.js'), context, { filename: 'src/shared/namespace.js' });
+	vm.runInContext(read('src/shared/messages.js'), context, { filename: 'src/shared/messages.js' });
 	vm.runInContext(read('common.js'), context, { filename: 'common.js' });
 	const api = vm.runInContext(`({
 		settings,

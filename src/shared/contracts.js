@@ -1,4 +1,5 @@
 // @ts-check
+'use strict';
 
 // Type-only contracts for first-party code. This file is never loaded by
 // Chrome; it exists so JSDoc can describe the seams that cross scripts.

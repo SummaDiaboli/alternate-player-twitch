@@ -3,5 +3,5 @@
   "compilerOptions": {
     "lib": ["ES2020", "DOM"]
   },
-  "files": ["src/shared/contracts.js", "common.js", "player.js"]
+  "files": ["src/shared/contracts.js", "src/shared/namespace.js", "src/shared/messages.js", "common.js", "player.js"]
 }
