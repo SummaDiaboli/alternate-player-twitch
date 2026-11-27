@@ -273,6 +273,30 @@ test('support modules expose their APIs through factories', () => {
 	assert.match(player, /const trashModule = TW5\.player\.trash\.create\(\)/);
 });
 
+test('UI modules expose their APIs through factories', () => {
+	const modules = {
+		windows: { variable: 'windowModule', exported: [ 'close', 'open', 'setupScrollIndicator', 'toggle' ] },
+		menu: { variable: 'menu', exported: [ 'setItemAvailability' ] },
+		fullscreen: { variable: 'fullscreenMode', exported: [ 'disable', 'getElement', 'isEnabled2', 'toggle2' ] },
+		pictureInPicture: { variable: 'pictureInPictureModule', exported: [ 'disableControl', 'startInternal', 'toggle' ] },
+		dragger: { variable: 'draggerModule', exported: [ 'cancelDrag' ] },
+		autoHide: { variable: 'autoHide', exported: [ 'hide', 'show', 'start' ] },
+		mediaQuery: { variable: 'mediaQuery', exported: [ 'refreshFast', 'updateSlowly' ] },
+		notification: { variable: 'notification', exported: [ 'show', 'showButt', 'showHappiness' ] },
+		scale: { variable: 'scale', exported: [ 'getEnd', 'getStart', 'setStartAndEnd', 'setWatched' ] }
+	};
+	for (const [name, { variable, exported }] of Object.entries(modules)) {
+		const source = read(`src/player/${name}.js`);
+		const { context } = loadCommon();
+		vm.runInContext(source, context, { filename: `src/player/${name}.js` });
+		assert.equal(typeof vm.runInContext(`TW5.player.${name}.create`, context), 'function');
+		const apiBlock = source.slice(source.lastIndexOf('\t\treturn {'));
+		const actual = [...apiBlock.matchAll(/^\t\t\t([A-Za-z][A-Za-z0-9]*),?$/gm)].map(match => match[1]);
+		assert.deepEqual(actual.sort(), exported.sort(), `${name} API mismatch`);
+		assert.match(player, new RegExp(`const ${variable} = TW5\\.player\\.${name}\\.create\\(\\)`));
+	}
+});
+
 test('interface language selector is wired to the saved setting', () => {
 	assert.match(html, new RegExp(`data-i18n=${INTERFACE_LANGUAGE_KEYS.label}`));
 	assert.match(html, new RegExp(`data-i18n=\\^${INTERFACE_LANGUAGE_KEYS.tooltip}`));
@@ -304,7 +328,7 @@ test('runtime message values agree between senders and listeners', () => {
 });
 
 test('dynamic scroll indicator id matches player.html', () => {
-	assert.match(player, /scroll-indicator-\$\{scrollElement\.id\}/);
+	assert.match(playerCode, /scroll-indicator-\$\{scrollElement\.id\}/);
 	assert.match(html, /\bid=scroll-indicator-news-body\b/);
 });
 

@@ -26,7 +26,16 @@ export const PLAYER_RUNTIME_JS = [
 	'src/player/events.js',
 	'src/player/trash.js',
 	'src/player/focus.js',
-	'src/player/pulse.js'
+	'src/player/pulse.js',
+	'src/player/windows.js',
+	'src/player/menu.js',
+	'src/player/fullscreen.js',
+	'src/player/pictureInPicture.js',
+	'src/player/dragger.js',
+	'src/player/autoHide.js',
+	'src/player/mediaQuery.js',
+	'src/player/notification.js',
+	'src/player/scale.js'
 ];
 
 export const FIRST_PARTY_JS = [
