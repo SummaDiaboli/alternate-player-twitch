@@ -225,6 +225,15 @@ test('stats module exposes the statistics API through a factory', () => {
 	assert.match(player, /const stats = TW5\.player\.stats\.create\(\)/);
 });
 
+test('theme module exposes the appearance API through a factory', () => {
+	const theme = read('src/player/theme.js');
+	const { context } = loadCommon();
+	vm.runInContext(theme, context, { filename: 'src/player/theme.js' });
+	const api = vm.runInContext('TW5.player.theme.create()', context);
+	assert.deepEqual(Object.keys(api), [ 'start' ]);
+	assert.match(player, /const themeModule = TW5\.player\.theme\.create\(\)/);
+});
+
 test('interface language selector is wired to the saved setting', () => {
 	assert.match(html, new RegExp(`data-i18n=${INTERFACE_LANGUAGE_KEYS.label}`));
 	assert.match(html, new RegExp(`data-i18n=\\^${INTERFACE_LANGUAGE_KEYS.tooltip}`));
@@ -275,7 +284,7 @@ test('theme color inputs map to settings and CSS custom properties', () => {
 		assert.match(html, new RegExp(`\\bid=${id}\\b`));
 		assert.match(css, new RegExp(`--${id}\\b`));
 		assert.match(settingsSource, new RegExp(`\\b${settingName}: setting\\.`));
-		assert.match(player, new RegExp(`\\[\\s*'${id}',\\s*'${settingName}'\\s*\\]`));
+		assert.match(playerCode, new RegExp(`\\[\\s*'${id}',\\s*'${settingName}'\\s*\\]`));
 	}
 	assert.doesNotMatch(html, /-color-setting\b/);
 });
