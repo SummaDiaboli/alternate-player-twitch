@@ -84,7 +84,10 @@
 				"src/shared/log.js",
 				"src/shared/i18n.js",
 				"src/shared/settings.js",
-				"content.js"
+				"src/content/pageState.js",
+				"src/content/navigation.js",
+				"src/content/raid.js",
+				"src/entries/content.js"
 			],
 			"all_frames": true,
 			"run_at": "document_start"

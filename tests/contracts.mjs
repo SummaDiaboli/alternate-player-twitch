@@ -45,14 +45,26 @@ export const PLAYER_RUNTIME_JS = [
 	'src/player/twitch.js'
 ];
 
+export const CONTENT_ENTRY_JS = 'src/entries/content.js';
+
+export const CONTENT_RUNTIME_JS = [
+	...SHARED_RUNTIME_JS,
+	'src/content/pageState.js',
+	'src/content/navigation.js',
+	'src/content/raid.js'
+];
+
 export const FIRST_PARTY_JS = [
-	...PLAYER_RUNTIME_JS,
-	'src/shared/contracts.js',
-	PLAYER_ENTRY_JS,
-	'content.js',
-	'background.js',
-	'autoclaim.js',
-	'gqltoken.js'
+	...new Set([
+		...PLAYER_RUNTIME_JS,
+		...CONTENT_RUNTIME_JS,
+		'src/shared/contracts.js',
+		PLAYER_ENTRY_JS,
+		CONTENT_ENTRY_JS,
+		'background.js',
+		'autoclaim.js',
+		'gqltoken.js'
+	])
 ];
 
 export const VENDOR_OR_GENERATED = [

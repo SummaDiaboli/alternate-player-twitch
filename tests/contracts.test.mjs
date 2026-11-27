@@ -1,14 +1,16 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import vm from 'node:vm';
-import { AUDIO_DEVICE_PERMISSION, INTERFACE_LANGUAGE_KEYS, INTERFACE_LANGUAGE_SETTING, INTERFACE_LANGUAGE_VALUES, LEGACY_MESSAGE_PROTOCOL, LEGACY_WORKER_LOG_PROTOCOL, LOCALES, MESSAGE_PROTOCOL, PLAYER_ENTRY_JS, PLAYER_RUNTIME_JS, SHARED_RUNTIME_JS, TEST_EVENT, WORKER_DATA_FIELDS, WORKER_LOG_PROTOCOL, WORKER_SEGMENT_FIELDS } from './contracts.mjs';
+import { AUDIO_DEVICE_PERMISSION, CONTENT_ENTRY_JS, CONTENT_RUNTIME_JS, INTERFACE_LANGUAGE_KEYS, INTERFACE_LANGUAGE_SETTING, INTERFACE_LANGUAGE_VALUES, LEGACY_MESSAGE_PROTOCOL, LEGACY_WORKER_LOG_PROTOCOL, LOCALES, MESSAGE_PROTOCOL, PLAYER_ENTRY_JS, PLAYER_RUNTIME_JS, SHARED_RUNTIME_JS, TEST_EVENT, WORKER_DATA_FIELDS, WORKER_LOG_PROTOCOL, WORKER_SEGMENT_FIELDS } from './contracts.mjs';
 import { loadCommon, read } from './harness.mjs';
 
 const html = read('player.html') + '\n' + read('report.html');
 const player = read(PLAYER_ENTRY_JS);
 const workerAdapter = read('src/player/workerAdapter.js');
 const stringLiterals = source => [...source.matchAll(/'([^'\r\n]*)'|"([^"\r\n]*)"|`([^`]*)`/g)].map(match => match[1] ?? match[2] ?? match[3]);
-const content = read('content.js');
+const content = read(CONTENT_ENTRY_JS);
+const contentSources = [ content, ...CONTENT_RUNTIME_JS.filter(path => path.startsWith('src/content/')).map(read) ];
+const contentCode = contentSources.join('\n');
 const background = read('background.js');
 const css = read('player.css');
 const manifest = JSON.parse(read('manifest.json'));
@@ -25,9 +27,9 @@ test('shared scripts load before their consumers', () => {
 	const playerScripts = [...read('player.html').matchAll(/<script src=([^\s>]+)/g)].map(match => match[1]);
 	assert.deepEqual(playerScripts, [...PLAYER_RUNTIME_JS, PLAYER_ENTRY_JS]);
 
-	const contentEntry = manifest.content_scripts.find(entry => entry.js.includes('content.js'));
+	const contentEntry = manifest.content_scripts.find(entry => entry.js.includes(CONTENT_ENTRY_JS));
 	assert.ok(contentEntry, 'content script entry not found');
-	assert.deepEqual(contentEntry.js, [...SHARED_RUNTIME_JS, 'content.js']);
+	assert.deepEqual(contentEntry.js, [...CONTENT_RUNTIME_JS, CONTENT_ENTRY_JS]);
 });
 
 test('shared modules expose their APIs on TW5', () => {
@@ -46,11 +48,11 @@ test('shared modules expose their APIs on TW5', () => {
 
 test('every literal element lookup targets an element declared in markup', () => {
 	const ids = htmlIds(html);
-	for (const match of content.matchAll(/\bid=(?:"([^"]+)"|'([^"]+)'|([^\s>]+))/g)) {
+	for (const match of contentCode.matchAll(/\bid=(?:"([^"]+)"|'([^"]+)'|([^\s>]+))/g)) {
 		ids.add(match[1] || match[2] || match[3]);
 	}
 	const referenced = new Set();
-	for (const source of [ ...playerSources, content, ...sharedSources ]) {
+	for (const source of [ ...playerSources, ...contentSources, ...sharedSources ]) {
 		for (const match of source.matchAll(/\belement\(\s*(['"])([^'"]+)\1\s*\)/g)) {
 			referenced.add(match[2]);
 		}
@@ -333,6 +335,26 @@ test('Twitch module exposes the integration API through a factory', () => {
 	assert.match(player, /const Twitch = TW5\.player\.twitch\.create\(\)/);
 });
 
+test('content modules expose their APIs through factories', () => {
+	const { context } = loadCommon();
+	for (const path of CONTENT_RUNTIME_JS.filter(path => path.startsWith('src/content/'))) {
+		vm.runInContext(read(path), context, { filename: path });
+	}
+	const namespaces = JSON.parse(vm.runInContext(`JSON.stringify({
+		pageState: Object.keys(TW5.content.pageState).sort(),
+		navigation: Object.keys(TW5.content.navigation).sort(),
+		raid: Object.keys(TW5.content.raid).sort()
+	})`, context));
+	assert.deepEqual(namespaces, { navigation: [ 'create' ], pageState: [ 'create' ], raid: [ 'create' ] });
+	const state = vm.runInContext('TW5.content.pageState.create()', context);
+	assert.deepEqual(Object.keys(state).sort(), [
+		'canRedirectThisUrl', 'disableAutoRedirectForThisPage', 'getNonRedirectableUrl',
+		'parseAddress', 'setPageUrl'
+	]);
+	assert.deepEqual([ ...vm.runInContext('Object.keys(TW5.content.navigation.create(TW5.content.pageState.create()))', context) ], [ 'start' ]);
+	assert.deepEqual([ ...vm.runInContext('Object.keys(TW5.content.raid.create(TW5.content.pageState.create()))', context) ], [ 'start' ]);
+});
+
 test('interface language selector is wired to the saved setting', () => {
 	assert.match(html, new RegExp(`data-i18n=${INTERFACE_LANGUAGE_KEYS.label}`));
 	assert.match(html, new RegExp(`data-i18n=\\^${INTERFACE_LANGUAGE_KEYS.tooltip}`));
@@ -353,13 +375,13 @@ test('audio device permission is declared as optional and requested at runtime',
 });
 
 test('runtime message values agree between senders and listeners', () => {
-	assert.match(content, new RegExp(`request: '${MESSAGE_PROTOCOL.insertThirdParty}'`));
+	assert.match(contentCode, new RegExp(`request: '${MESSAGE_PROTOCOL.insertThirdParty}'`));
 	assert.match(background, new RegExp(`message\\.request === '${MESSAGE_PROTOCOL.insertThirdParty}' \\|\\| message\\.request === '${LEGACY_MESSAGE_PROTOCOL.insertThirdParty}'`));
-	assert.match(content, new RegExp(`requestText: '${MESSAGE_PROTOCOL.raid}'`));
+	assert.match(contentCode, new RegExp(`requestText: '${MESSAGE_PROTOCOL.raid}'`));
 	assert.match(playerCode, new RegExp(`isRaidRequest = message\\.requestText === '${LEGACY_MESSAGE_PROTOCOL.raid}' \\|\\| message\\.requestText === '${MESSAGE_PROTOCOL.raid}'`));
 	assert.match(playerCode, new RegExp(`message\\.requestText === '${LEGACY_MESSAGE_PROTOCOL.alreadyOpen}' \\|\\| message\\.requestText === '${MESSAGE_PROTOCOL.alreadyOpen}'`));
 	assert.ok(playerCode.split(MESSAGE_PROTOCOL.alreadyOpen).length >= 2, 'already-open request is sent and handled');
-	assert.doesNotMatch(content, new RegExp(`requestText: '${LEGACY_MESSAGE_PROTOCOL.raid}'`));
+	assert.doesNotMatch(contentCode, new RegExp(`requestText: '${LEGACY_MESSAGE_PROTOCOL.raid}'`));
 	assert.doesNotMatch(playerCode, new RegExp(`requestText: '${LEGACY_MESSAGE_PROTOCOL.alreadyOpen}'`));
 });
 
@@ -393,7 +415,7 @@ test('CSS class selectors refer to classes declared in markup or script', () => 
 	for (const match of html.matchAll(/\bclass=(?:"([^"]+)"|'([^"]+)'|([^\s>]+))/g)) {
 		for (const name of (match[1] || match[2] || match[3]).split(/\s+/)) declared.add(name);
 	}
-	for (const source of [html, ...playerSources, content, ...sharedSources]) {
+	for (const source of [html, ...playerSources, ...contentSources, ...sharedSources]) {
 		for (const literal of stringLiterals(source)) {
 			for (const name of literal.split(/\s+/)) declared.add(name);
 		}
