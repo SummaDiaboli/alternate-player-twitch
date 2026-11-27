@@ -197,6 +197,18 @@ test('controls module exposes the player UI API through a factory', () => {
 	assert.match(player, /const control = TW5\.player\.controls\.create\(\)/);
 });
 
+test('chat module exposes the chat panel API through a factory', () => {
+	const chat = read('src/player/chat.js');
+	const { context } = loadCommon();
+	vm.runInContext(chat, context, { filename: 'src/player/chat.js' });
+	const api = vm.runInContext('TW5.player.chat.create()', context);
+	assert.deepEqual(Object.keys(api).sort(), [
+		'applyPanelPosition', 'applyUrl', 'restore',
+		'saveAndApplyClosedPanelState', 'togglePanelState', 'togglePanelPosition'
+	].sort());
+	assert.match(player, /const chat = TW5\.player\.chat\.create\(\)/);
+});
+
 test('interface language selector is wired to the saved setting', () => {
 	assert.match(html, new RegExp(`data-i18n=${INTERFACE_LANGUAGE_KEYS.label}`));
 	assert.match(html, new RegExp(`data-i18n=\\^${INTERFACE_LANGUAGE_KEYS.tooltip}`));
