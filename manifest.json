@@ -85,6 +85,7 @@
 				"src/shared/i18n.js",
 				"src/shared/settings.js",
 				"src/content/pageState.js",
+				"src/content/chatTheme.js",
 				"src/content/navigation.js",
 				"src/content/raid.js",
 				"src/entries/content.js"

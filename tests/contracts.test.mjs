@@ -345,17 +345,36 @@ test('content button is available on every top-frame page', () => {
 	assert.doesNotMatch(navigation, /addressValue\.page === 'POSSIBLE_LIVE_STREAM' && window\.top === window/);
 });
 
+test('Twitch site dark theme is bridged to the player chat', () => {
+	const chatTheme = read('src/content/chatTheme.js');
+	const twitch = read('src/player/twitch.js');
+	const chat = read('src/player/chat.js');
+	assert.match(chatTheme, /tw-root--theme-dark/);
+	assert.match(chatTheme, /tw-root--theme-light/);
+	assert.match(chatTheme, /tw5~chat-theme/);
+	assert.match(chatTheme, /domain=\.twitch\.tv/);
+	assert.match(chatTheme, /chrome\.storage\.local\.set/);
+	assert.match(chatTheme, /chrome\.storage\.onChanged\.addListener/);
+	assert.match(chatTheme, /chatPathPattern\.test\(location\.pathname\)/);
+	assert.match(read(CONTENT_ENTRY_JS), /chatTheme\.start\(\);/);
+	assert.match(twitch, /let _isSiteDarkTheme = false;/);
+	assert.match(twitch, /case 'tw5~chat-theme':/);
+	assert.match(twitch, /_isSiteDarkTheme \? '&darkpopout' : ''/);
+	assert.match(chat, /events\.addHandler\('twitch-chat-theme-changed', applyUrl\)/);
+});
+
 test('content modules expose their APIs through factories', () => {
 	const { context } = loadCommon();
 	for (const path of CONTENT_RUNTIME_JS.filter(path => path.startsWith('src/content/'))) {
 		vm.runInContext(read(path), context, { filename: path });
 	}
 	const namespaces = JSON.parse(vm.runInContext(`JSON.stringify({
+		chatTheme: Object.keys(TW5.content.chatTheme).sort(),
 		pageState: Object.keys(TW5.content.pageState).sort(),
 		navigation: Object.keys(TW5.content.navigation).sort(),
 		raid: Object.keys(TW5.content.raid).sort()
 	})`, context));
-	assert.deepEqual(namespaces, { navigation: [ 'create' ], pageState: [ 'create' ], raid: [ 'create' ] });
+	assert.deepEqual(namespaces, { chatTheme: [ 'create' ], navigation: [ 'create' ], pageState: [ 'create' ], raid: [ 'create' ] });
 	const state = vm.runInContext('TW5.content.pageState.create()', context);
 	assert.deepEqual(Object.keys(state).sort(), [
 		'canRedirectThisUrl', 'disableAutoRedirectForThisPage', 'getNonRedirectableUrl',

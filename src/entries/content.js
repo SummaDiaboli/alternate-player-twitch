@@ -45,6 +45,7 @@ function removeOldVersionLeftovers() {}
 wrapErrors(() => {
 	log.logOk(`[content.js] Started ${performance.now().toFixed()}ms ${location.href}`);
 	const pageState = TW5.content.pageState.create();
+	const chatTheme = TW5.content.chatTheme.create();
 	const navigation = TW5.content.navigation.create(pageState);
 	const raid = TW5.content.raid.create(pageState);
 
@@ -53,5 +54,6 @@ wrapErrors(() => {
 		return;
 	}
 	removeOldVersionLeftovers();
+	chatTheme.start();
 	navigation.start();
 })();

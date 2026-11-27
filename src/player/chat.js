@@ -226,6 +226,7 @@
 			applyPanelPosition();
 			events.addHandler('drag-handle-drag-chat-size', handlePanelDrag);
 			events.addHandler('fullscreen-mode-changed', handleFullscreenChange);
+			events.addHandler('twitch-chat-theme-changed', applyUrl);
 		}
 		return {
 			restore,
