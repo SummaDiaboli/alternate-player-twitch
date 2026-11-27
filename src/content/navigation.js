@@ -374,7 +374,14 @@
 			return true;
 		}
 		
+		function isOurButtonPage() {
+			return !!globalParsedAddress && (globalParsedAddress.page === 'CHANNEL_CHAT' || globalParsedAddress.page === 'POSSIBLE_LIVE_STREAM');
+		}
+
 		function insertOurButtonIfNeeded() {
+			if (!isOurButtonPage()) {
+				return false;
+			}
 			if (getOurButton()) {
 				return true;
 			}
@@ -454,11 +461,10 @@
 			window.addEventListener('popstate', handlePopState);
 			settings.restore().then(() => {
 				onPageUrlChanged('LOAD');
-				const addressValue = parseAddress(location);
-				if (addressValue.page === 'CHANNEL_CHAT' || addressValue.page === 'POSSIBLE_LIVE_STREAM') {
+				// Twitch switches channels with pushState, so URL polling must run
+				// from every top-frame page, not only from an initial channel URL.
+				if (window.top === window) {
 					watchPageMarkup();
-				}
-				if (addressValue.page === 'POSSIBLE_LIVE_STREAM' && window.top === window) {
 					watchUrl();
 				}
 			}).catch(debug.exceptionCaught);
