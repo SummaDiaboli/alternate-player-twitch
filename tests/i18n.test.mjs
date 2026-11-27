@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { INTERFACE_LANGUAGE_KEYS, LOCALES } from './contracts.mjs';
+import { FIRST_PARTY_JS, INTERFACE_LANGUAGE_KEYS, LOCALES } from './contracts.mjs';
 import { loadCommon, read, readJson } from './harness.mjs';
 
 const localeFiles = Object.fromEntries(LOCALES.map(locale => [locale, readJson(`_locales/${locale}/messages.json`)]));
@@ -27,7 +27,7 @@ test('placeholders match across locales', () => {
 });
 
 test('every statically referenced message key exists in every locale', () => {
-	const sources = ['player.html', 'common.js', 'content.js', 'player.js', 'background.js'];
+	const sources = ['player.html', ...FIRST_PARTY_JS];
 	const referenced = new Set();
 	for (const file of sources) {
 		const text = read(file);

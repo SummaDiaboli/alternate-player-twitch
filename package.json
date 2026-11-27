@@ -1,8 +1,14 @@
 {
   "name": "alternate-player-twitch-tests",
   "private": true,
-  "description": "Dependency-free characterization and consistency tests for the extension",
+  "description": "Characterization and consistency tests for the extension",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "typecheck": "tsc -b",
+    "verify": "npm run typecheck && npm test"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.3.8",
+    "typescript": "^7.0.2"
   }
 }

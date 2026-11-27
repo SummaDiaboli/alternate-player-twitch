@@ -1,4 +1,5 @@
-﻿'use strict';
+﻿// @ts-check
+'use strict';
 
 
 setInterval(
@@ -7,7 +8,8 @@ setInterval(
 		const e = document.getElementsByClassName('claimable-bonus__icon');
 		if (e.length !== 0)
 		{
-			e[0].click();
+			const button = /** @type {HTMLElement} */ (/** @type {unknown} */ (e[0]));
+			button.click();
 		}
 	},
 	5000

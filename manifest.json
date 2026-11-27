@@ -42,7 +42,7 @@
 		}
 	],
 	"background": {
-		"service_worker": "background.js"
+		"service_worker": "src/entries/background.js"
 	},
 	"content_scripts": [
 		{
@@ -53,7 +53,7 @@
 				"https://www.twitch.tv/popout/"
 			],
 			"js": [
-				"autoclaim.js"
+				"src/entries/autoclaim.js"
 			],
 			"all_frames": true,
 			"run_at": "document_idle"
@@ -63,7 +63,7 @@
 				"https://www.twitch.tv/*"
 			],
 			"js": [
-				"gqltoken.js"
+				"src/entries/gqltoken.js"
 			],
 			"all_frames": true,
 			"run_at": "document_start"
@@ -77,8 +77,17 @@
 				"https://www.twitch.tv/popout/"
 			],
 			"js": [
-				"common.js",
-				"content.js"
+				"src/shared/namespace.js",
+				"src/shared/messages.js",
+				"src/shared/state.js",
+				"src/shared/helpers.js",
+				"src/shared/log.js",
+				"src/shared/i18n.js",
+				"src/shared/settings.js",
+				"src/content/pageState.js",
+				"src/content/navigation.js",
+				"src/content/raid.js",
+				"src/entries/content.js"
 			],
 			"all_frames": true,
 			"run_at": "document_start"

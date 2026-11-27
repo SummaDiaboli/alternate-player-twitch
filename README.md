@@ -43,12 +43,15 @@ When you visit a Twitch channel page, the extension detects whether the channel 
 
 | File | Purpose |
 |---|---|
-| `background.js` | MV3 service worker that detects FFZ/BTTV extensions and injects them into chat |
-| `content.js` | Content script on twitch.tv that detects live channels, triggers the redirect, and reports chat raid navigation |
-| `common.js` | Shared utilities: logging, settings, i18n, GQL helpers |
-| `player.js` | Full custom HLS player logic, UI, and buffering engine |
+| `src/entries/background.js` | MV3 service worker that detects FFZ/BTTV extensions and injects them into chat |
+| `src/entries/content.js` | Content script entry point for twitch.tv page integration |
+| `src/content/*.js` | Page state, navigation, and raid detection split from the content script |
+| `src/shared/*.js` | Shared utilities: namespace, messages, logging, settings, i18n, GQL helpers |
+| `src/player/*.js` | Player features split from the main player script |
+| `src/entries/player.js` | Custom HLS player entry point, UI, and buffering engine |
 | `player.html` | Player page shell |
-| `gqltoken.js` | Intercepts Twitch GQL integrity tokens for authenticated stream requests |
+| `src/entries/gqltoken.js` | Intercepts Twitch GQL integrity tokens for authenticated stream requests |
+| `src/entries/autoclaim.js` | Auto-claims Twitch bonus drops |
 | `betterttv.js` | BTTV integration script injected into the chat frame |
 | `avalon.js` | Bundled FFZ script injected into the chat frame |
 | `rules.json` | declarativeNetRequest rules for header spoofing and chat iframe CSP removal |

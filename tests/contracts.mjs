@@ -2,13 +2,72 @@
 // the spelling of internal identifiers, so they can be updated layer by layer
 // as the migration progresses.
 
+export const SHARED_RUNTIME_JS = [
+	'src/shared/namespace.js',
+	'src/shared/messages.js',
+	'src/shared/state.js',
+	'src/shared/helpers.js',
+	'src/shared/log.js',
+	'src/shared/i18n.js',
+	'src/shared/settings.js'
+];
+
+export const PLAYER_ENTRY_JS = 'src/entries/player.js';
+
+export const PLAYER_RUNTIME_JS = [
+	...SHARED_RUNTIME_JS,
+	'src/player/workerAdapter.js',
+	'src/player/playback.js',
+	'src/player/variants.js',
+	'src/player/controls.js',
+	'src/player/chat.js',
+	'src/player/stats.js',
+	'src/player/theme.js',
+	'src/player/news.js',
+	'src/player/debug.js',
+	'src/player/events.js',
+	'src/player/trash.js',
+	'src/player/focus.js',
+	'src/player/pulse.js',
+	'src/player/windows.js',
+	'src/player/menu.js',
+	'src/player/fullscreen.js',
+	'src/player/pictureInPicture.js',
+	'src/player/dragger.js',
+	'src/player/autoHide.js',
+	'src/player/mediaQuery.js',
+	'src/player/notification.js',
+	'src/player/scale.js',
+	'src/player/audioDevices.js',
+	'src/player/volumeBoost.js',
+	'src/player/converter.js',
+	'src/player/loader.js',
+	'src/player/twitch.js'
+];
+
+export const CONTENT_ENTRY_JS = 'src/entries/content.js';
+export const BACKGROUND_ENTRY_JS = 'src/entries/background.js';
+export const AUTOCLAIM_ENTRY_JS = 'src/entries/autoclaim.js';
+export const GQLTOKEN_ENTRY_JS = 'src/entries/gqltoken.js';
+
+export const CONTENT_RUNTIME_JS = [
+	...SHARED_RUNTIME_JS,
+	'src/content/pageState.js',
+	'src/content/navigation.js',
+	'src/content/raid.js'
+];
+
 export const FIRST_PARTY_JS = [
-	'common.js',
-	'content.js',
-	'player.js',
-	'background.js',
-	'autoclaim.js',
-	'gqltoken.js'
+	...new Set([
+		...PLAYER_RUNTIME_JS,
+		...CONTENT_RUNTIME_JS,
+		'src/shared/contracts.js',
+		PLAYER_ENTRY_JS,
+		CONTENT_ENTRY_JS,
+		BACKGROUND_ENTRY_JS,
+		AUTOCLAIM_ENTRY_JS,
+		GQLTOKEN_ENTRY_JS
+	])
 ];
 
 export const VENDOR_OR_GENERATED = [

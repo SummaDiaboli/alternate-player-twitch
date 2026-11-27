@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2020", "WebWorker"]
+  },
+  "files": ["src/shared/contracts.js", "src/entries/background.js"]
+}
