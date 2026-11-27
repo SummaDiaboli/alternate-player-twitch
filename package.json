@@ -1,0 +1,8 @@
+{
+  "name": "alternate-player-twitch-tests",
+  "private": true,
+  "description": "Dependency-free characterization and consistency tests for the extension",
+  "scripts": {
+    "test": "node --test"
+  }
+}

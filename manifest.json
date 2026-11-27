@@ -32,6 +32,9 @@
 		"*://*.betterttv.net/*",
 		"*://*.frankerfacez.com/*"
 	],
+	"optional_permissions": [
+		"contentSettings"
+	],
 	"web_accessible_resources": [
 		{
 			"resources": ["player.html", "content.css"],

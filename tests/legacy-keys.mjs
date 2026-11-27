@@ -1,0 +1,53 @@
+// Generated during the identifier migration. Maps current setting names to
+// the persisted Russian keys used by settings version 2.
+export const LEGACY_STORAGE_KEYS = {
+	"settingsVersion": "чВерсияНастроек",
+	"randomNumber": "чСлучайноеЧисло",
+	"previousVersionName": "сПредыдущаяВерсия",
+	"lastExtensionUpdateCheck": "чПоследняяПроверкаОбновленияРасширения",
+	"volume2": "чГромкость2",
+	"volumeBoostEnabled": "лРазрешитьУсилениеГромкости",
+	"isMuted": "лПриглушить",
+	"audioDeviceId": "сИдАудиоустройства",
+	"variantName": "сНазваниеВарианта",
+	"variantBitrate": "чБитрейтВарианта",
+	"replayDuration2": "чДлительностьПовтора2",
+	"shouldScaleImage": "лМасштабироватьИзображение",
+	"chatState": "чСостояниеЧата",
+	"closedChatStateCode": "чСостояниеЗакрытогоЧата",
+	"isChatAutoPosition": "лАвтоПоложениеЧата",
+	"chatHorizontalPosition": "чГоризонтальноеПоложениеЧата",
+	"chatVerticalPosition": "чВертикальноеПоложениеЧата",
+	"chatPanelPosition": "чПоложениеПанелиЧата",
+	"chatPanelWidth": "чШиринаПанелиЧата",
+	"chatPanelHeight": "чВысотаПанелиЧата",
+	"isFullChat": "лПолноценныйЧат",
+	"shouldDimChat": "лЗатемнитьЧат",
+	"followRaids": "лСледоватьЗаРейдами",
+	"uiSize": "чРазмерИнтерфейса",
+	"autoHideInterval": "чИнтервалАвтоскрытия",
+	"isUiAnimationEnabled": "лАнимацияИнтерфейса",
+	"shouldChangeVolumeWithWheel": "лМенятьГромкостьКолесом",
+	"wheelVolumeStep": "чШагИзмененияГромкостиКолесом",
+	"shouldShowStats": "лПоказатьСтатистику",
+	"selectedBufferingPreset": "сПредустановкаВыбрана_буферизация",
+	"isBufferingPresetFilled": "лПредустановкаЗаполнена_буферизация",
+	"concurrentLoadCount": "кОдновременныхЗагрузок",
+	"playbackStartMs": "чНачалоВоспроизведения",
+	"bufferSize": "чРазмерБуфера",
+	"bufferStretchMs": "чРастягиваниеБуфера",
+	"selectedThemePreset": "сПредустановкаВыбрана_оформление",
+	"isThemePresetFilled": "лПредустановкаЗаполнена_оформление",
+	"backgroundColor": "сЦветФона",
+	"gradientColor": "сЦветГрадиента",
+	"buttonColor": "сЦветКнопок",
+	"titleColor": "сЦветЗаголовка",
+	"selectionColor": "сЦветВыделения",
+	"opacityValue": "чПрозрачность",
+	"isAutoRedirectAllowed": "лАвтоперенаправлениеРазрешено",
+	"isAutoRedirectDetected": "лАвтоперенаправлениеЗамечено"
+};
+
+export function legacyStorage(values) {
+	return Object.fromEntries(Object.entries(values).map(([name, value]) => [LEGACY_STORAGE_KEYS[name] ?? name, value]));
+}

@@ -1,500 +1,500 @@
 'use strict';
 
-const ВЕРСИЯ_РАСШИРЕНИЯ = chrome.runtime.getManifest().version;
+const extensionVersion = chrome.runtime.getManifest().version;
 
-const ЗАГРУЖАТЬ_МЕТАДАННЫЕ_НЕ_ДОЛЬШЕ = 15e3;
+const metadataLoadMaxDuration = 15e3;
 
-const ЗАГРУЖАТЬ_СПИСОК_ВАРИАНТОВ_НЕ_ДОЛЬШЕ = 15e3;
+const VARIANT_LIST_LOAD_TIMEOUT = 15e3;
 
-const ЗАГРУЖАТЬ_СПИСОК_СЕГМЕНТОВ_НЕ_ДОЛЬШЕ = 6e3;
+const SEGMENT_LIST_LOAD_TIMEOUT = 6e3;
 
-const ОБРАБОТКА_ЖДЕТ_ЗАГРУЗКИ = 1;
+const processingAwaitingLoad = 1;
 
-const ОБРАБОТКА_ЗАГРУЖАЕТСЯ = 2;
+const processingLoading = 2;
 
-const ОБРАБОТКА_ЗАГРУЖЕН = 3;
+const processingLoaded = 3;
 
-const ОБРАБОТКА_ПРЕОБРАЗОВАН = 4;
+const processingTransformed = 4;
 
-const СОСТОЯНИЕ_ЗАПУСК = 1;
+const launchState = 1;
 
-const СОСТОЯНИЕ_НАЧАЛО_ТРАНСЛЯЦИИ = 2;
+const streamStartState = 2;
 
-const СОСТОЯНИЕ_ЗАВЕРШЕНИЕ_ТРАНСЛЯЦИИ = 3;
+const streamEndState = 3;
 
-const СОСТОЯНИЕ_ЗАГРУЗКА = 4;
+const loadingState = 4;
 
-const СОСТОЯНИЕ_НАЧАЛО_ВОСПРОИЗВЕДЕНИЯ = 5;
+const playbackStartState = 5;
 
-const СОСТОЯНИЕ_ВОСПРОИЗВЕДЕНИЕ = 6;
+const playbackState = 6;
 
-const СОСТОЯНИЕ_ОСТАНОВКА = 7;
+const stoppedState = 7;
 
-const СОСТОЯНИЕ_ПОВТОР = 8;
+const repeatState = 8;
 
-const СОСТОЯНИЕ_СМЕНА_ВАРИАНТА = 9;
+const variantChangeState = 9;
 
-const ПОДПИСКА_ОБНОВЛЯЕТСЯ = -1;
+const SUBSCRIPTION_UPDATING = -1;
 
-const ПОДПИСКА_НЕДОСТУПНА = 0;
+const subscriptionUnavailable = 0;
 
-const ПОДПИСКА_НЕОФОРМЛЕНА = 1;
+const subscriptionNotSubscribed = 1;
 
-const ПОДПИСКА_НЕУВЕДОМЛЯТЬ = 2;
+const subscriptionDoNotNotify = 2;
 
-const ПОДПИСКА_УВЕДОМЛЯТЬ = 3;
+const subscriptionNotify = 3;
 
-const КОД_ОТВЕТА = 'Сервер вернул код ';
+const responseCode = 'Server returned code ';
 
-function ПолучитьМаксимальнуюГромкость() {
-	return м_Настройки.Получить('лРазрешитьУсилениеГромкости') ? МАКСИМАЛЬНАЯ_ГРОМКОСТЬ_С_УСИЛЕНИЕМ : МАКСИМАЛЬНАЯ_ГРОМКОСТЬ;
+function getMaxVolume() {
+	return settings.get('volumeBoostEnabled') ? maxAmplifiedVolume : maxVolume;
 }
 
-function ПолучитьГромкость() {
-	return Math.min(м_Настройки.Получить('чГромкость2'), ПолучитьМаксимальнуюГромкость());
+function getVolume() {
+	return Math.min(settings.get('volume2'), getMaxVolume());
 }
 
-let г_чТочноеВремя = NaN;
+let globalExactTimeMs = NaN;
 
 if (!navigator.clipboard) {
 	navigator.clipboard = {};
 }
 
 if (!navigator.clipboard.writeText) {
-	navigator.clipboard.writeText = function(сТекст) {
-		Проверить(typeof сТекст == 'string');
-		return new Promise(ДобавитьОбработчикИсключений((фВыполнить, фОтказаться) => {
-			const узТекст = document.createElement('input');
-			узТекст.type = 'text';
-			узТекст.readOnly = true;
-			узТекст.value = сТекст;
-			узТекст.style.position = 'fixed';
-			узТекст.style.left = '-100500px';
-			document.body.appendChild(узТекст);
-			узТекст.select();
-			const лПолучилось = document.execCommand('copy');
-			узТекст.remove();
-			if (лПолучилось) {
-				фВыполнить();
+	navigator.clipboard.writeText = function(textString) {
+		assert(typeof textString == 'string');
+		return new Promise(wrapErrors((execute, reject) => {
+			const textElement = document.createElement('input');
+			textElement.type = 'text';
+			textElement.readOnly = true;
+			textElement.value = textString;
+			textElement.style.position = 'fixed';
+			textElement.style.left = '-100500px';
+			document.body.appendChild(textElement);
+			textElement.select();
+			const isSuccess = document.execCommand('copy');
+			textElement.remove();
+			if (isSuccess) {
+				execute();
 			} else {
-				фОтказаться();
+				reject();
 			}
 		}));
 	};
 }
 
-function Текст(сКод, сПодстановка) {
-	return м_i18n.GetMessage(сКод, сПодстановка);
+function getMessageText(code2, substitution) {
+	return i18n.GetMessage(code2, substitution);
 }
 
-function Округлить(чЗначение, чТочность) {
-	Проверить(typeof чЗначение == 'number' && Number.isInteger(чТочность) && чТочность >= 0 && чТочность <= 20);
-	if (чТочность === 0) {
-		return Math.round(чЗначение);
+function round(numericValue, precision) {
+	assert(typeof numericValue == 'number' && Number.isInteger(precision) && precision >= 0 && precision <= 20);
+	if (precision === 0) {
+		return Math.round(numericValue);
 	}
-	const ч = Math.pow(10, чТочность);
-	return Math.round(чЗначение * ч) / ч;
+	const counter = Math.pow(10, precision);
+	return Math.round(numericValue * counter) / counter;
 }
 
-function Ограничить(чЗначение, чМинимум, чМаксимум) {
-	Проверить(Number.isFinite(чЗначение) && Number.isFinite(чМинимум) && Number.isFinite(чМаксимум) && чМинимум <= чМаксимум);
-	return Math.min(Math.max(чЗначение, чМинимум), чМаксимум);
+function limit(numericValue, minValue, maxValue) {
+	assert(Number.isFinite(numericValue) && Number.isFinite(minValue) && Number.isFinite(maxValue) && minValue <= maxValue);
+	return Math.min(Math.max(numericValue, minValue), maxValue);
 }
 
-function цепочка(пОбъект, ...мсСвойства) {
-	Проверить(мсСвойства.length !== 0);
-	for (const сСвойство of мсСвойства) {
-		if (!ЭтоОбъект(пОбъект)) {
+function chain(objectValue, ...propertyList) {
+	assert(propertyList.length !== 0);
+	for (const propertyName of propertyList) {
+		if (!isObject(objectValue)) {
 			return null;
 		}
-		Проверить(ЭтоНепустаяСтрока(сСвойство));
-		пОбъект = пОбъект[сСвойство];
+		assert(isNonEmptyString(propertyName));
+		objectValue = objectValue[propertyName];
 	}
-	return пОбъект;
+	return objectValue;
 }
 
 function ResolveRelativeUrl(sRelativeUrl, sAbsoluteBaseUrl) {
 	return new URL(sRelativeUrl, sAbsoluteBaseUrl).href;
 }
 
-function ИзменитьЗаголовокДокумента(сЗаголовок) {
+function setDocumentTitle(heading) {
 	history.replaceState(null, '');
-	document.title = сЗаголовок;
+	document.title = heading;
 }
 
-function проверитьРазрешенияРасширения() {
-	return new Promise(фВыполнить => {
+function assertExtensionPermissions() {
+	return new Promise(execute => {
 		chrome.permissions.contains({
-			origins: chrome.runtime.getManifest().permissions.filter(сРазрешение => сРазрешение.includes(':'))
-		}, лРазрешено => {
+			origins: chrome.runtime.getManifest().permissions.filter(permission => permission.includes(':'))
+		}, isAllowed => {
 			if (chrome.runtime.lastError) {
 				console.error('permissions.contains', chrome.runtime.lastError.message);
-				м_Отладка.ЗавершитьРаботуИПоказатьСообщение('J0221');
+				debug.finishAndShowMessage('J0221');
 			}
-			if (!лРазрешено) {
-				м_Отладка.ЗавершитьРаботуИПоказатьСообщение('J0215');
+			if (!isAllowed) {
+				debug.finishAndShowMessage('J0215');
 			}
-			фВыполнить();
+			execute();
 		});
 	});
 }
 
-получитьТекущуюВкладку.чИдВкладки = NaN;
+getCurrentTab.tabId = NaN;
 
-получитьТекущуюВкладку.cХранилищеПеченек = '';
+getCurrentTab.cookieStore = '';
 
-function получитьТекущуюВкладку() {
-	return new Promise(фВыполнить => {
-		chrome.tabs.getCurrent(ДобавитьОбработчикИсключений(оВкладка => {
-			if (chrome.runtime.lastError || !ЭтоОбъект(оВкладка) || !Number.isSafeInteger(оВкладка.id) || оВкладка.id === chrome.tabs.TAB_ID_NONE) {
+function getCurrentTab() {
+	return new Promise(execute => {
+		chrome.tabs.getCurrent(wrapErrors(tab => {
+			if (chrome.runtime.lastError || !isObject(tab) || !Number.isSafeInteger(tab.id) || tab.id === chrome.tabs.TAB_ID_NONE) {
 				console.error('tabs.getCurrent', chrome.runtime.lastError && chrome.runtime.lastError.message);
-				м_Отладка.ЗавершитьРаботуИПоказатьСообщение('J0221');
+				debug.finishAndShowMessage('J0221');
 			}
-			получитьТекущуюВкладку.чИдВкладки = оВкладка.id;
-			фВыполнить();
+			getCurrentTab.tabId = tab.id;
+			execute();
 		}));
 	});
 }
 
-function получитьВсеПеченьки(сАдрес) {
-	return new Promise(фВыполнить => {
-		const оПараметры = {
-			url: сАдрес
+function getAllCookies(address) {
+	return new Promise(execute => {
+		const params = {
+			url: address
 		};
-		if (получитьТекущуюВкладку.cХранилищеПеченек) {
-			оПараметры.storeId = получитьТекущуюВкладку.cХранилищеПеченек;
+		if (getCurrentTab.cookieStore) {
+			params.storeId = getCurrentTab.cookieStore;
 		}
-		chrome.cookies.getAll(оПараметры, ДобавитьОбработчикИсключений(моПеченьки => {
-			if (!chrome.runtime.lastError && Array.isArray(моПеченьки)) {
-				м_Журнал.Вот(`[API] Количество печенек: ${моПеченьки.length}`);
-				фВыполнить(моПеченьки);
+		chrome.cookies.getAll(params, wrapErrors(cookiesStorage => {
+			if (!chrome.runtime.lastError && Array.isArray(cookiesStorage)) {
+				log.logInfo(`[API] Cookie count: ${cookiesStorage.length}`);
+				execute(cookiesStorage);
 			} else {
 				console.error('cookies.getAll', chrome.runtime.lastError && chrome.runtime.lastError.message);
-				м_Отладка.ЗавершитьРаботуИПоказатьСообщение('J0221');
+				debug.finishAndShowMessage('J0221');
 			}
 		}));
 	});
 }
 
-function удалитьПеченьку(сИмя, сАдрес) {
-	return new Promise(фВыполнить => {
+function removeCookie(name, address) {
+	return new Promise(execute => {
 		chrome.cookies.remove({
-			name: сИмя,
-			url: сАдрес
-		}, ДобавитьОбработчикИсключений(() => {
+			name: name,
+			url: address
+		}, wrapErrors(() => {
 			if (chrome.runtime.lastError) {
 				console.error('cookies.remove', chrome.runtime.lastError.message);
-				м_Отладка.ЗавершитьРаботуИПоказатьСообщение('J0221');
+				debug.finishAndShowMessage('J0221');
 			}
-			фВыполнить();
+			execute();
 		}));
 	});
 }
 
-function ОткрытьАдресВНовойВкладке(сАдрес) {
-	window.open(сАдрес);
+function openAddressInNewTab(address) {
+	window.open(address);
 }
 
-function ЗаписатьТекстВЛокальныйФайл(сТекст, сТипДанных, сИмяФайла) {
-	Проверить(typeof сТекст == 'string' && ЭтоНепустаяСтрока(сТипДанных) && ЭтоНепустаяСтрока(сИмяФайла));
-	const узСсылка = document.createElement('a');
-	узСсылка.href = URL.createObjectURL(new Blob([ сТекст ], {
-		type: сТипДанных
+function writeTextToLocalFile(textString, dataTypeName, fileName) {
+	assert(typeof textString == 'string' && isNonEmptyString(dataTypeName) && isNonEmptyString(fileName));
+	const linkElement = document.createElement('a');
+	linkElement.href = URL.createObjectURL(new Blob([ textString ], {
+		type: dataTypeName
 	}));
-	узСсылка.download = сИмяФайла;
-	узСсылка.dispatchEvent(new MouseEvent('click'));
+	linkElement.download = fileName;
+	linkElement.dispatchEvent(new MouseEvent('click'));
 }
 
-function создатьОбработчикСобытийЭлемента(фВызвать) {
-	return ДобавитьОбработчикИсключений(оСобытие => {
-		if (оСобытие.target.nodeType === Node.ELEMENT_NODE) {
-			фВызвать(оСобытие);
+function createElementEventHandler(invokeCallback) {
+	return wrapErrors(event => {
+		if (event.target.nodeType === Node.ELEMENT_NODE) {
+			invokeCallback(event);
 		}
 	});
 }
 
-function ЭтоСобытиеДляСсылки(оСобытие) {
-	return !!оСобытие.target.closest('a[href]');
+function isEventForLink(event) {
+	return !!event.target.closest('a[href]');
 }
 
-function ЭлементВЭтойТочкеМожноПрокрутить(x, y) {
-	for (let узЭлемент = document.elementFromPoint(x, y); узЭлемент; узЭлемент = узЭлемент.parentElement) {
-		if (ЭтотЭлементМожноПрокрутить(узЭлемент)) {
+function canScrollElementAtPoint(x, y) {
+	for (let elementNode = document.elementFromPoint(x, y); elementNode; elementNode = elementNode.parentElement) {
+		if (canScrollElement(elementNode)) {
 			return true;
 		}
 	}
 	return false;
 }
 
-function ЭтотЭлементМожноПрокрутить(узЭлемент) {
-	const оСтиль = getComputedStyle(узЭлемент);
-	return (оСтиль.overflowY === 'scroll' || оСтиль.overflowY === 'auto') && узЭлемент.clientHeight < узЭлемент.scrollHeight;
+function canScrollElement(elementNode) {
+	const style = getComputedStyle(elementNode);
+	return (style.overflowY === 'scroll' || style.overflowY === 'auto') && elementNode.clientHeight < elementNode.scrollHeight;
 }
 
-function этотЭлементПолностьюПрокручен(элЭлемент) {
-	return элЭлемент.scrollHeight - элЭлемент.scrollTop - элЭлемент.clientHeight < 2;
+function isElementFullyScrolled(elementItem) {
+	return elementItem.scrollHeight - elementItem.scrollTop - elementItem.clientHeight < 2;
 }
 
-function ПоказатьЭлемент(пЭлемент, лПоказать) {
-	const узЭлемент = Узел(пЭлемент);
-	if (лПоказать) {
-		узЭлемент.removeAttribute('hidden');
+function showElement(elementValue, shouldShow) {
+	const elementNode = element(elementValue);
+	if (shouldShow) {
+		elementNode.removeAttribute('hidden');
 	} else {
-		узЭлемент.setAttribute('hidden', '');
+		elementNode.setAttribute('hidden', '');
 	}
-	return узЭлемент;
+	return elementNode;
 }
 
-function ЭлементПоказан(пЭлемент) {
-	return !Узел(пЭлемент).hasAttribute('hidden');
+function isElementShown(elementValue) {
+	return !element(elementValue).hasAttribute('hidden');
 }
 
-function ИзменитьКнопку(пКнопка, пСостояние) {
-	const узКнопка = Узел(пКнопка);
-	const чСостояние = Number(пСостояние);
-	const сузСостояния = узКнопка.getElementsByTagName('use');
-	Проверить(чСостояние >= 0 && чСостояние < сузСостояния.length);
-	for (let ы = 0; ы < сузСостояния.length; ++ы) {
-		if (ы === чСостояние) {
-			const сПодсказка = сузСостояния[ы].getAttributeNS('http://www.w3.org/1999/xlink', 'title');
-			if (сПодсказка) {
-				узКнопка.title = Текст(сПодсказка);
+function updateButton(button, state) {
+	const buttonElement = element(button);
+	const stateNumber = Number(state);
+	const stateElements = buttonElement.getElementsByTagName('use');
+	assert(stateNumber >= 0 && stateNumber < stateElements.length);
+	for (let yMarker = 0; yMarker < stateElements.length; ++yMarker) {
+		if (yMarker === stateNumber) {
+			const hintText = stateElements[yMarker].getAttributeNS('http://www.w3.org/1999/xlink', 'title');
+			if (hintText) {
+				buttonElement.title = getMessageText(hintText);
 			}
-			сузСостояния[ы].removeAttribute('display');
+			stateElements[yMarker].removeAttribute('display');
 		} else {
-			сузСостояния[ы].setAttribute('display', 'none');
+			stateElements[yMarker].setAttribute('display', 'none');
 		}
 	}
-	return узКнопка;
+	return buttonElement;
 }
 
-const м_Отладка = (() => {
-	const МАКС_ДЛИНА_СТРОКИ_ОТЧЕТА = 15e4;
-	let _сТокенТрансляции = '';
-	let _сТокенТрансляцииБезРекламы = '';
-	let _сСписокВариантов = '';
-	let _мсСпискиСегментов = [];
-	function ВставитьСсылкиДляСкачиванияФайлов(узФорма) {}
-	function ПоказатьСтраницу() {
+const debug = (() => {
+	const maxReportStringLength = 15e4;
+	let _streamToken = '';
+	let _adFreeStreamToken = '';
+	let _variantList = '';
+	let _segmentListsString = [];
+	function insertFileDownloadLinks(formElement) {}
+	function showPage() {
 		try {
-			м_ПолноэкранныйРежим.Отключить();
+			fullscreenMode.disable();
 		} catch (_) {}
 		document.body.textContent = '';
-		for (let уз of document.querySelectorAll('link[rel="stylesheet"], style')) {
-			уз.remove();
+		for (let elementRef of document.querySelectorAll('link[rel="stylesheet"], style')) {
+			elementRef.remove();
 		}
-		for (let уз of [ document.documentElement, document.body ]) {
-			уз.removeAttribute('class');
-			уз.removeAttribute('style');
-			уз.removeAttribute('hidden');
+		for (let elementRef of [ document.documentElement, document.body ]) {
+			elementRef.removeAttribute('class');
+			elementRef.removeAttribute('style');
+			elementRef.removeAttribute('hidden');
 		}
-		return new Promise(фВыполнить => {
-			const уз = document.createElement('iframe');
-			уз.src = 'report.html';
-			уз.style.position = 'fixed';
-			уз.style.top = '0';
-			уз.style.left = '0';
-			уз.style.width = '100%';
-			уз.style.height = '100%';
-			уз.style.zIndex = '100500';
-			уз.style.border = '0';
-			уз.addEventListener('load', () => {
-				м_i18n.TranslateDocument(уз.contentDocument);
-				фВыполнить(уз.contentDocument);
+		return new Promise(execute => {
+			const elementRef = document.createElement('iframe');
+			elementRef.src = 'report.html';
+			elementRef.style.position = 'fixed';
+			elementRef.style.top = '0';
+			elementRef.style.left = '0';
+			elementRef.style.width = '100%';
+			elementRef.style.height = '100%';
+			elementRef.style.zIndex = '100500';
+			elementRef.style.border = '0';
+			elementRef.addEventListener('load', () => {
+				i18n.TranslateDocument(elementRef.contentDocument);
+				execute(elementRef.contentDocument);
 			});
-			document.body.appendChild(уз);
+			document.body.appendChild(elementRef);
 		});
 	}
-	function ПоказатьФорму(оДокумент, сИдФормы, лНастроитьФон) {
-		if (лНастроитьФон) {
-			оДокумент.documentElement.classList.add(сИдФормы);
+	function showForm(document, formId, shouldSetupBackground) {
+		if (shouldSetupBackground) {
+			document.documentElement.classList.add(formId);
 		}
-		for (let узПоказатьИлиСкрыть, сузПоказатьИлиСкрыть = оДокумент.forms, ы = 0; узПоказатьИлиСкрыть = сузПоказатьИлиСкрыть[ы]; ++ы) {
-			if (узПоказатьИлиСкрыть.id === сИдФормы) {
-				ПоказатьЭлемент(узПоказатьИлиСкрыть, true);
-				const узФокус = узПоказатьИлиСкрыть.querySelector('[autofocus]');
-				if (узФокус) {
-					узФокус.focus();
+		for (let toggleElementVisibility, showOrHideElements = document.forms, yMarker = 0; toggleElementVisibility = showOrHideElements[yMarker]; ++yMarker) {
+			if (toggleElementVisibility.id === formId) {
+				showElement(toggleElementVisibility, true);
+				const focusElement = toggleElementVisibility.querySelector('[autofocus]');
+				if (focusElement) {
+					focusElement.focus();
 				}
 			} else {
-				ПоказатьЭлемент(узПоказатьИлиСкрыть, false);
+				showElement(toggleElementVisibility, false);
 			}
 		}
 	}
-	function ПоказатьСообщение(сСообщение, сКодСсылки, сАдресСсылки) {
-		ПоказатьСтраницу().then(оДокумент => {
-			оДокумент.getElementById('отладка-текстсообщения').textContent = сСообщение;
-			if (сКодСсылки) {
-				const элСсылка = оДокумент.getElementById('отладка-ссылкасообщения');
-				элСсылка.textContent = Текст(сКодСсылки);
-				элСсылка.href = сАдресСсылки;
+	function showMessage(messageText, linkCode, linkUrl) {
+		showPage().then(document => {
+			document.getElementById('debug-message-text').textContent = messageText;
+			if (linkCode) {
+				const link = document.getElementById('debug-message-link');
+				link.textContent = getMessageText(linkCode);
+				link.href = linkUrl;
 			}
-			ПоказатьФорму(оДокумент, 'отладка-сообщение', true);
+			showForm(document, 'debug-message', true);
 		});
 	}
-	function ПоказатьИОтправитьОтчет(оОтчет, буфОтправить) {
-		ПоказатьСтраницу().then(оДокумент => {
-			let узФорма;
-			if (оОтчет.ПричинаЗавершенияРаботы === 'ОТПРАВИТЬ ОТЗЫВ') {
-				узФорма = оДокумент.getElementById('отладка-отзыв');
+	function showAndSendReport(report, sendBuffer) {
+		showPage().then(document => {
+			let formElement;
+			if (report.terminationReason === 'ОТПРАВИТЬ ОТЗЫВ') {
+				formElement = document.getElementById('debug-feedback');
 			} else {
-				узФорма = оДокумент.getElementById('отладка-ошибка');
-				ВставитьСсылкиДляСкачиванияФайлов(узФорма);
+				formElement = document.getElementById('debug-error');
+				insertFileDownloadLinks(formElement);
 			}
-			узФорма.elements['отладка-отчет'].value = JSON.stringify(оОтчет);
-			ПоказатьФорму(оДокумент, узФорма.id, true);
-			оДокумент.addEventListener('reset', оСобытие => {
-				оСобытие.preventDefault();
+			formElement.elements['debug-report'].value = JSON.stringify(report);
+			showForm(document, formElement.id, true);
+			document.addEventListener('reset', event => {
+				event.preventDefault();
 				window.location.reload(true);
 			});
-			let оЗапрос, оДанные, чКод;
-			оДокумент.addEventListener('submit', оСобытие => {
-				оСобытие.preventDefault();
-				if (оСобытие.target.id === 'отладка-идетотправка') {
-					чКод = 200;
-					оЗапрос.abort();
+			let request, data, code;
+			document.addEventListener('submit', event => {
+				event.preventDefault();
+				if (event.target.id === 'debug-sending') {
+					code = 200;
+					request.abort();
 					return;
 				}
-				оДокумент.getElementById('отладка-ходотправки').value = 0;
-				ПоказатьФорму(оДокумент, 'отладка-идетотправка', false);
-				чКод = 0;
-				if (!оЗапрос) {
-					оЗапрос = new XMLHttpRequest();
-					оЗапрос.upload.addEventListener('progress', оСобытие => {
-						оДокумент.getElementById('отладка-ходотправки').value = оСобытие.loaded / оСобытие.total;
+				document.getElementById('debug-send-progress').value = 0;
+				showForm(document, 'debug-sending', false);
+				code = 0;
+				if (!request) {
+					request = new XMLHttpRequest();
+					request.upload.addEventListener('progress', event => {
+						document.getElementById('debug-send-progress').value = event.loaded / event.total;
 					});
-					оЗапрос.addEventListener('load', () => {
-						чКод = оЗапрос.status;
+					request.addEventListener('load', () => {
+						code = request.status;
 					});
-					оЗапрос.addEventListener('loadend', () => {
-						if (чКод >= 200 && чКод <= 299) {
+					request.addEventListener('loadend', () => {
+						if (code >= 200 && code <= 299) {
 							window.location.reload(true);
-						} else if (чКод === 474) {
-							показатьФорму('отладка-браузерустарел', true);
-						} else if (чКод >= 400 && чКод <= 499) {
-							ПоказатьФорму(оДокумент, 'отладка-версияустарела', true);
+						} else if (code === 474) {
+							showForm2('debug-browser-outdated', true);
+						} else if (code >= 400 && code <= 499) {
+							showForm(document, 'debug-version-outdated', true);
 						} else {
-							ПоказатьФорму(оДокумент, 'отладка-сбойотправки', true);
+							showForm(document, 'debug-send-failure', true);
 						}
 					});
-					оДанные = new FormData(узФорма);
-					if (буфОтправить) {
-						оДанные.append('отладка-транспортныйпоток-0', new Blob([ буфОтправить ], {
+					data = new FormData(formElement);
+					if (sendBuffer) {
+						data.append('debug-transport-stream-0', new Blob([ sendBuffer ], {
 							type: 'video/mp2t'
 						}));
 					}
 				}
 				//! This request sends a crash report or user feedback to the extension developer. The user can
-				//! view the contents of оОтчет and refuse to send it. See https://coolcmd.github.io/privacy.html
-								оЗапрос.open('POST', 'http://r90354g8.beget.tech/tw5/report3.php');
-				оЗапрос.send(оДанные);
+				//! view the contents of report and refuse to send it. See https://coolcmd.github.io/privacy.html
+								request.open('POST', 'http://r90354g8.beget.tech/tw5/report3.php');
+				request.send(data);
 			});
 		});
 	}
-	function сохранитьТокенТрансляции(сТокенТрансляции, лБезРекламы) {
-		сТокенТрансляции = ОграничитьДлинуСтроки(сТокенТрансляции, МАКС_ДЛИНА_СТРОКИ_ОТЧЕТА);
-		if (лБезРекламы) {
-			_сТокенТрансляцииБезРекламы = сТокенТрансляции;
+	function saveStreamToken(streamToken, isAdFree) {
+		streamToken = clampStringLength(streamToken, maxReportStringLength);
+		if (isAdFree) {
+			_adFreeStreamToken = streamToken;
 		} else {
-			_сТокенТрансляции = сТокенТрансляции;
+			_streamToken = streamToken;
 		}
 	}
-	function СохранитьСписокВариантов(сСписокВариантов) {
-		_сСписокВариантов = сСписокВариантов;
+	function saveVariantList(variantListString) {
+		_variantList = variantListString;
 	}
-	function СохранитьСписокСегментов(сСписокСегментов) {
-		if (_мсСпискиСегментов.length === 10) {
-			_мсСпискиСегментов.shift();
+	function saveSegmentList(segmentListString) {
+		if (_segmentListsString.length === 10) {
+			_segmentListsString.shift();
 		}
-		_мсСпискиСегментов.push(сСписокСегментов);
+		_segmentListsString.push(segmentListString);
 	}
-	function СохранитьТранспортныйПоток(оСегмент) {}
-	function СохранитьПреобразованныйСегмент(оСегмент) {}
-	function сжатьСписок(сСписок) {
-		return ОграничитьДлинуСтроки(сСписок.replace(/^(?:https?:\/\/|#EXT-X-TWITCH-PREFETCH:).+$/gm, сСтрока => ОграничитьДлинуСтроки(сСтрока, 100)), МАКС_ДЛИНА_СТРОКИ_ОТЧЕТА);
+	function saveTransportStream(segment) {}
+	function saveConvertedSegment(segment) {}
+	function compactList(listName) {
+		return clampStringLength(listName.replace(/^(?:https?:\/\/|#EXT-X-TWITCH-PREFETCH:).+$/gm, stringValue => clampStringLength(stringValue, 100)), maxReportStringLength);
 	}
-	function ОбнюхатьПроцессорИОперативку(фВызвать) {
-		const оПроцессорИОперативка = {
+	function detectCpuAndMemory(invokeCallback) {
+		const processorAndRam = {
 			capacity: navigator.deviceMemory,
 			numOfProcessors: navigator.hardwareConcurrency
 		};
 		if (performance.memory) {
-			оПроцессорИОперативка.jsHeapSizeLimit = Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024);
-			оПроцессорИОперативка.totalJSHeapSize = Math.round(performance.memory.totalJSHeapSize / 1024 / 1024);
-			оПроцессорИОперативка.usedJSHeapSize = Math.round(performance.memory.usedJSHeapSize / 1024 / 1024);
+			processorAndRam.jsHeapSizeLimit = Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024);
+			processorAndRam.totalJSHeapSize = Math.round(performance.memory.totalJSHeapSize / 1024 / 1024);
+			processorAndRam.usedJSHeapSize = Math.round(performance.memory.usedJSHeapSize / 1024 / 1024);
 		}
 		try {
-			chrome.system.memory.getInfo(оОперативка => {
+			chrome.system.memory.getInfo(ramCache => {
 				try {
-					оПроцессорИОперативка.capacity = Округлить(оОперативка.capacity / 1024 / 1024 / 1024, 1);
-					оПроцессорИОперативка.availableCapacity = Округлить(оОперативка.availableCapacity / 1024 / 1024 / 1024, 1);
-					chrome.system.cpu.getInfo(оПроцессор => {
+					processorAndRam.capacity = round(ramCache.capacity / 1024 / 1024 / 1024, 1);
+					processorAndRam.availableCapacity = round(ramCache.availableCapacity / 1024 / 1024 / 1024, 1);
+					chrome.system.cpu.getInfo(processor => {
 						try {
-							оПроцессорИОперативка.numOfProcessors = оПроцессор.numOfProcessors;
-							оПроцессорИОперативка.modelName = оПроцессор.modelName;
-							оПроцессорИОперативка.archName = оПроцессор.archName;
+							processorAndRam.numOfProcessors = processor.numOfProcessors;
+							processorAndRam.modelName = processor.modelName;
+							processorAndRam.archName = processor.archName;
 						} catch (_) {}
-						фВызвать(оПроцессорИОперативка);
+						invokeCallback(processorAndRam);
 					});
 				} catch (_) {
-					фВызвать(оПроцессорИОперативка);
+					invokeCallback(processorAndRam);
 				}
 			});
 		} catch (_) {
-			фВызвать(оПроцессорИОперативка);
+			invokeCallback(processorAndRam);
 		}
 	}
-	function ОбнюхатьВидюху() {
+	function detectGpu() {
 		try {
 			const oContext = document.createElement('canvas').getContext('webgl');
 			const oExtension = oContext.getExtension('WEBGL_debug_renderer_info');
 			return `${oContext.getParameter(oExtension.UNMASKED_VENDOR_WEBGL)} | ${oContext.getParameter(oExtension.UNMASKED_RENDERER_WEBGL)}`;
 		} catch (_) {}
 	}
-	function получитьПараметрыСоединения() {
-		const оСоединение = navigator.connection || {};
+	function getConnectionParams() {
+		const connection = navigator.connection || {};
 		return {
 			online: navigator.onLine,
-			effectiveType: оСоединение.effectiveType,
-			downlink: оСоединение.downlink,
-			rtt: оСоединение.rtt,
-			type: оСоединение.type,
-			downlinkMax: оСоединение.downlinkMax
+			effectiveType: connection.effectiveType,
+			downlink: connection.downlink,
+			rtt: connection.rtt,
+			type: connection.type,
+			downlinkMax: connection.downlinkMax
 		};
 	}
-	function ПолучитьЯзыки() {
+	function getLanguages() {
 		try {
-			return `${navigator.language} | ${navigator.languages} | ${Текст('J0103')}`;
+			return `${navigator.language} | ${navigator.languages} | ${getMessageText('J0103')}`;
 		} catch (_) {}
 	}
-	function ПолучитьУстановкиДаты() {
+	function getDateSettings() {
 		try {
-			const оУстановки = new Intl.DateTimeFormat().resolvedOptions();
-			оУстановки.timezoneOffset = new Date().getTimezoneOffset();
-			return оУстановки;
+			const settingsObject2 = new Intl.DateTimeFormat().resolvedOptions();
+			settingsObject2.timezoneOffset = new Date().getTimezoneOffset();
+			return settingsObject2;
 		} catch (_) {}
 	}
-	function СоздатьПоказатьИОтправитьОтчет(сПричинаЗавершенияРаботы, буфОтправить) {
-		ОбнюхатьПроцессорИОперативку(оПроцессорИОперативка => {
-			ПоказатьИОтправитьОтчет({
-				ПричинаЗавершенияРаботы: сПричинаЗавершенияРаботы,
-				ВерсияРасширения: ВЕРСИЯ_РАСШИРЕНИЯ,
-				Оборзеватель: navigator.userAgent,
-				Время: new Date().toISOString(),
-				Адрес: window.location.href,
-				Инкогнито: chrome.extension.inIncognitoContext,
-				Рассинхронизация: Date.now() - performance.now() - г_чТочноеВремя,
-				Фокусник: м_Фокусник.ПолучитьСостояние(),
-				Пульс: м_Пульс.ПолучитьДанныеДляОтчета(),
-				Настройки: м_Настройки.ПолучитьДанныеДляОтчета(),
-				Статистика: м_Статистика.ПолучитьДанныеДляОтчета(),
-				Языки: ПолучитьЯзыки(),
-				УстановкиДаты: ПолучитьУстановкиДаты(),
-				Соединение: получитьПараметрыСоединения(),
-				Видюха: ОбнюхатьВидюху(),
-				ПроцессорИОперативка: оПроцессорИОперативка,
-				ТочекКасания: navigator.maxTouchPoints,
-				Экран: {
+	function createShowAndSendReport(finishReason, sendBuffer) {
+		detectCpuAndMemory(processorAndRam => {
+			showAndSendReport({
+				terminationReason: finishReason,
+				extensionVersion3: extensionVersion,
+				daredevil: navigator.userAgent,
+				time2: new Date().toISOString(),
+				address2: window.location.href,
+				incognito: chrome.extension.inIncognitoContext,
+				desync: Date.now() - performance.now() - globalExactTimeMs,
+				magician: magicianModule.getState(),
+				pulse: pulseModule.getReportData(),
+				settingsReport: settings.getReportData(),
+				statsReport: stats.getReportData(),
+				languages: getLanguages(),
+				dateSettings: getDateSettings(),
+				connection2: getConnectionParams(),
+				gpu: detectGpu(),
+				cpuAndMemory: processorAndRam,
+				touchPoints: navigator.maxTouchPoints,
+				screen: {
 					top: window.screen.top,
 					left: window.screen.left,
 					width: window.screen.width,
@@ -514,667 +514,667 @@ const м_Отладка = (() => {
 					innerHeight: window.innerHeight,
 					devicePixelRatio: window.devicePixelRatio
 				},
-				ТокенТрансляции: _сТокенТрансляции,
-				ТокенТрансляцииБезРекламы: _сТокенТрансляцииБезРекламы,
-				СписокВариантов: сжатьСписок(_сСписокВариантов),
-				СпискиСегментов: _мсСпискиСегментов.map(сжатьСписок),
-				Журнал: м_Журнал.ПолучитьДанныеДляОтчета()
-			}, буфОтправить);
+				streamToken2: _streamToken,
+				adFreeStreamToken: _adFreeStreamToken,
+				variantList: compactList(_variantList),
+				segmentLists: _segmentListsString.map(compactList),
+				logReport: log.getReportData()
+			}, sendBuffer);
 		});
 	}
-	function ЗавершитьРаботуИПоказатьСообщение(сКодСообщения, сКодСсылки, сАдресСсылки) {
-		if (!г_лРаботаЗавершена) {
-			console.error(сКодСообщения);
-			ЗавершитьРаботу(false);
-			ПоказатьСообщение(Текст(сКодСообщения), сКодСсылки, сАдресСсылки);
+	function finishAndShowMessage(messageCode, linkCode, linkUrl) {
+		if (!globalIsWorkFinished) {
+			console.error(messageCode);
+			finishWork(false);
+			showMessage(getMessageText(messageCode), linkCode, linkUrl);
 		}
 		throw void 0;
 	}
-	function ЗавершитьРаботуИОтправитьОтчет(сПричинаЗавершенияРаботы, буфОтправить) {
-		if (!г_лРаботаЗавершена) {
-			console.error(сПричинаЗавершенияРаботы);
-			сПричинаЗавершенияРаботы = ОграничитьДлинуСтроки(String(сПричинаЗавершенияРаботы), МАКС_ДЛИНА_СТРОКИ_ОТЧЕТА);
-			if (сПричинаЗавершенияРаботы.includes('out of memory')) {
-				ЗавершитьРаботуИПоказатьСообщение('J0200');
+	function finishAndSendReport(finishReason, sendBuffer) {
+		if (!globalIsWorkFinished) {
+			console.error(finishReason);
+			finishReason = clampStringLength(String(finishReason), maxReportStringLength);
+			if (finishReason.includes('out of memory')) {
+				finishAndShowMessage('J0200');
 			}
 			try {
-				м_Проигрыватель.ПоказатьСостояние('Вот', 'Завершаю работу');
-				г_моОчередь.ПоказатьСостояние();
+				player.showState('logInfo', 'Finishing work');
+				globalQueue.showState();
 			} catch (_) {}
-			ЗавершитьРаботу(false);
-			СоздатьПоказатьИОтправитьОтчет(сПричинаЗавершенияРаботы, буфОтправить);
+			finishWork(false);
+			createShowAndSendReport(finishReason, sendBuffer);
 		}
 		throw void 0;
 	}
-	function ПойманоИсключение(пИсключение) {
-		ЗавершитьРаботуИОтправитьОтчет(ПеревестиИсключениеВСтроку(пИсключение));
+	function exceptionCaught(exception) {
+		finishAndSendReport(convertExceptionToString(exception));
 	}
-	function ЗавершитьРаботуИОтправитьОтзыв() {
+	function finishAndSendFeedback() {
 		try {
-			ЗавершитьРаботуИОтправитьОтчет('ОТПРАВИТЬ ОТЗЫВ');
+			finishAndSendReport('ОТПРАВИТЬ ОТЗЫВ');
 		} catch (_) {}
 	}
 	return {
-		ПойманоИсключение,
-		ЗавершитьРаботуИПоказатьСообщение,
-		ЗавершитьРаботуИОтправитьОтчет,
-		ЗавершитьРаботуИОтправитьОтзыв,
-		сохранитьТокенТрансляции,
-		СохранитьСписокВариантов,
-		СохранитьСписокСегментов,
-		СохранитьТранспортныйПоток,
-		СохранитьПреобразованныйСегмент
+		exceptionCaught,
+		finishAndShowMessage,
+		finishAndSendReport,
+		finishAndSendFeedback,
+		saveStreamToken,
+		saveVariantList,
+		saveSegmentList,
+		saveTransportStream,
+		saveConvertedSegment
 	};
 })();
 
-class ОтменаОбещания {
+class cancelPromise {
 	constructor() {
-		this.лОтменено = false;
-		this._фОбработчик = null;
+		this.isCancelled = false;
+		this._handler = null;
 	}
-	Отменить() {
-		this.лОтменено = true;
-		if (this._фОбработчик) {
-			this._фОбработчик();
-			this._фОбработчик = null;
+	cancel() {
+		this.isCancelled = true;
+		if (this._handler) {
+			this._handler();
+			this._handler = null;
 		}
 	}
-	ЗаменитьОбработчик(фОбработчик) {
-		Проверить(!this.лОтменено);
-		Проверить(typeof фОбработчик == 'function' || фОбработчик === null);
-		this._фОбработчик = фОбработчик;
+	replaceHandler(handler) {
+		assert(!this.isCancelled);
+		assert(typeof handler == 'function' || handler === null);
+		this._handler = handler;
 	}
 }
 
-ОтменаОбещания.ПРИЧИНА = new Error('ОБЕЩАНИЕ_ОТМЕНЕНО');
+cancelPromise.reason = new Error('PROMISE_CANCELED');
 
-function Ждать(оОтменаОбещания, чМиллисекунды) {
-	if (оОтменаОбещания && оОтменаОбещания.лОтменено) {
-		return Promise.reject(ОтменаОбещания.ПРИЧИНА);
+function wait(promiseCancellation, milliseconds) {
+	if (promiseCancellation && promiseCancellation.isCancelled) {
+		return Promise.reject(cancelPromise.reason);
 	}
-	if (чМиллисекунды === -Infinity) {
-		let оОбещание = Promise.resolve();
-		if (оОтменаОбещания) {
-			оОбещание = оОбещание.then(() => {
-				if (оОтменаОбещания.лОтменено) {
-					throw ОтменаОбещания.ПРИЧИНА;
+	if (milliseconds === -Infinity) {
+		let promise = Promise.resolve();
+		if (promiseCancellation) {
+			promise = promise.then(() => {
+				if (promiseCancellation.isCancelled) {
+					throw cancelPromise.reason;
 				}
 			});
 		}
-		return оОбещание;
+		return promise;
 	}
-	Проверить(Number.isFinite(чМиллисекунды));
-	чМиллисекунды = Math.round(чМиллисекунды);
-	Проверить(чМиллисекунды >= 0 && чМиллисекунды <= 2147483647);
-	if (оОтменаОбещания) {
-		return new Promise((фВыполнить, фОтказаться) => {
-			const чТаймер = setTimeout(() => {
-				оОтменаОбещания.ЗаменитьОбработчик(null);
-				фВыполнить();
-			}, чМиллисекунды);
-			оОтменаОбещания.ЗаменитьОбработчик(() => {
-				clearTimeout(чТаймер);
-				фОтказаться(ОтменаОбещания.ПРИЧИНА);
+	assert(Number.isFinite(milliseconds));
+	milliseconds = Math.round(milliseconds);
+	assert(milliseconds >= 0 && milliseconds <= 2147483647);
+	if (promiseCancellation) {
+		return new Promise((execute, reject) => {
+			const timerId = setTimeout(() => {
+				promiseCancellation.replaceHandler(null);
+				execute();
+			}, milliseconds);
+			promiseCancellation.replaceHandler(() => {
+				clearTimeout(timerId);
+				reject(cancelPromise.reason);
 			});
 		});
 	}
-	return new Promise(фВыполнить => {
-		setTimeout(фВыполнить, чМиллисекунды);
+	return new Promise(execute => {
+		setTimeout(execute, milliseconds);
 	});
 }
 
-class Сегмент {
-	constructor(чОбработка, пДанные, чДлительность, лРазрыв, чНомер) {
-		Проверить(typeof чОбработка == 'number' && чОбработка >= ОБРАБОТКА_ЖДЕТ_ЗАГРУЗКИ && чОбработка <= ОБРАБОТКА_ПРЕОБРАЗОВАН);
-		Проверить(typeof пДанные == 'number' && чОбработка >= ОБРАБОТКА_ЗАГРУЖЕН || typeof пДанные == 'string' && чОбработка === ОБРАБОТКА_ЖДЕТ_ЗАГРУЗКИ || ЭтоОбъект(пДанные) && чОбработка > ОБРАБОТКА_ЖДЕТ_ЗАГРУЗКИ);
+class segmentItem {
+	constructor(processingCount, dataValue, duration, isGap, number) {
+		assert(typeof processingCount == 'number' && processingCount >= processingAwaitingLoad && processingCount <= processingTransformed);
+		assert(typeof dataValue == 'number' && processingCount >= processingLoaded || typeof dataValue == 'string' && processingCount === processingAwaitingLoad || isObject(dataValue) && processingCount > processingAwaitingLoad);
 		switch (arguments.length) {
 		  case 2:
-			чДлительность = 0;
-			лРазрыв = true;
+			duration = 0;
+			isGap = true;
 
 		  case 4:
-			Проверить(Number.isFinite(чДлительность) && чДлительность >= 0);
-			Проверить(typeof лРазрыв == 'boolean');
-			чНомер = ++Сегмент._чНомер;
+			assert(Number.isFinite(duration) && duration >= 0);
+			assert(typeof isGap == 'boolean');
+			number = ++segmentItem._number;
 
 		  case 5:
-			Проверить(Number.isFinite(чНомер));
+			assert(Number.isFinite(number));
 			break;
 
 		  default:
-			Проверить(false);
+			assert(false);
 		}
-		if (typeof пДанные == 'number') {
-			м_Журнал.Окак(`[Очередь] Добавлен сегмент ${чНомер} Состояние=${пДанные} Обработка=${чОбработка}`);
+		if (typeof dataValue == 'number') {
+			log.logOk(`[Queue] Segment added ${number} State=${dataValue} Processing=${processingCount}`);
 		}
-		this.чОбработка = чОбработка;
-		this.пДанные = пДанные;
-		this.чДлительность = чДлительность;
-		this.лРазрыв = лРазрыв;
-		this.чНомер = чНомер;
+		this.processingCount = processingCount;
+		this.dataValue = dataValue;
+		this.duration = duration;
+		this.isGap = isGap;
+		this.number = number;
 	}
 	toString() {
-		if (typeof this.пДанные == 'number') {
-			return `${this.чНомер}-${this.чОбработка}-${this.пДанные}`;
+		if (typeof this.dataValue == 'number') {
+			return `${this.number}-${this.processingCount}-${this.dataValue}`;
 		}
-		if (this.лРазрыв) {
-			return `${this.чНомер}-${this.чОбработка}-Р`;
+		if (this.isGap) {
+			return `${this.number}-${this.processingCount}-G`;
 		}
-		return `${this.чНомер}-${this.чОбработка}`;
+		return `${this.number}-${this.processingCount}`;
 	}
 }
 
-Сегмент._чНомер = 0;
+segmentItem._number = 0;
 
-let г_моОчередь = [];
+let globalQueue = [];
 
-let г_лFMP4 = false;
-let г_сКодекиFMP4 = '';
-let г_оИнициализацияFMP4 = null;
-let г_бфИнициализацияFMP4 = null;
-let г_сАдресЗагруженнойИнициализацииFMP4 = '';
-let г_оОтменаЗагрузкиИнициализацииFMP4 = null;
-let г_лЕстьВидеоFMP4 = false;
-let г_лЕстьЗвукFMP4 = false;
+let globalIsFmp4 = false;
+let globalFmp4Codecs = '';
+let globalFmp4Initialization = null;
+let globalFmp4InitBuffer = null;
+let globalFmp4LoadedInitUrl = '';
+let globalFmp4InitLoadCancellation = null;
+let globalFmp4HasVideo = false;
+let globalFmp4HasAudio = false;
 
-function ЗагрузитьИнициализациюFMP4() {
-	if (!г_оИнициализацияFMP4 || г_оОтменаЗагрузкиИнициализацииFMP4) {
+function loadFmp4Init() {
+	if (!globalFmp4Initialization || globalFmp4InitLoadCancellation) {
 		return;
 	}
-	const сАдрес = г_оИнициализацияFMP4.сАдрес;
-	г_оОтменаЗагрузкиИнициализацииFMP4 = new ОтменаОбещания();
-	м_Загрузчик.Загрузить(г_оОтменаЗагрузкиИнициализацииFMP4, 'GET', сАдрес, 15e3, null, null, 'сегмент инициализации', false, 0).then(ДобавитьОбработчикИсключений(буф => {
-		г_оОтменаЗагрузкиИнициализацииFMP4 = null;
-		if (!г_лFMP4 || !г_оИнициализацияFMP4 || г_оИнициализацияFMP4.сАдрес !== сАдрес) {
+	const address = globalFmp4Initialization.address;
+	globalFmp4InitLoadCancellation = new cancelPromise();
+	loader.load(globalFmp4InitLoadCancellation, 'GET', address, 15e3, null, null, 'initialization segment', false, 0).then(wrapErrors(buffer2 => {
+		globalFmp4InitLoadCancellation = null;
+		if (!globalIsFmp4 || !globalFmp4Initialization || globalFmp4Initialization.address !== address) {
 			return;
 		}
-		г_бфИнициализацияFMP4 = буф;
-		г_сАдресЗагруженнойИнициализацииFMP4 = сАдрес;
-		м_Журнал.Окак(`[fMP4] Загружен сегмент инициализации ${буф.byteLength} байт`);
-		м_Преобразователь.ПреобразоватьСледующийСегмент();
-	})).catch(ДобавитьОбработчикИсключений(пПричина => {
-		г_оОтменаЗагрузкиИнициализацииFMP4 = null;
-		if (пПричина !== ОтменаОбещания.ПРИЧИНА) {
-			throw пПричина;
+		globalFmp4InitBuffer = buffer2;
+		globalFmp4LoadedInitUrl = address;
+		log.logOk(`[fMP4] Loaded initialization segment ${buffer2.byteLength} bytes`);
+		converterModule.convertNextSegment();
+	})).catch(wrapErrors(reasonValue => {
+		globalFmp4InitLoadCancellation = null;
+		if (reasonValue !== cancelPromise.reason) {
+			throw reasonValue;
 		}
 	}));
 }
 
-г_моОчередь.ПодсчитатьПреобразованныеСегменты = function() {
-	let кКоличество = 0, чДлительность = 0;
-	for (;кКоличество < this.length && this[кКоличество].чОбработка === ОБРАБОТКА_ПРЕОБРАЗОВАН; ++кКоличество) {
-		if (typeof this[кКоличество].пДанные != 'number') {
-			чДлительность += this[кКоличество].чДлительность;
+globalQueue.countConvertedSegments = function() {
+	let quantity = 0, duration = 0;
+	for (;quantity < this.length && this[quantity].processingCount === processingTransformed; ++quantity) {
+		if (typeof this[quantity].dataValue != 'number') {
+			duration += this[quantity].duration;
 		}
 	}
 	return {
-		кКоличество,
-		чДлительность
+		quantity,
+		duration
 	};
 };
 
-г_моОчередь.Добавить = function(оСегмент) {
-	Проверить(оСегмент instanceof Сегмент);
-	for (let о of this) {
-		Проверить(о.чНомер !== оСегмент.чНомер);
+globalQueue.add = function(segment) {
+	assert(segment instanceof segmentItem);
+	for (let objectRef of this) {
+		assert(objectRef.number !== segment.number);
 	}
-	if (оСегмент.чОбработка !== ОБРАБОТКА_ПРЕОБРАЗОВАН) {
-		this.push(оСегмент);
+	if (segment.processingCount !== processingTransformed) {
+		this.push(segment);
 	} else {
-		const {кКоличество, чДлительность} = this.ПодсчитатьПреобразованныеСегменты();
-		if (чДлительность > ПЕРЕПОЛНЕНИЕ_БУФЕРА * 1.5) {
-			м_Отладка.ЗавершитьРаботуИПоказатьСообщение('J0208');
+		const {quantity, duration} = this.countConvertedSegments();
+		if (duration > bufferOverflow * 1.5) {
+			debug.finishAndShowMessage('J0208');
 		}
-		this.splice(кКоличество, 0, оСегмент);
+		this.splice(quantity, 0, segment);
 	}
-	return оСегмент;
+	return segment;
 };
 
-г_моОчередь.Удалить = function(пЭлемент, кКоличество = 1) {
-	if (кКоличество === 0) {
+globalQueue.remove = function(elementValue, quantity = 1) {
+	if (quantity === 0) {
 		return;
 	}
-	Проверить(Number.isInteger(кКоличество) && кКоличество > 0);
-	let чИндекс;
-	if (typeof пЭлемент == 'number') {
-		Проверить(Number.isInteger(пЭлемент) && пЭлемент >= 0);
-		чИндекс = пЭлемент;
-	} else if ((чИндекс = this.indexOf(пЭлемент)) === -1) {
-		Проверить(пЭлемент instanceof Сегмент);
+	assert(Number.isInteger(quantity) && quantity > 0);
+	let index;
+	if (typeof elementValue == 'number') {
+		assert(Number.isInteger(elementValue) && elementValue >= 0);
+		index = elementValue;
+	} else if ((index = this.indexOf(elementValue)) === -1) {
+		assert(elementValue instanceof segmentItem);
 		return;
 	}
-	while (--кКоличество >= 0) {
-		Проверить(чИндекс < this.length);
-		switch (this[чИндекс].чОбработка) {
-		  case ОБРАБОТКА_ЗАГРУЖАЕТСЯ:
-			if (ЭтоОбъект(this[чИндекс].пДанные)) {
-				м_Журнал.Вот(`[Очередь] Отменяю загрузку ${this[чИндекс]}`);
-				this[чИндекс].пДанные.Отменить();
+	while (--quantity >= 0) {
+		assert(index < this.length);
+		switch (this[index].processingCount) {
+		  case processingLoading:
+			if (isObject(this[index].dataValue)) {
+				log.logInfo(`[Queue] Cancelling load of ${this[index]}`);
+				this[index].dataValue.cancel();
 			}
 			break;
 
-		  case ОБРАБОТКА_ЗАГРУЖЕН:
-			м_Помойка.Выбросить(this[чИндекс].пДанные);
+		  case processingLoaded:
+			trashModule.discard(this[index].dataValue);
 			break;
 
-		  case ОБРАБОТКА_ПРЕОБРАЗОВАН:
-			if (ЭтоОбъект(this[чИндекс].пДанные)) {
-				м_Помойка.Выбросить(this[чИндекс].пДанные.мбСегментИнициализации);
-				м_Помойка.Выбросить(this[чИндекс].пДанные.мбМедиасегмент);
+		  case processingTransformed:
+			if (isObject(this[index].dataValue)) {
+				trashModule.discard(this[index].dataValue.isInitSegment);
+				trashModule.discard(this[index].dataValue.mediaSegmentData);
 			}
 		}
-		м_Журнал.Вот(`[Очередь] Удаляю ${this[чИндекс]}`);
-		this.splice(чИндекс, 1);
+		log.logInfo(`[Queue] Removing ${this[index]}`);
+		this.splice(index, 1);
 	}
 };
 
-г_моОчередь.Очистить = function() {
-	this.Удалить(0, this.length);
+globalQueue.clear = function() {
+	this.remove(0, this.length);
 };
 
-г_моОчередь.ПоказатьСостояние = function() {
-	м_Журнал.Вот(`[Очередь] ${this.join(' ')}`);
+globalQueue.showState = function() {
+	log.logInfo(`[Queue] ${this.join(' ')}`);
 };
 
-class ВводЧисла {
-	constructor(сИмяНастройки, чШаг, чТочность, сИдУзла) {
-		Проверить(чТочность >= 0 && ЭтоНепустаяСтрока(сИдУзла));
-		this._сИмяНастройки = сИмяНастройки;
-		this._чШаг = чШаг;
-		this._чТочность = чТочность;
-		this._чДобавить = 0;
-		this._кИнтервал = 0;
-		this._чТаймер = 0;
-		м_События.ДобавитьОбработчик(`тащилка-перетаскивание-${сИдУзла}`, оПараметры => this._ОбработатьПеретаскивание(оПараметры));
-		this._узЧисло = document.querySelector(`#${сИдУзла} > .вводчисла-число`);
-		this.Обновить();
+class numberInput {
+	constructor(settingName, step, precision, nodeId) {
+		assert(precision >= 0 && isNonEmptyString(nodeId));
+		this._settingName = settingName;
+		this._stepNumber = step;
+		this._precision = precision;
+		this._addCount = 0;
+		this._intervalMs = 0;
+		this._timer = 0;
+		events.addHandler(`drag-handle-dragging-${nodeId}`, params => this._handleDrag(params));
+		this._numberElement = document.querySelector(`#${nodeId} > .number-input-value`);
+		this.update();
 	}
-	Обновить(чЗначение = м_Настройки.Получить(this._сИмяНастройки)) {
-		this._узЧисло.value = чЗначение === АВТОНАСТРОЙКА ? Текст(м_Настройки.ПолучитьПараметрыНастройки(this._сИмяНастройки).сАвтонастройка) : м_i18n.ФорматироватьЧисло(чЗначение, this._чТочность);
+	update(numericValue = settings.get(this._settingName)) {
+		this._numberElement.value = numericValue === autoTune ? getMessageText(settings.getSettingParam(this._settingName).autoTuneName) : i18n.formatNumber(numericValue, this._precision);
 	}
-	_ОбработатьПеретаскивание(оПараметры) {
-		const ИНТЕРВАЛ_ИЗМЕНЕНИЯ_ЗНАЧЕНИЯ = 130;
-		if (оПараметры.чШаг === 1) {
-			this._чДобавить = оПараметры.узНажат.classList.contains('вводчисла-минус') ? -this._чШаг : this._чШаг;
-			this._кИнтервал = 0;
-			this._чТаймер = setInterval(() => this._ОбработатьТаймер(), ИНТЕРВАЛ_ИЗМЕНЕНИЯ_ЗНАЧЕНИЯ);
-			this._ОбработатьТаймер();
+	_handleDrag(params) {
+		const VALUE_CHANGE_INTERVAL = 130;
+		if (params.step === 1) {
+			this._addCount = params.pressedElement.classList.contains('number-input-minus') ? -this._stepNumber : this._stepNumber;
+			this._intervalMs = 0;
+			this._timer = setInterval(() => this._handleTimer(), VALUE_CHANGE_INTERVAL);
+			this._handleTimer();
 		}
-		if (оПараметры.чШаг === 3) {
-			clearInterval(this._чТаймер);
+		if (params.step === 3) {
+			clearInterval(this._timer);
 		}
 	}
 }
 
-ВводЧисла.prototype._ОбработатьТаймер = ДобавитьОбработчикИсключений(function() {
-	const ЗАДЕРЖКА_ИЗМЕНЕНИЯ_ЗНАЧЕНИЯ = 3;
-	if (++this._кИнтервал == 1 || this._кИнтервал > ЗАДЕРЖКА_ИЗМЕНЕНИЯ_ЗНАЧЕНИЯ) {
-		const оПараметрыНастройки = м_Настройки.ПолучитьПараметрыНастройки(this._сИмяНастройки);
-		const чЗначение = м_Настройки.Получить(this._сИмяНастройки);
-		let чНовоеЗначение;
-		if (оПараметрыНастройки.сАвтонастройка && this._чДобавить < 0 && чЗначение === оПараметрыНастройки.чМинимальное || оПараметрыНастройки.сАвтонастройка && this._чДобавить > 0 && чЗначение === оПараметрыНастройки.чМаксимальное) {
-			чНовоеЗначение = АВТОНАСТРОЙКА;
-		} else if (чЗначение === АВТОНАСТРОЙКА && this._чДобавить > 0) {
-			чНовоеЗначение = оПараметрыНастройки.чМинимальное;
-		} else if (чЗначение === АВТОНАСТРОЙКА && this._чДобавить < 0) {
-			чНовоеЗначение = оПараметрыНастройки.чМаксимальное;
+numberInput.prototype._handleTimer = wrapErrors(function() {
+	const VALUE_CHANGE_DELAY = 3;
+	if (++this._intervalMs == 1 || this._intervalMs > VALUE_CHANGE_DELAY) {
+		const setupParams = settings.getSettingParam(this._settingName);
+		const numericValue = settings.get(this._settingName);
+		let newNumericValue;
+		if (setupParams.autoTuneName && this._addCount < 0 && numericValue === setupParams.minimumNumber || setupParams.autoTuneName && this._addCount > 0 && numericValue === setupParams.maximumNumber) {
+			newNumericValue = autoTune;
+		} else if (numericValue === autoTune && this._addCount > 0) {
+			newNumericValue = setupParams.minimumNumber;
+		} else if (numericValue === autoTune && this._addCount < 0) {
+			newNumericValue = setupParams.maximumNumber;
 		} else {
-			чНовоеЗначение = чЗначение + this._чДобавить;
+			newNumericValue = numericValue + this._addCount;
 		}
-		if (чНовоеЗначение !== АВТОНАСТРОЙКА) {
-			чНовоеЗначение = Ограничить(Округлить(чНовоеЗначение, this._чТочность), оПараметрыНастройки.чМинимальное, оПараметрыНастройки.чМаксимальное);
+		if (newNumericValue !== autoTune) {
+			newNumericValue = limit(round(newNumericValue, this._precision), setupParams.minimumNumber, setupParams.maximumNumber);
 		}
-		if (чНовоеЗначение !== чЗначение) {
-			м_Настройки.Изменить(this._сИмяНастройки, чНовоеЗначение);
-			this.Обновить(чНовоеЗначение);
-			this.ПослеИзменения(чНовоеЗначение);
+		if (newNumericValue !== numericValue) {
+			settings.set(this._settingName, newNumericValue);
+			this.update(newNumericValue);
+			this.afterChange(newNumericValue);
 		}
 	}
 });
 
-ВводЧисла.prototype.ПослеИзменения = ЗАГЛУШКА;
+numberInput.prototype.afterChange = placeholder;
 
-const м_События = (() => {
-	let _амОбработчики = new Map();
-	function ДобавитьОбработчик(сСобытие, фОбработчик) {
-		Проверить(ЭтоНепустаяСтрока(сСобытие));
-		Проверить(typeof фОбработчик == 'function' || ЭтоОбъект(фОбработчик));
-		let мноОбработчикиСобытия = _амОбработчики.get(сСобытие);
-		if (мноОбработчикиСобытия === void 0) {
-			мноОбработчикиСобытия = new Set();
-			_амОбработчики.set(сСобытие, мноОбработчикиСобытия);
+const events = (() => {
+	let _handlersMap = new Map();
+	function addHandler(eventName, handler) {
+		assert(isNonEmptyString(eventName));
+		assert(typeof handler == 'function' || isObject(handler));
+		let eventHandlers = _handlersMap.get(eventName);
+		if (eventHandlers === void 0) {
+			eventHandlers = new Set();
+			_handlersMap.set(eventName, eventHandlers);
 		}
-		мноОбработчикиСобытия.add(фОбработчик);
+		eventHandlers.add(handler);
 	}
-	function УдалитьОбработчик(сСобытие, фОбработчик) {
-		Проверить(ЭтоНепустаяСтрока(сСобытие));
-		Проверить(typeof фОбработчик == 'function' || ЭтоОбъект(фОбработчик));
-		const мноОбработчикиСобытия = _амОбработчики.get(сСобытие);
-		if (мноОбработчикиСобытия !== void 0) {
-			мноОбработчикиСобытия.delete(фОбработчик);
-			if (мноОбработчикиСобытия.size === 0) {
-				_амОбработчики.delete(сСобытие);
+	function removeHandler(eventName, handler) {
+		assert(isNonEmptyString(eventName));
+		assert(typeof handler == 'function' || isObject(handler));
+		const eventHandlers = _handlersMap.get(eventName);
+		if (eventHandlers !== void 0) {
+			eventHandlers.delete(handler);
+			if (eventHandlers.size === 0) {
+				_handlersMap.delete(eventName);
 			}
 		}
 	}
-	function ПослатьСобытие(сСобытие, пДанные) {
-		Проверить(ЭтоНепустаяСтрока(сСобытие));
-		м_Журнал.Вот(`[События] Произошло событие ${сСобытие}`);
-		const мноОбработчикиСобытия = _амОбработчики.get(сСобытие);
-		if (мноОбработчикиСобытия !== void 0) {
-			Проверить(мноОбработчикиСобытия.size !== 0);
-			let оСобытие;
-			for (let фОбработчик of мноОбработчикиСобытия.values()) {
-				if (typeof фОбработчик == 'function') {
-					фОбработчик(пДанные, сСобытие);
+	function sendEvent(eventName, dataValue) {
+		assert(isNonEmptyString(eventName));
+		log.logInfo(`[Events] Event occurred: ${eventName}`);
+		const eventHandlers = _handlersMap.get(eventName);
+		if (eventHandlers !== void 0) {
+			assert(eventHandlers.size !== 0);
+			let event;
+			for (let handler of eventHandlers.values()) {
+				if (typeof handler == 'function') {
+					handler(dataValue, eventName);
 				} else {
-					if (оСобытие === void 0) {
-						оСобытие = {
-							type: сСобытие,
-							data: пДанные
+					if (event === void 0) {
+						event = {
+							type: eventName,
+							data: dataValue
 						};
 					}
-					фОбработчик.handleEvent(оСобытие);
+					handler.handleEvent(event);
 				}
 			}
 		}
 	}
 	return {
-		ДобавитьОбработчик,
-		УдалитьОбработчик,
-		ПослатьСобытие
+		addHandler,
+		removeHandler,
+		sendEvent
 	};
 })();
 
-const м_Помойка = (() => {
-	class ПомойкаВКаналеСообщений {
+const trashModule = (() => {
+	class dumpsterInMessageChannel {
 		constructor() {
-			this._оКаналСообщений = null;
+			this._messageChannel = null;
 		}
-		Выбросить(пБарахло) {
-			if (ЭтоОбъект(пБарахло)) {
-				const буфБарахло = пБарахло.buffer ? пБарахло.buffer : пБарахло;
-				if (буфБарахло.byteLength) {
-					м_Журнал.Вот(`[Помойка] Выбрасываю ${буфБарахло.byteLength} байтов`);
-					if (this._оКаналСообщений === null) {
-						this._оКаналСообщений = new MessageChannel();
-						this._оКаналСообщений.port2.close();
+		discard(junkValue) {
+			if (isObject(junkValue)) {
+				const junkBuffer = junkValue.buffer ? junkValue.buffer : junkValue;
+				if (junkBuffer.byteLength) {
+					log.logInfo(`[Trash] Discarding ${junkBuffer.byteLength} bytes`);
+					if (this._messageChannel === null) {
+						this._messageChannel = new MessageChannel();
+						this._messageChannel.port2.close();
 					}
-					this._оКаналСообщений.port1.postMessage(буфБарахло, [ буфБарахло ]);
+					this._messageChannel.port1.postMessage(junkBuffer, [ junkBuffer ]);
 				}
 			}
 		}
-		Сжечь() {}
+		burn() {}
 	}
-	class ПомойкаВРабочемПотоке {
+	class dumpsterInWorker {
 		constructor() {
-			this._оРабочийПоток = null;
-			this._кбВПомойке = 0;
-			м_События.ДобавитьОбработчик('управление-изменилосьсостояние', чСостояние => {
-				if (чСостояние === СОСТОЯНИЕ_ЗАВЕРШЕНИЕ_ТРАНСЛЯЦИИ || чСостояние === СОСТОЯНИЕ_ОСТАНОВКА || чСостояние === СОСТОЯНИЕ_ПОВТОР) {
-					this.Сжечь();
+			this._worker = null;
+			this._trashByteCount = 0;
+			events.addHandler('control-state-changed', stateNumber => {
+				if (stateNumber === streamEndState || stateNumber === stoppedState || stateNumber === repeatState) {
+					this.burn();
 				}
 			});
 		}
-		Выбросить(пБарахло) {
-			const ВМЕСТИМОСТЬ_ПОМОЙКИ = 1e7;
-			if (ЭтоОбъект(пБарахло)) {
-				const буфБарахло = пБарахло.buffer ? пБарахло.buffer : пБарахло;
-				if (буфБарахло.byteLength) {
-					м_Журнал.Вот(`[Помойка] Выбрасываю ${буфБарахло.byteLength} байтов`);
-					if (this._оРабочийПоток === null) {
-						this._оРабочийПоток = new Worker('/recycler.js');
+		discard(junkValue) {
+			const DUMPSTER_CAPACITY = 1e7;
+			if (isObject(junkValue)) {
+				const junkBuffer = junkValue.buffer ? junkValue.buffer : junkValue;
+				if (junkBuffer.byteLength) {
+					log.logInfo(`[Trash] Discarding ${junkBuffer.byteLength} bytes`);
+					if (this._worker === null) {
+						this._worker = new Worker('/recycler.js');
 					}
-					this._кбВПомойке += буфБарахло.byteLength;
-					this._оРабочийПоток.postMessage(буфБарахло, [ буфБарахло ]);
-					if (this._кбВПомойке > ВМЕСТИМОСТЬ_ПОМОЙКИ) {
-						this.Сжечь();
+					this._trashByteCount += junkBuffer.byteLength;
+					this._worker.postMessage(junkBuffer, [ junkBuffer ]);
+					if (this._trashByteCount > DUMPSTER_CAPACITY) {
+						this.burn();
 					}
 				}
 			}
 		}
-		Сжечь() {
-			if (this._оРабочийПоток !== null) {
-				м_Журнал.Вот(`[Помойка] Сжигаю ${this._кбВПомойке} байтов`);
-				this._оРабочийПоток.postMessage(null);
-				this._оРабочийПоток = null;
-				this._кбВПомойке = 0;
+		burn() {
+			if (this._worker !== null) {
+				log.logInfo(`[Trash] Disposing ${this._trashByteCount} bytes`);
+				this._worker.postMessage(null);
+				this._worker = null;
+				this._trashByteCount = 0;
 			}
 		}
 	}
-	if (этоМобильноеУстройство()) {
+	if (isMobileDevice()) {
 		return {
-			Выбросить: ЗАГЛУШКА,
-			Сжечь: ЗАГЛУШКА
+			discard: placeholder,
+			burn: placeholder
 		};
 	}
-	return получитьВерсиюДвижкаБраузера() < 67 ? new ПомойкаВРабочемПотоке() : new ПомойкаВКаналеСообщений();
+	return getBrowserEngineVersion() < 67 ? new dumpsterInWorker() : new dumpsterInMessageChannel();
 })();
 
-const м_Фокусник = (() => {
-	let _оСостояние = ПолучитьНовоеСостояние();
-	function ПолучитьСостояние() {
-		return _оСостояние;
+const magicianModule = (() => {
+	let _state2 = getNewState();
+	function getState() {
+		return _state2;
 	}
-	function ПолучитьНовоеСостояние() {
-		const лПоказан = !document.hidden;
-		const лАктивен = лПоказан && document.hasFocus();
+	function getNewState() {
+		const isShown = !document.hidden;
+		const isActive = isShown && document.hasFocus();
 		return {
-			лПоказан,
-			лАктивен
+			isShown,
+			isActive
 		};
 	}
-	const ОбработатьСобытие = ДобавитьОбработчикИсключений(оСобытие => {
-		м_Журнал.Вот(`[Фокусник] Событие ${оСобытие.type}, старое состояние ${м_Журнал.O(_оСостояние)}`);
-		setTimeout(ОбновитьСостояние);
+	const handleEvent = wrapErrors(event => {
+		log.logInfo(`[Focus] Event ${event.type}, old state ${log.O(_state2)}`);
+		setTimeout(updateState);
 	});
-	const ОбновитьСостояние = ДобавитьОбработчикИсключений(() => {
-		const оНовоеСостояние = ПолучитьНовоеСостояние();
-		if (_оСостояние.лПоказан !== оНовоеСостояние.лПоказан || _оСостояние.лАктивен !== оНовоеСостояние.лАктивен) {
-			м_Журнал.Окак(`[Фокусник] Новое состояние ${м_Журнал.O(оНовоеСостояние)}`);
-			_оСостояние = оНовоеСостояние;
-			м_События.ПослатьСобытие('фокусник-изменилосьсостояние', оНовоеСостояние);
+	const updateState = wrapErrors(() => {
+		const nextState = getNewState();
+		if (_state2.isShown !== nextState.isShown || _state2.isActive !== nextState.isActive) {
+			log.logOk(`[Focus] New state ${log.O(nextState)}`);
+			_state2 = nextState;
+			events.sendEvent('focus-manager-state-changed', nextState);
 		}
 	});
-	м_Журнал.Вот(`[Фокусник] Начальное состояние ${м_Журнал.O(_оСостояние)}`);
-	document.addEventListener('visibilitychange', ОбработатьСобытие);
-	window.addEventListener('focus', ОбработатьСобытие);
-	window.addEventListener('blur', ОбработатьСобытие);
+	log.logInfo(`[Focus] Initial state ${log.O(_state2)}`);
+	document.addEventListener('visibilitychange', handleEvent);
+	window.addEventListener('focus', handleEvent);
+	window.addEventListener('blur', handleEvent);
 	return {
-		ПолучитьСостояние
+		getState
 	};
 })();
 
-const м_Пульс = (() => {
-	const ИНТЕРВАЛ_ПРОВЕРКИ = 970;
-	const МИН_ОТКЛОНЕНИЕ_ВРЕМЕНИ = -30;
-	const МАКС_ОТКЛОНЕНИЕ_ВРЕМЕНИ = 200;
-	const МАКС_ОТКЛОНЕНИЕ_ДАТЫ = 40;
-	let _чМаксимальноеОтклонение = 0;
-	let _чТаймер = 0;
-	let _чВремя;
-	let _чДата;
-	const ПроверитьПульс = ДобавитьОбработчикИсключений(() => {
-		const чВремя = performance.now();
-		const чДата = Date.now();
-		const чОтклонениеВремени = чВремя - _чВремя - ИНТЕРВАЛ_ПРОВЕРКИ;
-		const чОтклонениеДаты = чДата - _чДата - (чВремя - _чВремя);
-		if (чОтклонениеВремени < МИН_ОТКЛОНЕНИЕ_ВРЕМЕНИ || чОтклонениеВремени > МАКС_ОТКЛОНЕНИЕ_ВРЕМЕНИ || Math.abs(чОтклонениеДаты) > МАКС_ОТКЛОНЕНИЕ_ДАТЫ) {
-			м_Журнал.Ой(`[Пульс] ${м_Журнал.F0(чОтклонениеВремени)} ${м_Журнал.F0(чОтклонениеДаты)}`);
+const pulseModule = (() => {
+	const checkIntervalMs = 970;
+	const MIN_TIME_DEVIATION = -30;
+	const MAX_TIME_DEVIATION = 200;
+	const MAX_DATE_DEVIATION = 40;
+	let _maxDeviationMs = 0;
+	let _timer = 0;
+	let _timeMs;
+	let _timestampMs;
+	const assertHeartbeat = wrapErrors(() => {
+		const time = performance.now();
+		const dateValue2 = Date.now();
+		const timeDriftMs = time - _timeMs - checkIntervalMs;
+		const dateDeviation = dateValue2 - _timestampMs - (time - _timeMs);
+		if (timeDriftMs < MIN_TIME_DEVIATION || timeDriftMs > MAX_TIME_DEVIATION || Math.abs(dateDeviation) > MAX_DATE_DEVIATION) {
+			log.logError(`[Pulse] ${log.F0(timeDriftMs)} ${log.F0(dateDeviation)}`);
 		}
-		_чМаксимальноеОтклонение = Math.max(_чМаксимальноеОтклонение, чОтклонениеВремени);
-		_чВремя = чВремя;
-		_чДата = чДата;
-		_чТаймер = setTimeout(ПроверитьПульс, ИНТЕРВАЛ_ПРОВЕРКИ);
+		_maxDeviationMs = Math.max(_maxDeviationMs, timeDriftMs);
+		_timeMs = time;
+		_timestampMs = dateValue2;
+		_timer = setTimeout(assertHeartbeat, checkIntervalMs);
 	});
-	function ОбработатьИзменениеСостояния(чСостояние) {
-		if (чСостояние === СОСТОЯНИЕ_ЗАВЕРШЕНИЕ_ТРАНСЛЯЦИИ || чСостояние === СОСТОЯНИЕ_ОСТАНОВКА || чСостояние === СОСТОЯНИЕ_ПОВТОР) {
-			if (_чТаймер !== 0) {
-				м_Журнал.Вот('[Пульс] Таймер остановлен');
-				clearTimeout(_чТаймер);
-				_чТаймер = 0;
+	function handleStateChange(stateNumber) {
+		if (stateNumber === streamEndState || stateNumber === stoppedState || stateNumber === repeatState) {
+			if (_timer !== 0) {
+				log.logInfo('[Pulse] Timer stopped');
+				clearTimeout(_timer);
+				_timer = 0;
 			}
-		} else if (_чТаймер === 0) {
-			м_Журнал.Вот('[Пульс] Таймер запущен');
-			_чВремя = performance.now();
-			_чДата = Date.now();
-			_чТаймер = setTimeout(ПроверитьПульс, ИНТЕРВАЛ_ПРОВЕРКИ);
+		} else if (_timer === 0) {
+			log.logInfo('[Pulse] Timer started');
+			_timeMs = performance.now();
+			_timestampMs = Date.now();
+			_timer = setTimeout(assertHeartbeat, checkIntervalMs);
 		}
 	}
-	function ПолучитьДанныеДляОтчета() {
-		return _чМаксимальноеОтклонение;
+	function getReportData() {
+		return _maxDeviationMs;
 	}
-	м_События.ДобавитьОбработчик('управление-изменилосьсостояние', ОбработатьИзменениеСостояния);
+	events.addHandler('control-state-changed', handleStateChange);
 	return {
-		ПолучитьДанныеДляОтчета
+		getReportData
 	};
 })();
 
-const м_Статистика = (() => {
-	const ЧАСТОТА_ОБНОВЛЕНИЯ_СТАТИСТИКИ = 3;
-	const РАЗМЕР_ИСТОРИИ_СПИСКА = 30;
-	const РАЗМЕР_ИСТОРИИ_ЗАГРУЗКИ = 30;
-	const РАЗМЕР_ИСТОРИИ_БУФЕРА = 30;
-	const РАЗМЕР_ИСТОРИИ_РЕКЛАМЫ = 15;
-	const ВЫДЕЛИТЬ_ОЖИДАНИЕ_ОТВЕТА = 1;
-	const ВЫДЕЛИТЬ_ПРЕОБРАЗОВАНО = 2;
-	const ВЫДЕЛИТЬ_НЕ_ПРОСМОТРЕНО_МИН = 1;
-	const ВЫДЕЛИТЬ_НЕ_ПРОСМОТРЕНО_МАКС = .5;
-	const ВЫДЕЛИТЬ_ПРОПУЩЕННЫЕ_КАДРЫ = 100;
-	const ВЫДЕЛИТЬ_ЧАСТОТУ_КАДРОВ = .85;
-	const ВЫДЕЛИТЬ_ПОТЕРЮ_ВИДЕО_ОТН = 1 / 5;
-	const ВЫДЕЛИТЬ_ПОТЕРЮ_ВИДЕО_АБС = 300;
-	const ВЫДЕЛИТЬ_ИСЧЕРПАНИЕ_БУФЕРА = 5;
-	let _чТаймер = 0;
+const stats = (() => {
+	const STATS_UPDATE_FREQUENCY = 3;
+	const listHistorySize = 30;
+	const loadHistorySize = 30;
+	const BUFFER_HISTORY_SIZE = 30;
+	const AD_HISTORY_SIZE = 15;
+	const HIGHLIGHT_RESPONSE_WAIT = 1;
+	const HIGHLIGHT_CONVERTED = 2;
+	const HIGHLIGHT_NOT_VIEWED_MIN = 1;
+	const HIGHLIGHT_NOT_VIEWED_MAX = .5;
+	const HIGHLIGHT_DROPPED_FRAMES = 100;
+	const HIGHLIGHT_FRAME_RATE = .85;
+	const HIGHLIGHT_VIDEO_LOSS_RELATIVE = 1 / 5;
+	const HIGHLIGHT_VIDEO_LOSS_ABSOLUTE = 300;
+	const highlightBufferExhaustion = 5;
+	let _timer = 0;
 	let _nTargetDuration = 0;
-	let _чМинДлительностьВидеосемпла = -Infinity;
-	let _чМаксДлительностьВидеосемпла = +Infinity;
-	let _оИнтервалОбновления = null;
-	let _оСегментовДобавлено = null;
-	let _оСекундДобавлено = null;
-	let _оТолщинаСегмента = null;
-	let _оТолщинаКанала = null;
-	let _оОжиданиеОтвета = null;
-	let _оНеПросмотрено = null;
-	let _кИсходныхСегментов = 0;
-	let _кЗабракованныхСегментов = 0;
-	let _кбВсегоСкачано = 0;
-	let _кОшибокЗагрузки = 0;
-	let _кПропущенныхСегментов = 0;
-	let _кНезагруженныхСегментов = 0;
-	let _кПотерьВидео = 0;
-	let _кПотерьЗвука = 0;
-	let _кИсчерпанийБуфера = 0;
-	let _кИсчерпанийБуфераДосрочно = 0;
-	let _кПереполненийБуфера = 0;
-	let _чПропущеноВБуфере = 0;
-	let _кКоличествоРекламы = 0;
-	let _мчНачалоРекламы = [];
-	let _мчКонецРекламы = [];
-	let _чВремяПоследнегоОбновления;
-	function ВыделитьСегментовДобавлено(чЧисло) {
-		return чЧисло !== 1 && чЧисло !== 2;
+	let _minVideoSampleDurationMs = -Infinity;
+	let _maxVideoSampleDurationMs = +Infinity;
+	let _updateInterval = null;
+	let _segmentsAddedInfo = null;
+	let _secondsAddedInfo = null;
+	let _segmentThickness = null;
+	let _channelThickness = null;
+	let _responseWaitState = null;
+	let _unwatchedState = null;
+	let _sourceSegmentCount = 0;
+	let _rejectedSegmentCount = 0;
+	let _totalDownloadedKb = 0;
+	let _loadErrorCount = 0;
+	let _skippedSegmentCount = 0;
+	let _unloadedSegmentCount = 0;
+	let _videoLossCount = 0;
+	let _audioLossCount = 0;
+	let _bufferUnderrunCount = 0;
+	let _earlyBufferExhaustionCount = 0;
+	let _bufferOverflowCount = 0;
+	let _skippedInBufferCount = 0;
+	let _adCount = 0;
+	let _adStartCount = [];
+	let _adEndCount = [];
+	let _lastUpdateTimeMs;
+	function highlightAddedSegments(count) {
+		return count !== 1 && count !== 2;
 	}
-	function ВыделитьОжиданиеОтвета(чЧисло) {
-		return чЧисло >= ВЫДЕЛИТЬ_ОЖИДАНИЕ_ОТВЕТА;
+	function highlightResponseWait(count) {
+		return count >= HIGHLIGHT_RESPONSE_WAIT;
 	}
-	function ВыделитьНеПросмотрено(чЧисло) {
-		return чЧисло < ВЫДЕЛИТЬ_НЕ_ПРОСМОТРЕНО_МИН || чЧисло >= м_Настройки.Получить('чМаксРазмерБуфера') + м_Настройки.Получить('чРастягиваниеБуфера') * ВЫДЕЛИТЬ_НЕ_ПРОСМОТРЕНО_МАКС;
+	function selectUnwatched(count) {
+		return count < HIGHLIGHT_NOT_VIEWED_MIN || count >= settings.get('maxBufferSizeSetting') + settings.get('bufferStretchMs') * HIGHLIGHT_NOT_VIEWED_MAX;
 	}
-	class Анализ {
-		constructor(сИдУзла, чРазмерИстории, чТочность) {
-			Проверить(чРазмерИстории > 0 && чТочность >= 0);
-			this._узТаблица = Узел(сИдУзла);
-			this._мчИстория = new Array(чРазмерИстории);
-			this._млВыделить = new Array(чРазмерИстории);
-			this._чТочность = чТочность;
-			this._Очистить();
+	class analysis {
+		constructor(nodeId, historySize, precision) {
+			assert(historySize > 0 && precision >= 0);
+			this._tableElement = element(nodeId);
+			this._historyCount = new Array(historySize);
+			this._moduleSelectFlag = new Array(historySize);
+			this._precision = precision;
+			this._clear();
 		}
-		Освободить() {
-			this._узТаблица.textContent = '';
-			this._узТаблица = null;
+		release() {
+			this._tableElement.textContent = '';
+			this._tableElement = null;
 		}
-		Очистить() {
-			if (this._кЗаполнено !== 0) {
-				this._Очистить();
+		clear() {
+			if (this._filledCount !== 0) {
+				this._clear();
 			}
 		}
-		ПолучитьПоследнееЧисло(чЗаглушка) {
-			return this._кЗаполнено === 0 ? чЗаглушка : this._мчИстория[this._чИндекс];
+		getLastNumber(stub) {
+			return this._filledCount === 0 ? stub : this._historyCount[this._index];
 		}
-		ДобавитьЧисло(чЧисло, пВыделить, пВыделитьСреднее) {
-			const НАЧАЛО_ИСТОРИИ = 5;
-			const лВыделить = Boolean(typeof пВыделить == 'function' ? пВыделить(чЧисло) : пВыделить);
-			if (this._кЗаполнено !== 0) {
-				this._узТаблица.children[НАЧАЛО_ИСТОРИИ + this._чИндекс].classList.add('статистика-подробно');
+		addNumber(count, selectionValue, averageSelectionValue) {
+			const historyStart = 5;
+			const shouldSelect = Boolean(typeof selectionValue == 'function' ? selectionValue(count) : selectionValue);
+			if (this._filledCount !== 0) {
+				this._tableElement.children[historyStart + this._index].classList.add('stats-detailed');
 			}
-			if (this._кЗаполнено !== this._мчИстория.length) {
-				++this._кЗаполнено;
+			if (this._filledCount !== this._historyCount.length) {
+				++this._filledCount;
 			}
-			if (++this._чИндекс === this._мчИстория.length) {
-				this._чИндекс = 0;
+			if (++this._index === this._historyCount.length) {
+				this._index = 0;
 			}
-			this._мчИстория[this._чИндекс] = чЧисло;
-			this._млВыделить[this._чИндекс] = лВыделить;
-			let чМинимальноеЧисло = Infinity, лВыделитьМинимальное = false;
-			let чМаксимальноеЧисло = -Infinity, лВыделитьМаксимальное = false;
-			let чСреднееЧисло = 0, кЧисел = 0;
-			for (let ы = 0; ы < this._кЗаполнено; ++ы) {
-				if (Number.isFinite(this._мчИстория[ы])) {
-					if (this._мчИстория[ы] < чМинимальноеЧисло || this._мчИстория[ы] === чМинимальноеЧисло && this._млВыделить[ы]) {
-						чМинимальноеЧисло = this._мчИстория[ы];
-						лВыделитьМинимальное = this._млВыделить[ы];
+			this._historyCount[this._index] = count;
+			this._moduleSelectFlag[this._index] = shouldSelect;
+			let minNumber = Infinity, shouldHighlightMinimal = false;
+			let maxNumber = -Infinity, shouldHighlightMaximal = false;
+			let averageNumber = 0, numbersCount = 0;
+			for (let yMarker = 0; yMarker < this._filledCount; ++yMarker) {
+				if (Number.isFinite(this._historyCount[yMarker])) {
+					if (this._historyCount[yMarker] < minNumber || this._historyCount[yMarker] === minNumber && this._moduleSelectFlag[yMarker]) {
+						minNumber = this._historyCount[yMarker];
+						shouldHighlightMinimal = this._moduleSelectFlag[yMarker];
 					}
-					if (this._мчИстория[ы] > чМаксимальноеЧисло || this._мчИстория[ы] === чМаксимальноеЧисло && this._млВыделить[ы]) {
-						чМаксимальноеЧисло = this._мчИстория[ы];
-						лВыделитьМаксимальное = this._млВыделить[ы];
+					if (this._historyCount[yMarker] > maxNumber || this._historyCount[yMarker] === maxNumber && this._moduleSelectFlag[yMarker]) {
+						maxNumber = this._historyCount[yMarker];
+						shouldHighlightMaximal = this._moduleSelectFlag[yMarker];
 					}
-					чСреднееЧисло += this._мчИстория[ы];
-					++кЧисел;
+					averageNumber += this._historyCount[yMarker];
+					++numbersCount;
 				}
 			}
-			let лВыделитьСреднее;
-			if (кЧисел === 0) {
-				чСреднееЧисло = NaN;
-				лВыделитьСреднее = false;
+			let shouldSelectAverage;
+			if (numbersCount === 0) {
+				averageNumber = NaN;
+				shouldSelectAverage = false;
 			} else {
-				чСреднееЧисло /= кЧисел;
-				лВыделитьСреднее = Boolean(typeof пВыделитьСреднее == 'function' ? пВыделитьСреднее(чСреднееЧисло) : пВыделитьСреднее);
+				averageNumber /= numbersCount;
+				shouldSelectAverage = Boolean(typeof averageSelectionValue == 'function' ? averageSelectionValue(averageNumber) : averageSelectionValue);
 			}
-			ОбновитьЗначение(this._узТаблица.children[0], this._ВСтроку(чМинимальноеЧисло), лВыделитьМинимальное);
-			ОбновитьЗначение(this._узТаблица.children[2], this._ВСтроку(чСреднееЧисло), лВыделитьСреднее);
-			ОбновитьЗначение(this._узТаблица.children[4], this._ВСтроку(чМаксимальноеЧисло), лВыделитьМаксимальное);
-			ОбновитьЗначение(this._узТаблица.children[НАЧАЛО_ИСТОРИИ + this._чИндекс], this._ВСтроку(чЧисло), лВыделить).classList.remove('статистика-подробно');
-			return чСреднееЧисло;
+			updateValue(this._tableElement.children[0], this._toString(minNumber), shouldHighlightMinimal);
+			updateValue(this._tableElement.children[2], this._toString(averageNumber), shouldSelectAverage);
+			updateValue(this._tableElement.children[4], this._toString(maxNumber), shouldHighlightMaximal);
+			updateValue(this._tableElement.children[historyStart + this._index], this._toString(count), shouldSelect).classList.remove('stats-detailed');
+			return averageNumber;
 		}
-		_Очистить() {
-			this._кЗаполнено = 0;
-			this._чИндекс = -1;
-			const узФрагмент = document.createDocumentFragment();
-			узФрагмент.appendChild(document.createElement('td')).className = 'анализ-минимум';
-			узФрагмент.appendChild(document.createElement('td')).textContent = ' < ';
-			узФрагмент.lastChild.className = 'статистика-символ';
-			узФрагмент.appendChild(document.createElement('td')).className = 'анализ-среднее';
-			узФрагмент.appendChild(document.createElement('td')).textContent = ' < ';
-			узФрагмент.lastChild.className = 'статистика-символ';
-			узФрагмент.appendChild(document.createElement('td')).className = 'анализ-максимум';
-			for (let ы = this._мчИстория.length; --ы >= 0; ) {
-				узФрагмент.appendChild(document.createElement('td')).className = 'анализ-история статистика-подробно';
+		_clear() {
+			this._filledCount = 0;
+			this._index = -1;
+			const fragmentElement = document.createDocumentFragment();
+			fragmentElement.appendChild(document.createElement('td')).className = 'analysis-min';
+			fragmentElement.appendChild(document.createElement('td')).textContent = ' < ';
+			fragmentElement.lastChild.className = 'stats-symbol';
+			fragmentElement.appendChild(document.createElement('td')).className = 'analysis-average';
+			fragmentElement.appendChild(document.createElement('td')).textContent = ' < ';
+			fragmentElement.lastChild.className = 'stats-symbol';
+			fragmentElement.appendChild(document.createElement('td')).className = 'analysis-max';
+			for (let yMarker = this._historyCount.length; --yMarker >= 0; ) {
+				fragmentElement.appendChild(document.createElement('td')).className = 'analysis-history stats-detailed';
 			}
-			this._узТаблица.textContent = '';
-			this._узТаблица.appendChild(узФрагмент);
+			this._tableElement.textContent = '';
+			this._tableElement.appendChild(fragmentElement);
 		}
-		_ВСтроку(чЧисло) {
-			return Number.isFinite(чЧисло) ? чЧисло.toFixed(чЧисло < 100 ? this._чТочность : 0) : ' ';
+		_toString(count) {
+			return Number.isFinite(count) ? count.toFixed(count < 100 ? this._precision : 0) : ' ';
 		}
 	}
-	function ОбновитьЗначение(пЭлемент, пЗначение, лВыделить) {
-		const узЭлемент = Узел(пЭлемент);
-		узЭлемент.classList.toggle('статистика-выделить', лВыделить);
-		узЭлемент.textContent = пЗначение;
-		return узЭлемент;
+	function updateValue(elementValue, value, shouldSelect) {
+		const elementNode = element(elementValue);
+		elementNode.classList.toggle('stats-highlight', shouldSelect);
+		elementNode.textContent = value;
+		return elementNode;
 	}
-	function ПолучитьНазваниеПрофиляH264(nProfileIndication, nConstraintSetFlag) {
+	function getH264ProfileName(nProfileIndication, nConstraintSetFlag) {
 		switch (nProfileIndication) {
 		  case 66:
 			return (nConstraintSetFlag & 64) == 0 ? 'Baseline' : 'Constrained Baseline';
@@ -1207,488 +1207,488 @@ const м_Статистика = (() => {
 		  case 44:
 			return 'CAVLC 4:4:4 Intra';
 		}
-		м_Журнал.Ой(`[Статистика] Неизвестный профиль H.264 ProfileIndication=${nProfileIndication} ConstraintSetFlag=${nConstraintSetFlag}`);
+		log.logError(`[Stats] Unknown H.264 profile ProfileIndication=${nProfileIndication} ConstraintSetFlag=${nConstraintSetFlag}`);
 		return `P${nProfileIndication}C${nConstraintSetFlag}`;
 	}
-	function ОбновитьСтатистику() {
-		document.getElementById('статистика-длительностьпросмотра').textContent = м_i18n.ПеревестиСекундыВСтроку(performance.now() / 1e3, true);
-		const {droppedVideoFrames, totalVideoFrames} = м_Проигрыватель.ПолучитьКоличествоПропущенныхКадров();
-		ОбновитьЗначение('статистика-пропущено', droppedVideoFrames, droppedVideoFrames >= ВЫДЕЛИТЬ_ПРОПУЩЕННЫЕ_КАДРЫ).nextElementSibling.nextElementSibling.textContent = totalVideoFrames;
-		let чЖдетЗагрузки = 0, чЗагружается = 0, кПреобразовано = 0, чПреобразовано = 0;
-		for (let оСегмент of г_моОчередь) {
-			switch (оСегмент.чОбработка) {
-			  case ОБРАБОТКА_ЖДЕТ_ЗАГРУЗКИ:
-				чЖдетЗагрузки += оСегмент.чДлительность;
+	function updateStats() {
+		document.getElementById('stats-watch-duration').textContent = i18n.secondsToString(performance.now() / 1e3, true);
+		const {droppedVideoFrames, totalVideoFrames} = player.getDroppedFrameCount();
+		updateValue('stats-skipped', droppedVideoFrames, droppedVideoFrames >= HIGHLIGHT_DROPPED_FRAMES).nextElementSibling.nextElementSibling.textContent = totalVideoFrames;
+		let awaitingLoadCount = 0, loadingValue = 0, convertedCount = 0, convertedValue = 0;
+		for (let segment of globalQueue) {
+			switch (segment.processingCount) {
+			  case processingAwaitingLoad:
+				awaitingLoadCount += segment.duration;
 				break;
 
-			  case ОБРАБОТКА_ЗАГРУЖАЕТСЯ:
-			  case ОБРАБОТКА_ЗАГРУЖЕН:
-				чЗагружается += оСегмент.чДлительность;
+			  case processingLoading:
+			  case processingLoaded:
+				loadingValue += segment.duration;
 				break;
 
-			  case ОБРАБОТКА_ПРЕОБРАЗОВАН:
-				кПреобразовано++;
-				чПреобразовано += оСегмент.чДлительность;
+			  case processingTransformed:
+				convertedCount++;
+				convertedValue += segment.duration;
 				break;
 
 			  default:
-				Проверить(false);
+				assert(false);
 			}
 		}
-		const {чПросмотрено, чНеПросмотрено} = м_Проигрыватель.ПолучитьЗаполненностьБуфера();
-		let уз = ОбновитьЗначение('статистика-очередь', чЖдетЗагрузки.toFixed(1), чЖдетЗагрузки > м_Настройки.Получить('чМаксРазмерБуфера'));
-		уз = уз.nextElementSibling.nextElementSibling;
-		уз.textContent = чЗагружается.toFixed(1);
-		уз = уз.nextElementSibling;
-		ОбновитьЗначение(уз, чПреобразовано.toFixed(1), кПреобразовано >= ВЫДЕЛИТЬ_ПРЕОБРАЗОВАНО);
-		уз = уз.nextElementSibling;
-		ОбновитьЗначение(уз, чНеПросмотрено.toFixed(1), ВыделитьНеПросмотрено(чНеПросмотрено));
-		уз = уз.nextElementSibling.nextElementSibling;
-		уз.textContent = чПросмотрено.toFixed(1);
+		const {watchedCount, unwatchedCount} = player.getBufferFill();
+		let elementRef = updateValue('stats-queue', awaitingLoadCount.toFixed(1), awaitingLoadCount > settings.get('maxBufferSizeSetting'));
+		elementRef = elementRef.nextElementSibling.nextElementSibling;
+		elementRef.textContent = loadingValue.toFixed(1);
+		elementRef = elementRef.nextElementSibling;
+		updateValue(elementRef, convertedValue.toFixed(1), convertedCount >= HIGHLIGHT_CONVERTED);
+		elementRef = elementRef.nextElementSibling;
+		updateValue(elementRef, unwatchedCount.toFixed(1), selectUnwatched(unwatchedCount));
+		elementRef = elementRef.nextElementSibling.nextElementSibling;
+		elementRef.textContent = watchedCount.toFixed(1);
 	}
-	function ОкноОткрыто() {
-		return _чТаймер !== 0;
+	function isWindowOpen() {
+		return _timer !== 0;
 	}
-	function ОткрытьОкно() {
-		if (ОкноОткрыто()) {
+	function openWindow() {
+		if (isWindowOpen()) {
 			return;
 		}
-		_оИнтервалОбновления = new Анализ('статистика-интервалобновления', РАЗМЕР_ИСТОРИИ_СПИСКА, 1);
-		_оСегментовДобавлено = new Анализ('статистика-сегментовдобавлено', РАЗМЕР_ИСТОРИИ_СПИСКА, 0);
-		_оСекундДобавлено = new Анализ('статистика-секунддобавлено', РАЗМЕР_ИСТОРИИ_СПИСКА, 1);
-		_оТолщинаСегмента = new Анализ('статистика-толщинасегмента', РАЗМЕР_ИСТОРИИ_ЗАГРУЗКИ, 1);
-		_оТолщинаКанала = new Анализ('статистика-толщинаканала', РАЗМЕР_ИСТОРИИ_ЗАГРУЗКИ, 1);
-		_оОжиданиеОтвета = new Анализ('статистика-ожиданиеответа', РАЗМЕР_ИСТОРИИ_ЗАГРУЗКИ, 1);
-		_оНеПросмотрено = new Анализ('статистика-непросмотрено', РАЗМЕР_ИСТОРИИ_БУФЕРА, 1);
-		_чВремяПоследнегоОбновления = NaN;
-		Узел('статистика-количестворекламы').textContent = _кКоличествоРекламы;
-		Узел('статистика-частотарекламы').textContent = получитьЧастотуРекламы();
-		Узел('статистика-исходных').textContent = _кИсходныхСегментов;
-		ОбновитьЗначение('статистика-забракованных', _кЗабракованныхСегментов, _кЗабракованныхСегментов !== 0);
-		ОбновитьЗначение('статистика-ошибокзагрузки', _кОшибокЗагрузки, _кОшибокЗагрузки !== 0);
-		ОбновитьЗначение('статистика-пропущенныхсегментов', _кПропущенныхСегментов, _кПропущенныхСегментов !== 0);
-		Узел('статистика-незагруженныхсегментов').textContent = _кНезагруженныхСегментов;
-		ОбновитьЗначение('статистика-потерьвидео', _кПотерьВидео, _кПотерьВидео !== 0);
-		ОбновитьЗначение('статистика-потерьзвука', _кПотерьЗвука, _кПотерьЗвука !== 0);
-		ОбновитьЗначение('статистика-исчерпано', _кИсчерпанийБуфера, _кИсчерпанийБуфера >= ВЫДЕЛИТЬ_ИСЧЕРПАНИЕ_БУФЕРА);
-		ОбновитьЗначение('статистика-переполнено', _кПереполненийБуфера, _кПереполненийБуфера !== 0).nextElementSibling.nextElementSibling.textContent = _чПропущеноВБуфере.toFixed(1);
-		_чТаймер = setInterval(ДобавитьОбработчикИсключений(ОбновитьСтатистику), 1e3 / ЧАСТОТА_ОБНОВЛЕНИЯ_СТАТИСТИКИ);
-		ОбновитьСтатистику();
-		м_События.ДобавитьОбработчик('тащилка-перетаскивание-статистика', ОбработатьПеретаскиваниеОкна);
-		ПоказатьЭлемент('статистика', true);
-		м_Настройки.Изменить('лПоказатьСтатистику', true);
+		_updateInterval = new analysis('stats-update-interval', listHistorySize, 1);
+		_segmentsAddedInfo = new analysis('stats-segments-added', listHistorySize, 0);
+		_secondsAddedInfo = new analysis('stats-seconds-added', listHistorySize, 1);
+		_segmentThickness = new analysis('stats-segment-thickness', loadHistorySize, 1);
+		_channelThickness = new analysis('stats-channel-thickness', loadHistorySize, 1);
+		_responseWaitState = new analysis('stats-response-wait', loadHistorySize, 1);
+		_unwatchedState = new analysis('stats-unwatched', BUFFER_HISTORY_SIZE, 1);
+		_lastUpdateTimeMs = NaN;
+		element('stats-ad-count').textContent = _adCount;
+		element('stats-ad-frequency').textContent = getAdFrequency();
+		element('stats-original').textContent = _sourceSegmentCount;
+		updateValue('stats-rejected', _rejectedSegmentCount, _rejectedSegmentCount !== 0);
+		updateValue('stats-load-errors', _loadErrorCount, _loadErrorCount !== 0);
+		updateValue('stats-missed-segments', _skippedSegmentCount, _skippedSegmentCount !== 0);
+		element('stats-unloaded-segments').textContent = _unloadedSegmentCount;
+		updateValue('stats-video-loss', _videoLossCount, _videoLossCount !== 0);
+		updateValue('stats-audio-loss', _audioLossCount, _audioLossCount !== 0);
+		updateValue('stats-exhausted', _bufferUnderrunCount, _bufferUnderrunCount >= highlightBufferExhaustion);
+		updateValue('stats-overflowed', _bufferOverflowCount, _bufferOverflowCount !== 0).nextElementSibling.nextElementSibling.textContent = _skippedInBufferCount.toFixed(1);
+		_timer = setInterval(wrapErrors(updateStats), 1e3 / STATS_UPDATE_FREQUENCY);
+		updateStats();
+		events.addHandler('drag-handle-drag-stats', handleWindowDrag);
+		showElement('stats', true);
+		settings.set('shouldShowStats', true);
 	}
-	function ЗакрытьОкно() {
-		if (!ОкноОткрыто()) {
+	function closeWindow() {
+		if (!isWindowOpen()) {
 			return;
 		}
-		ПоказатьЭлемент('статистика', false);
-		_оИнтервалОбновления.Освободить();
-		_оИнтервалОбновления = null;
-		_оСегментовДобавлено.Освободить();
-		_оСегментовДобавлено = null;
-		_оСекундДобавлено.Освободить();
-		_оСекундДобавлено = null;
-		_оТолщинаСегмента.Освободить();
-		_оТолщинаСегмента = null;
-		_оТолщинаКанала.Освободить();
-		_оТолщинаКанала = null;
-		_оОжиданиеОтвета.Освободить();
-		_оОжиданиеОтвета = null;
-		_оНеПросмотрено.Освободить();
-		_оНеПросмотрено = null;
-		for (let уз of document.querySelectorAll('[data-очистить]')) {
-			уз.textContent = '';
+		showElement('stats', false);
+		_updateInterval.release();
+		_updateInterval = null;
+		_segmentsAddedInfo.release();
+		_segmentsAddedInfo = null;
+		_secondsAddedInfo.release();
+		_secondsAddedInfo = null;
+		_segmentThickness.release();
+		_segmentThickness = null;
+		_channelThickness.release();
+		_channelThickness = null;
+		_responseWaitState.release();
+		_responseWaitState = null;
+		_unwatchedState.release();
+		_unwatchedState = null;
+		for (let elementRef of document.querySelectorAll('[data-clear]')) {
+			elementRef.textContent = '';
 		}
-		clearInterval(_чТаймер);
-		_чТаймер = 0;
-		м_Настройки.Изменить('лПоказатьСтатистику', false);
+		clearInterval(_timer);
+		_timer = 0;
+		settings.set('shouldShowStats', false);
 	}
-	function ОбработатьПеретаскиваниеОкна(оПараметры) {
-		switch (оПараметры.чШаг) {
+	function handleWindowDrag(params) {
+		switch (params.step) {
 		  case 1:
-			const оСтиль = getComputedStyle(оПараметры.узТащится);
-			оПараметры._чНачальнаяX = Number.parseInt(оСтиль.left, 10);
-			оПараметры._чНачальнаяY = Number.parseInt(оСтиль.top, 10);
+			const style = getComputedStyle(params.draggedElement);
+			params._initialX = Number.parseInt(style.left, 10);
+			params._initialY = Number.parseInt(style.top, 10);
 			break;
 
 		  case 2:
-			оПараметры.узТащится.style.setProperty('--x', `${оПараметры._чНачальнаяX + оПараметры.чИзменениеX}px`);
-			оПараметры.узТащится.style.setProperty('--y', `${оПараметры._чНачальнаяY + оПараметры.чИзменениеY}px`);
+			params.draggedElement.style.setProperty('--x', `${params._initialX + params.deltaX}px`);
+			params.draggedElement.style.setProperty('--y', `${params._initialY + params.deltaY}px`);
 			break;
 
 		  case 3:
 			break;
 
 		  default:
-			Проверить(false);
+			assert(false);
 		}
 	}
-	function Запустить() {
-		if (м_Настройки.Получить('лПоказатьСтатистику')) {
-			ОткрытьОкно();
+	function start() {
+		if (settings.get('shouldShowStats')) {
+			openWindow();
 		}
 	}
-	function ОчиститьИсторию() {
-		if (_оИнтервалОбновления !== null) {
-			_оИнтервалОбновления.Очистить();
-			_оСегментовДобавлено.Очистить();
-			_оСекундДобавлено.Очистить();
-			_оТолщинаСегмента.Очистить();
-			_оТолщинаКанала.Очистить();
-			_оОжиданиеОтвета.Очистить();
-			_оНеПросмотрено.Очистить();
-			_чВремяПоследнегоОбновления = NaN;
+	function clearHistory() {
+		if (_updateInterval !== null) {
+			_updateInterval.clear();
+			_segmentsAddedInfo.clear();
+			_secondsAddedInfo.clear();
+			_segmentThickness.clear();
+			_channelThickness.clear();
+			_responseWaitState.clear();
+			_unwatchedState.clear();
+			_lastUpdateTimeMs = NaN;
 		}
-		ОбновитьЗначение('статистика-ошибокзагрузки', _кОшибокЗагрузки = 0, false);
-		ОбновитьЗначение('статистика-пропущенныхсегментов', _кПропущенныхСегментов = 0, false);
-		Узел('статистика-незагруженныхсегментов').textContent = _кНезагруженныхСегментов = 0;
-		ОбновитьЗначение('статистика-исчерпано', _кИсчерпанийБуфера = 0, false);
-		ОбновитьЗначение('статистика-переполнено', _кПереполненийБуфера = 0, false).nextElementSibling.nextElementSibling.textContent = (_чПропущеноВБуфере = 0).toFixed(1);
+		updateValue('stats-load-errors', _loadErrorCount = 0, false);
+		updateValue('stats-missed-segments', _skippedSegmentCount = 0, false);
+		element('stats-unloaded-segments').textContent = _unloadedSegmentCount = 0;
+		updateValue('stats-exhausted', _bufferUnderrunCount = 0, false);
+		updateValue('stats-overflowed', _bufferOverflowCount = 0, false).nextElementSibling.nextElementSibling.textContent = (_skippedInBufferCount = 0).toFixed(1);
 	}
-	function ПолучитьTargetDuration() {
+	function getTargetDuration() {
 		return _nTargetDuration;
 	}
-	function ПолучитьДлительностьКадраВСекундах() {
+	function getFrameDurationSeconds() {
 		return {
-			чМинимальная: Math.max(17, _чМинДлительностьВидеосемпла) / 1e3,
-			чМаксимальная: Math.min(1e3 / 25, _чМаксДлительностьВидеосемпла) / 1e3
+			min: Math.max(17, _minVideoSampleDurationMs) / 1e3,
+			max: Math.min(1e3 / 25, _maxVideoSampleDurationMs) / 1e3
 		};
 	}
-	function ПолучитьДанныеДляОтчета() {
+	function getReportData() {
 		return {
-			ПараметрыВидео: Узел('статистика-разрешениевидео').textContent + ' ' + Узел('статистика-сжатиевидео').textContent,
-			ПараметрыЗвука: Узел('статистика-сжатиезвука').textContent,
-			ЗабракованныхСегментов: _кЗабракованныхСегментов,
-			ПропущенныхСегментов: _кПропущенныхСегментов,
-			ОшибокЗагрузки: _кОшибокЗагрузки,
-			НезагруженныхСегментов: _кНезагруженныхСегментов,
-			ПотерьВидео: _кПотерьВидео,
-			ПотерьЗвука: _кПотерьЗвука,
-			ИсчерпанийБуфера: _кИсчерпанийБуфера,
-			ИсчерпанийБуфераДосрочно: _кИсчерпанийБуфераДосрочно,
-			ПереполненийБуфера: _кПереполненийБуфера,
-			ПропущеноВБуфере: _чПропущеноВБуфере,
-			Реклама: `${_кКоличествоРекламы} ${получитьЧастотуРекламы()}`
+			videoParams: element('stats-video-resolution').textContent + ' ' + element('stats-video-compression').textContent,
+			audioParams: element('stats-audio-compression').textContent,
+			rejectedSegments: _rejectedSegmentCount,
+			skippedSegments: _skippedSegmentCount,
+			loadErrors: _loadErrorCount,
+			unloadedSegments: _unloadedSegmentCount,
+			videoLoss: _videoLossCount,
+			audioLoss: _audioLossCount,
+			bufferExhaustions: _bufferUnderrunCount,
+			earlyBufferExhaustions: _earlyBufferExhaustionCount,
+			bufferOverflows: _bufferOverflowCount,
+			skippedInBuffer: _skippedInBufferCount,
+			ad: `${_adCount} ${getAdFrequency()}`
 		};
 	}
-	function РазобранСписокСегментов(оСписок) {
-		_nTargetDuration = оСписок.nTargetDuration;
-		if (ОкноОткрыто()) {
-			if (оСписок.моСегменты.length !== 0) {
-				Узел('статистика-сервер').textContent = new URL(оСписок.моСегменты[оСписок.моСегменты.length - 1].сАдрес).host;
+	function segmentListParsed(list) {
+		_nTargetDuration = list.nTargetDuration;
+		if (isWindowOpen()) {
+			if (list.segments.length !== 0) {
+				element('stats-server').textContent = new URL(list.segments[list.segments.length - 1].address).host;
 			}
-			const чДлительностьСписка = оСписок.моСегменты.reduce((чСумма, {чДлительность}) => чСумма + чДлительность, 0);
-			Узел('статистика-список').textContent = `${оСписок.моСегменты.length} × ${(чДлительностьСписка / оСписок.моСегменты.length).toFixed(1)} = ${чДлительностьСписка.toFixed(1)} − ${оСписок.кРекламныхСегментов}`;
-			Узел('статистика-targetduration').textContent = оСписок.nTargetDuration;
+			const listDurationMs = list.segments.reduce((sum, {duration}) => sum + duration, 0);
+			element('stats-list').textContent = `${list.segments.length} × ${(listDurationMs / list.segments.length).toFixed(1)} = ${listDurationMs.toFixed(1)} − ${list.adSegmentCount}`;
+			element('stats-target-duration').textContent = list.nTargetDuration;
 		}
 	}
-	function ДобавленыСегментыВОчередь(кСегментовДобавлено, кСекундДобавлено) {
-		if (ОкноОткрыто()) {
-			const чВремя = performance.now();
-			_оИнтервалОбновления.ДобавитьЧисло((чВремя - _чВремяПоследнегоОбновления) / 1e3);
-			_чВремяПоследнегоОбновления = чВремя;
-			_оСегментовДобавлено.ДобавитьЧисло(кСегментовДобавлено, ВыделитьСегментовДобавлено, ВыделитьСегментовДобавлено);
-			_оСекундДобавлено.ДобавитьЧисло(кСекундДобавлено);
+	function segmentsQueued(segmentsAddedCount, secondsAddedCount) {
+		if (isWindowOpen()) {
+			const time = performance.now();
+			_updateInterval.addNumber((time - _lastUpdateTimeMs) / 1e3);
+			_lastUpdateTimeMs = time;
+			_segmentsAddedInfo.addNumber(segmentsAddedCount, highlightAddedSegments, highlightAddedSegments);
+			_secondsAddedInfo.addNumber(secondsAddedCount);
 		}
 	}
-	function ПолученИсходныйСегмент() {
-		++_кИсходныхСегментов;
-		if (ОкноОткрыто()) {
-			document.getElementById('статистика-исходных').textContent = _кИсходныхСегментов;
+	function originalSegmentReceived() {
+		++_sourceSegmentCount;
+		if (isWindowOpen()) {
+			document.getElementById('stats-original').textContent = _sourceSegmentCount;
 		}
 	}
-	function ЗабракованСегмент() {
-		++_кЗабракованныхСегментов;
-		if (ОкноОткрыто()) {
-			ОбновитьЗначение('статистика-забракованных', _кЗабракованныхСегментов, true);
+	function segmentRejected() {
+		++_rejectedSegmentCount;
+		if (isWindowOpen()) {
+			updateValue('stats-rejected', _rejectedSegmentCount, true);
 		}
 	}
-	function СкачаноНечто(кбСкачано) {
-		if (Number.isFinite(кбСкачано)) {
-			_кбВсегоСкачано += кбСкачано;
-			if (ОкноОткрыто()) {
-				document.getElementById('статистика-скачано').textContent = (_кбВсегоСкачано / 1024 / 1024).toFixed();
+	function someDataDownloaded(downloadedKb) {
+		if (Number.isFinite(downloadedKb)) {
+			_totalDownloadedKb += downloadedKb;
+			if (isWindowOpen()) {
+				document.getElementById('stats-downloaded').textContent = (_totalDownloadedKb / 1024 / 1024).toFixed();
 			}
 		}
 	}
-	function ЗагруженСегмент(чРазмерСегмента, чДлительностьСегмента, чДлительностьЗагрузки, чОжиданиеОтвета) {
-		if (ОкноОткрыто()) {
-			const чСредняяТолщинаСегмента = _оТолщинаСегмента.ДобавитьЧисло(чРазмерСегмента * 8 / 1e6 / чДлительностьСегмента);
-			чДлительностьЗагрузки /= 1e3;
-			_оТолщинаКанала.ДобавитьЧисло(чРазмерСегмента * 8 / 1e6 / чДлительностьЗагрузки, чДлительностьЗагрузки > чДлительностьСегмента, чЧисло => чЧисло < чСредняяТолщинаСегмента);
-			_оОжиданиеОтвета.ДобавитьЧисло(чОжиданиеОтвета / 1e3, ВыделитьОжиданиеОтвета, ВыделитьОжиданиеОтвета);
+	function segmentLoaded(segmentSize, segmentDuration, loadDurationMs, responseWait) {
+		if (isWindowOpen()) {
+			const averageSegmentThickness = _segmentThickness.addNumber(segmentSize * 8 / 1e6 / segmentDuration);
+			loadDurationMs /= 1e3;
+			_channelThickness.addNumber(segmentSize * 8 / 1e6 / loadDurationMs, loadDurationMs > segmentDuration, count => count < averageSegmentThickness);
+			_responseWaitState.addNumber(responseWait / 1e3, highlightResponseWait, highlightResponseWait);
 		}
 	}
-	function НеЗагруженыСегменты(кНезагруженныхСегментов) {
-		Проверить(кНезагруженныхСегментов > 0);
-		_кОшибокЗагрузки++;
-		_кНезагруженныхСегментов += кНезагруженныхСегментов;
-		if (ОкноОткрыто()) {
-			ОбновитьЗначение('статистика-ошибокзагрузки', _кОшибокЗагрузки, true);
-			Узел('статистика-незагруженныхсегментов').textContent = _кНезагруженныхСегментов;
+	function segmentsNotLoaded(unloadedSegmentCount) {
+		assert(unloadedSegmentCount > 0);
+		_loadErrorCount++;
+		_unloadedSegmentCount += unloadedSegmentCount;
+		if (isWindowOpen()) {
+			updateValue('stats-load-errors', _loadErrorCount, true);
+			element('stats-unloaded-segments').textContent = _unloadedSegmentCount;
 		}
 	}
-	function пропущеныСегменты(кПропущенныхСегментов) {
-		Проверить(кПропущенныхСегментов > 0);
-		_кПропущенныхСегментов++;
-		_кНезагруженныхСегментов += кПропущенныхСегментов;
-		if (ОкноОткрыто()) {
-			ОбновитьЗначение('статистика-пропущенныхсегментов', _кПропущенныхСегментов, true);
-			Узел('статистика-незагруженныхсегментов').textContent = _кНезагруженныхСегментов;
+	function segmentsSkipped(skippedSegmentCount) {
+		assert(skippedSegmentCount > 0);
+		_skippedSegmentCount++;
+		_unloadedSegmentCount += skippedSegmentCount;
+		if (isWindowOpen()) {
+			updateValue('stats-missed-segments', _skippedSegmentCount, true);
+			element('stats-unloaded-segments').textContent = _unloadedSegmentCount;
 		}
 	}
-	function ПолученПреобразованныйСегмент(оСегмент) {
-		const лОкноОткрыто = ОкноОткрыто();
-		const оДанные = оСегмент.пДанные;
-		if (оДанные.hasOwnProperty('мбМедиасегмент')) {
-			if (оСегмент.лРазрыв) {
-				if (оДанные.лЕстьВидео) {
-					let сСжатиеВидео = 'H.264' + ` ${ПолучитьНазваниеПрофиляH264(оДанные.nProfileIndication, оДанные.nConstraintSetFlag)}` + ` L${(оДанные.nLevelIndication / 10).toFixed(1)}` + ` RF${оДанные.nMaxNumberReferenceFrames}`;
-					if (оДанные.чДиапазон !== -1) {
-						сСжатиеВидео += оДанные.чДиапазон === 0 ? ' 16-235' : ' 0-255';
+	function convertedSegmentReceived(segment) {
+		const isWindowOpen2 = isWindowOpen();
+		const data = segment.dataValue;
+		if (data.hasOwnProperty('mediaSegmentData')) {
+			if (segment.isGap) {
+				if (data.hasVideo) {
+					let videoCompression = 'H.264' + ` ${getH264ProfileName(data.nProfileIndication, data.nConstraintSetFlag)}` + ` L${(data.nLevelIndication / 10).toFixed(1)}` + ` RF${data.nMaxNumberReferenceFrames}`;
+					if (data.range !== -1) {
+						videoCompression += data.range === 0 ? ' 16-235' : ' 0-255';
 					}
-					if (оДанные.лЧересстрочное) {
-						сСжатиеВидео += ' чересстрочное';
+					if (data.isInterlaced) {
+						videoCompression += ' interlaced';
 					}
-					if (оДанные.чЧастотаКадров !== 0) {
-						сСжатиеВидео += ` ${оДанные.чЧастотаКадров < 0 ? '≈' : ''}${Math.abs(оДанные.чЧастотаКадров).toFixed(2)} ${Текст('J0140')}`;
+					if (data.frameRate !== 0) {
+						videoCompression += ` ${data.frameRate < 0 ? '≈' : ''}${Math.abs(data.frameRate).toFixed(2)} ${getMessageText('J0140')}`;
 					}
-					Узел('статистика-сжатиевидео').textContent = сСжатиеВидео;
-					Узел('статистика-разрешениевидео').textContent = `${оДанные.чШиринаКартинки}x${оДанные.чВысотаКартинки}`;
+					element('stats-video-compression').textContent = videoCompression;
+					element('stats-video-resolution').textContent = `${data.чШиринаКартинки}x${data.чВысотаКартинки}`;
 				} else {
-					Узел('статистика-сжатиевидео').textContent = '—';
-					Узел('статистика-разрешениевидео').textContent = '—';
+					element('stats-video-compression').textContent = '—';
+					element('stats-video-resolution').textContent = '—';
 				}
-				Узел('статистика-частотакадров').textContent = '';
-				if (оДанные.лЕстьЗвук) {
-					Узел('статистика-сжатиезвука').textContent = [ 'AAC-Main', 'AAC-LC', 'AAC-SSR', 'AAC-LTP' ][оДанные.nAudioObjectType - 1] + ` ${оДанные.чЧастотаДискретизации} ${Текст('J0141')}` + ` ${оДанные.чКоличествоКаналов} ${Текст('J0142')}`;
+				element('stats-frame-rate').textContent = '';
+				if (data.hasAudio) {
+					element('stats-audio-compression').textContent = [ 'AAC-Main', 'AAC-LC', 'AAC-SSR', 'AAC-LTP' ][data.nAudioObjectType - 1] + ` ${data.чЧастотаДискретизации} ${getMessageText('J0141')}` + ` ${data.чКоличествоКаналов} ${getMessageText('J0142')}`;
 				} else {
-					Узел('статистика-сжатиезвука').textContent = '—';
+					element('stats-audio-compression').textContent = '—';
 				}
-				Узел('статистика-битрейтзвука').textContent = '';
+				element('stats-audio-bitrate').textContent = '';
 			}
-			if (Number.isFinite(оДанные.чСредняяДлительностьВидеоСемпла)) {
-				_чМинДлительностьВидеосемпла = оДанные.чМинДлительностьВидеоСемпла;
-				_чМаксДлительностьВидеосемпла = оДанные.чМаксДлительностьВидеоСемпла;
-				Проверить(_чМинДлительностьВидеосемпла <= _чМаксДлительностьВидеосемпла);
-				const чОтносительноеОтклонение = оДанные.чСредняяДлительностьВидеоСемпла / оДанные.чМаксДлительностьВидеоСемпла;
-				const чАбсолютноеОтклонение = оДанные.чМаксДлительностьВидеоСемпла - оДанные.чСредняяДлительностьВидеоСемпла;
-				if (чОтносительноеОтклонение <= ВЫДЕЛИТЬ_ПОТЕРЮ_ВИДЕО_ОТН && чАбсолютноеОтклонение >= ВЫДЕЛИТЬ_ПОТЕРЮ_ВИДЕО_АБС) {
-					м_Журнал.Ой(`[Статистика] Превышено отклонение длительности кадра в сегменте ${оСегмент.чНомер}` + ` СредняяДлительностьКадра=${м_Журнал.F0(оДанные.чСредняяДлительностьВидеоСемпла)}мс` + ` АбсолютноеОтклонение=${м_Журнал.F0(чАбсолютноеОтклонение)}мс` + ` ОтносительноеОтклонение=${м_Журнал.F2(чОтносительноеОтклонение)}`);
-					оДанные.лПотериВидео = true;
+			if (Number.isFinite(data.avgVideoSampleDuration)) {
+				_minVideoSampleDurationMs = data.minVideoSampleDuration;
+				_maxVideoSampleDurationMs = data.maxVideoSampleDurationMs;
+				assert(_minVideoSampleDurationMs <= _maxVideoSampleDurationMs);
+				const relativeDeviation = data.avgVideoSampleDuration / data.maxVideoSampleDurationMs;
+				const absoluteDeviation = data.maxVideoSampleDurationMs - data.avgVideoSampleDuration;
+				if (relativeDeviation <= HIGHLIGHT_VIDEO_LOSS_RELATIVE && absoluteDeviation >= HIGHLIGHT_VIDEO_LOSS_ABSOLUTE) {
+					log.logError(`[Stats] Frame duration deviation exceeded in segment ${segment.number}` + ` AvgFrameDuration=${log.F0(data.avgVideoSampleDuration)}ms` + ` AbsoluteDeviation=${log.F0(absoluteDeviation)}ms` + ` RelativeDeviation=${log.F2(relativeDeviation)}`);
+					data.hasVideoLoss = true;
 				}
-				if (лОкноОткрыто) {
-					let сОтклонение = `@${(1e3 / оДанные.чСредняяДлительностьВидеоСемпла).toFixed(1)}`;
-					if (оДанные.чМаксДлительностьВидеоСемпла - оДанные.чМинДлительностьВидеоСемпла > 2) {
-						сОтклонение += ` −${(100 - оДанные.чСредняяДлительностьВидеоСемпла / оДанные.чМаксДлительностьВидеоСемпла * 100).toFixed()}%` + ` +${(оДанные.чСредняяДлительностьВидеоСемпла / оДанные.чМинДлительностьВидеоСемпла * 100 - 100).toFixed()}%`;
+				if (isWindowOpen2) {
+					let deviationText = `@${(1e3 / data.avgVideoSampleDuration).toFixed(1)}`;
+					if (data.maxVideoSampleDurationMs - data.minVideoSampleDuration > 2) {
+						deviationText += ` −${(100 - data.avgVideoSampleDuration / data.maxVideoSampleDurationMs * 100).toFixed()}%` + ` +${(data.avgVideoSampleDuration / data.minVideoSampleDuration * 100 - 100).toFixed()}%`;
 					}
-					ОбновитьЗначение('статистика-частотакадров', сОтклонение, чОтносительноеОтклонение <= ВЫДЕЛИТЬ_ЧАСТОТУ_КАДРОВ);
+					updateValue('stats-frame-rate', deviationText, relativeDeviation <= HIGHLIGHT_FRAME_RATE);
 				}
 			}
-			if (Number.isFinite(оДанные.чБитрейтЗвука) && лОкноОткрыто) {
-				Узел('статистика-битрейтзвука').textContent = `${оДанные.чБитрейтЗвука.toFixed()} ${Текст('J0143')}`;
+			if (Number.isFinite(data.audioBitrate) && isWindowOpen2) {
+				element('stats-audio-bitrate').textContent = `${data.audioBitrate.toFixed()} ${getMessageText('J0143')}`;
 			}
 		}
-		if (ЭтоЧисло(оДанные.чПреобразованЗа) && лОкноОткрыто) {
-			Узел('статистика-преобразованза').textContent = оДанные.чПреобразованЗа.toFixed();
+		if (thisNumber(data.conversionTime) && isWindowOpen2) {
+			element('stats-converted-in').textContent = data.conversionTime.toFixed();
 		}
-		if (оДанные.лЗабраковано) {
-			ЗабракованСегмент();
+		if (data.isRejected) {
+			segmentRejected();
 		}
-		if (оДанные.лПотериВидео) {
-			++_кПотерьВидео;
-			if (лОкноОткрыто) {
-				ОбновитьЗначение('статистика-потерьвидео', _кПотерьВидео, true);
+		if (data.hasVideoLoss) {
+			++_videoLossCount;
+			if (isWindowOpen2) {
+				updateValue('stats-video-loss', _videoLossCount, true);
 			}
 		}
-		if (оДанные.лПотериЗвука) {
-			++_кПотерьЗвука;
-			if (лОкноОткрыто) {
-				ОбновитьЗначение('статистика-потерьзвука', _кПотерьЗвука, true);
+		if (data.hasAudioLoss) {
+			++_audioLossCount;
+			if (isWindowOpen2) {
+				updateValue('stats-audio-loss', _audioLossCount, true);
 			}
 		}
 	}
-	function обновитьЗаполненностьБуфера(чНеПросмотрено) {
-		if (ОкноОткрыто()) {
-			_оНеПросмотрено.ДобавитьЧисло(чНеПросмотрено, ВыделитьНеПросмотрено, ВыделитьНеПросмотрено);
+	function updateBufferFullness(unwatchedCount) {
+		if (isWindowOpen()) {
+			_unwatchedState.addNumber(unwatchedCount, selectUnwatched, selectUnwatched);
 		}
 	}
-	function ИсчерпанБуферПроигрывателя(лДосрочно) {
-		++_кИсчерпанийБуфера;
-		if (лДосрочно) {
-			++_кИсчерпанийБуфераДосрочно;
+	function playerBufferExhausted(isEarly) {
+		++_bufferUnderrunCount;
+		if (isEarly) {
+			++_earlyBufferExhaustionCount;
 		}
-		if (ОкноОткрыто()) {
-			ОбновитьЗначение('статистика-исчерпано', _кИсчерпанийБуфера, _кИсчерпанийБуфера >= ВЫДЕЛИТЬ_ИСЧЕРПАНИЕ_БУФЕРА);
+		if (isWindowOpen()) {
+			updateValue('stats-exhausted', _bufferUnderrunCount, _bufferUnderrunCount >= highlightBufferExhaustion);
 		}
 	}
-	function получитьЧастотуРекламы() {
-		let сРезультат = '';
-		for (let ы = 0; ы < _мчНачалоРекламы.length; ++ы) {
-			if (ы !== 0) {
-				сРезультат += ` <${((_мчНачалоРекламы[ы] - _мчКонецРекламы[ы - 1]) / 1e3).toFixed()}> `;
+	function getAdFrequency() {
+		let resultText = '';
+		for (let yMarker = 0; yMarker < _adStartCount.length; ++yMarker) {
+			if (yMarker !== 0) {
+				resultText += ` <${((_adStartCount[yMarker] - _adEndCount[yMarker - 1]) / 1e3).toFixed()}> `;
 			}
-			if (ы < _мчКонецРекламы.length) {
-				сРезультат += ((_мчКонецРекламы[ы] - _мчНачалоРекламы[ы]) / 1e3).toFixed();
+			if (yMarker < _adEndCount.length) {
+				resultText += ((_adEndCount[yMarker] - _adStartCount[yMarker]) / 1e3).toFixed();
 			} else {
-				сРезультат += '?';
+				resultText += '?';
 			}
 		}
-		return сРезультат;
+		return resultText;
 	}
-	м_События.ДобавитьОбработчик('список-началорекламы', () => {
-		Проверить(_мчНачалоРекламы.length === _мчКонецРекламы.length);
-		_кКоличествоРекламы++;
-		_мчНачалоРекламы.push(performance.now());
-		if (ОкноОткрыто()) {
-			Узел('статистика-количестворекламы').textContent = _кКоличествоРекламы;
-			Узел('статистика-частотарекламы').textContent = получитьЧастотуРекламы();
+	events.addHandler('list-ad-start', () => {
+		assert(_adStartCount.length === _adEndCount.length);
+		_adCount++;
+		_adStartCount.push(performance.now());
+		if (isWindowOpen()) {
+			element('stats-ad-count').textContent = _adCount;
+			element('stats-ad-frequency').textContent = getAdFrequency();
 		}
 	});
-	м_События.ДобавитьОбработчик('список-конецрекламы', () => {
-		if (_мчНачалоРекламы.length !== _мчКонецРекламы.length) {
-			if (_мчКонецРекламы.length === РАЗМЕР_ИСТОРИИ_РЕКЛАМЫ) {
-				_мчНачалоРекламы.shift();
-				_мчКонецРекламы.shift();
+	events.addHandler('list-ad-end', () => {
+		if (_adStartCount.length !== _adEndCount.length) {
+			if (_adEndCount.length === AD_HISTORY_SIZE) {
+				_adStartCount.shift();
+				_adEndCount.shift();
 			}
-			_мчКонецРекламы.push(performance.now());
-			if (ОкноОткрыто()) {
-				Узел('статистика-частотарекламы').textContent = получитьЧастотуРекламы();
+			_adEndCount.push(performance.now());
+			if (isWindowOpen()) {
+				element('stats-ad-frequency').textContent = getAdFrequency();
 			}
 		}
 	});
-	м_События.ДобавитьОбработчик('проигрыватель-переполненбуфер', чПропущено => {
-		++_кПереполненийБуфера;
-		_чПропущеноВБуфере += чПропущено;
-		if (ОкноОткрыто()) {
-			ОбновитьЗначение('статистика-переполнено', _кПереполненийБуфера, true).nextElementSibling.nextElementSibling.textContent = _чПропущеноВБуфере.toFixed(1);
+	events.addHandler('player-buffer-overflow', skipped => {
+		++_bufferOverflowCount;
+		_skippedInBufferCount += skipped;
+		if (isWindowOpen()) {
+			updateValue('stats-overflowed', _bufferOverflowCount, true).nextElementSibling.nextElementSibling.textContent = _skippedInBufferCount.toFixed(1);
 		}
 	});
-	м_События.ДобавитьОбработчик('управление-изменилосьсостояние', чСостояние => {
-		if (чСостояние === СОСТОЯНИЕ_ЗАПУСК) {
-			ОчиститьИсторию();
+	events.addHandler('control-state-changed', stateNumber => {
+		if (stateNumber === launchState) {
+			clearHistory();
 		}
 	});
-	м_События.ДобавитьОбработчик('список-выбранварианттрансляции', ([моВарианты]) => {
-		if (моВарианты) {
-			ОчиститьИсторию();
+	events.addHandler('stream-variant-selected', ([options]) => {
+		if (options) {
+			clearHistory();
 		}
 	});
 	return {
-		Запустить,
-		ОкноОткрыто,
-		ОткрытьОкно,
-		ЗакрытьОкно,
-		ОбновитьЗначение,
-		ОчиститьИсторию,
-		ПолучитьTargetDuration,
-		ПолучитьДлительностьКадраВСекундах,
-		ПолучитьДанныеДляОтчета,
-		РазобранСписокСегментов,
-		ДобавленыСегментыВОчередь,
-		ПолученИсходныйСегмент,
-		ЗабракованСегмент,
-		СкачаноНечто,
-		ЗагруженСегмент,
-		НеЗагруженыСегменты,
-		пропущеныСегменты,
-		ПолученПреобразованныйСегмент,
-		обновитьЗаполненностьБуфера,
-		ИсчерпанБуферПроигрывателя
+		start,
+		isWindowOpen,
+		openWindow,
+		closeWindow,
+		updateValue,
+		clearHistory,
+		getTargetDuration,
+		getFrameDurationSeconds,
+		getReportData,
+		segmentListParsed,
+		segmentsQueued,
+		originalSegmentReceived,
+		segmentRejected,
+		someDataDownloaded,
+		segmentLoaded,
+		segmentsNotLoaded,
+		segmentsSkipped,
+		convertedSegmentReceived,
+		updateBufferFullness,
+		playerBufferExhausted
 	};
 })();
 
-const м_Окно = (() => {
-	function получитьОткрытое() {
-		return document.body.getAttribute('data-окно-открыто') || '';
+const windowModule = (() => {
+	function getOpenState() {
+		return document.body.getAttribute('data-window-opened') || '';
 	}
-	function открытьОкно(сИдОкна) {
-		const элОкно = Узел(сИдОкна);
-		Проверить(элОкно.classList.contains('окно'));
-		элОкно.classList.add('окнооткрыто', 'анимацияокна');
-		document.body.setAttribute('data-окно-открыто', сИдОкна);
-		м_События.ПослатьСобытие(`окно-открыто-${сИдОкна}`);
+	function openWindow2(windowId) {
+		const windowElement = element(windowId);
+		assert(windowElement.classList.contains('window'));
+		windowElement.classList.add('window-open', 'window-animation');
+		document.body.setAttribute('data-window-opened', windowId);
+		events.sendEvent(`window-opened-${windowId}`);
 	}
-	function закрытьОкно(сИдОкна, лСАнимацией = true) {
-		const элОкно = Узел(сИдОкна);
-		Проверить(элОкно.classList.contains('окно'));
-		элОкно.classList.remove('окнооткрыто');
-		элОкно.classList.toggle('анимацияокна', лСАнимацией);
-		document.body.removeAttribute('data-окно-открыто');
+	function closePlayerWindow(windowId, isAnimated = true) {
+		const windowElement = element(windowId);
+		assert(windowElement.classList.contains('window'));
+		windowElement.classList.remove('window-open');
+		windowElement.classList.toggle('window-animation', isAnimated);
+		document.body.removeAttribute('data-window-opened');
 	}
-	function открыть(сИдОкна) {
-		Проверить(ЭтоНепустаяСтрока(сИдОкна));
-		const сИдОткрытогоОкна = получитьОткрытое();
-		if (сИдОкна === сИдОткрытогоОкна) {
+	function open(windowId) {
+		assert(isNonEmptyString(windowId));
+		const openWindowId = getOpenState();
+		if (windowId === openWindowId) {
 			return false;
 		}
-		if (сИдОткрытогоОкна) {
-			закрытьОкно(сИдОткрытогоОкна);
+		if (openWindowId) {
+			closePlayerWindow(openWindowId);
 		}
-		открытьОкно(сИдОкна);
+		openWindow2(windowId);
 		return true;
 	}
-	function закрыть(лСАнимацией = true) {
-		const сИдОткрытогоОкна = получитьОткрытое();
-		if (сИдОткрытогоОкна) {
-			закрытьОкно(сИдОткрытогоОкна, лСАнимацией);
+	function close(isAnimated = true) {
+		const openWindowId = getOpenState();
+		if (openWindowId) {
+			closePlayerWindow(openWindowId, isAnimated);
 		}
 	}
-	function переключить(сИдОкна) {
-		открыть(сИдОкна) || закрытьОкно(сИдОкна);
+	function toggle(windowId) {
+		open(windowId) || closePlayerWindow(windowId);
 	}
-	function настроитьИндикаторПрокрутки(пПрокрутка) {
-		const элПрокрутка = Узел(пПрокрутка);
-		элПрокрутка.scrollTop = 0;
-		обновитьИндикаторПрокрутки(элПрокрутка);
+	function setupScrollIndicator(scroll) {
+		const scrollElement = element(scroll);
+		scrollElement.scrollTop = 0;
+		updateScrollIndicator(scrollElement);
 	}
-	function обновитьИндикаторПрокрутки(элПрокрутка) {
-		const лПоказать = !этотЭлементПолностьюПрокручен(элПрокрутка);
-		ПоказатьЭлемент(Узел(`индикаторпрокрутки-${элПрокрутка.id}`), лПоказать);
-		элПрокрутка[лПоказать ? 'addEventListener' : 'removeEventListener']('scroll', обработатьПрокрутку);
+	function updateScrollIndicator(scrollElement) {
+		const shouldShow = !isElementFullyScrolled(scrollElement);
+		showElement(element(`scroll-indicator-${scrollElement.id}`), shouldShow);
+		scrollElement[shouldShow ? 'addEventListener' : 'removeEventListener']('scroll', handleScroll);
 	}
-	const обработатьПрокрутку = ДобавитьОбработчикИсключений(оСобытие => {
-		обновитьИндикаторПрокрутки(оСобытие.target);
+	const handleScroll = wrapErrors(event => {
+		updateScrollIndicator(event.target);
 	});
-	м_События.ДобавитьОбработчик('управление-левыйщелчок', ({target: элЩелчок}) => {
-		const сИдОкна = элЩелчок.getAttribute('data-окно-переключить');
-		if (сИдОкна) {
-			переключить(сИдОкна);
+	events.addHandler('control-left-click', ({target: clickElement}) => {
+		const windowId = clickElement.getAttribute('data-window-toggle');
+		if (windowId) {
+			toggle(windowId);
 			return;
 		}
-		const сИдОткрытогоОкна = получитьОткрытое();
-		if (сИдОткрытогоОкна && !Узел(сИдОткрытогоОкна).contains(элЩелчок) && Узел('проигрыватель').contains(элЩелчок)) {
-			закрытьОкно(сИдОткрытогоОкна);
+		const openWindowId = getOpenState();
+		if (openWindowId && !element(openWindowId).contains(clickElement) && element('player').contains(clickElement)) {
+			closePlayerWindow(openWindowId);
 		}
 	});
 	return {
-		открыть,
-		закрыть,
-		переключить,
-		настроитьИндикаторПрокрутки
+		open,
+		close,
+		toggle,
+		setupScrollIndicator
 	};
 })();
 
-const м_Меню = (() => {
-	function задатьДоступностьПункта(пПункт, лДоступен) {
-		Узел(пПункт).tabIndex = лДоступен ? 0 : -1;
+const menu = (() => {
+	function setItemAvailability(item, isAvailable) {
+		element(item).tabIndex = isAvailable ? 0 : -1;
 	}
-	Узел('глаз').addEventListener('contextmenu', оСобытие => {
-		оСобытие.preventDefault();
-		м_Окно.переключить('главноеменю');
+	element('eye').addEventListener('contextmenu', event => {
+		event.preventDefault();
+		windowModule.toggle('main-menu');
 	});
-	м_События.ДобавитьОбработчик('управление-левыйщелчок', оСобытие => {
-		if (оСобытие.target.classList.contains('меню-пункт')) {
-			м_Окно.закрыть(false);
+	events.addHandler('control-left-click', event => {
+		if (event.target.classList.contains('menu-item')) {
+			windowModule.close(false);
 		}
 	});
 	return {
-		задатьДоступностьПункта
+		setItemAvailability
 	};
 })();
 
-const м_ПолноэкранныйРежим = (() => {
+const fullscreenMode = (() => {
 	let _sRequestFullscreen = 'requestFullscreen';
 	let _sExitFullscreen = 'exitFullscreen';
 	let _sFullscreenElement = 'fullscreenElement';
@@ -1699,1024 +1699,1036 @@ const м_ПолноэкранныйРежим = (() => {
 		_sFullscreenElement = 'webkitFullscreenElement';
 		_sFullscreenchange = 'webkitfullscreenchange';
 	}
-	const ОбработатьИзменениеРежима = ДобавитьОбработчикИсключений(() => {
-		м_События.ПослатьСобытие('полноэкранныйрежим-изменен', Обновить());
+	const handleModeChange2 = wrapErrors(() => {
+		events.sendEvent('fullscreen-mode-changed', update());
 	});
-	const ОбработатьДвойнойЩелчок = ДобавитьОбработчикИсключений(оСобытие => {
-		if (оСобытие.button === ЛЕВАЯ_КНОПКА) {
-			оСобытие.preventDefault();
-			Переключить();
+	const handleDoubleClick = wrapErrors(event => {
+		if (event.button === leftButton) {
+			event.preventDefault();
+			toggle2();
 		}
 	});
-	function ПолучитьЭлемент() {
-		return Узел('проигрывательичат');
+	function getElement() {
+		return element('player-and-chat');
 	}
-	function Включен() {
+	function isEnabled2() {
 		return !!document[_sFullscreenElement];
 	}
-	function Обновить() {
-		const лВключен = Включен();
-		м_Журнал.Окак(`[ПолноэкранныйРежим] Режим включен: ${лВключен}`);
-		ИзменитьКнопку('переключитьполноэкранный', лВключен);
-		return лВключен;
+	function update() {
+		const isEnabled = isEnabled2();
+		log.logOk(`[Fullscreen] Mode enabled: ${isEnabled}`);
+		updateButton('toggle-fullscreen', isEnabled);
+		return isEnabled;
 	}
-	function Включить() {
-		if (Включен()) {
+	function enable() {
+		if (isEnabled2()) {
 			return false;
 		}
-		м_Журнал.Вот('[ПолноэкранныйРежим] Включаю режим');
-		м_Автоскрытие.Скрыть(false);
-		м_КартинкаВКартинке.отключить();
-		ПолучитьЭлемент()[_sRequestFullscreen]();
+		log.logInfo('[Fullscreen] Enabling mode');
+		autoHide.hide(false);
+		pictureInPictureModule.disableControl();
+		getElement()[_sRequestFullscreen]();
 		return true;
 	}
-	function Отключить() {
-		if (!Включен()) {
+	function disable() {
+		if (!isEnabled2()) {
 			return false;
 		}
-		м_Журнал.Вот('[ПолноэкранныйРежим] Отключаю режим');
-		м_Автоскрытие.Скрыть(false);
+		log.logInfo('[Fullscreen] Disabling mode');
+		autoHide.hide(false);
 		document[_sExitFullscreen]();
 		return true;
 	}
-	function Переключить() {
-		Включить() || Отключить();
+	function toggle2() {
+		enable() || disable();
 	}
-	document.addEventListener(_sFullscreenchange, ОбработатьИзменениеРежима);
-	Узел('глаз').addEventListener('dblclick', ОбработатьДвойнойЩелчок);
-	Обновить();
+	document.addEventListener(_sFullscreenchange, handleModeChange2);
+	element('eye').addEventListener('dblclick', handleDoubleClick);
+	update();
 	return {
-		Включен,
-		Отключить,
-		Переключить,
-		ПолучитьЭлемент
+		isEnabled2,
+		disable,
+		toggle2,
+		getElement
 	};
 })();
 
-const м_КартинкаВКартинке = (() => {
+const pictureInPictureModule = (() => {
 	let _oMediaElement = null;
-	const обработатьИзменениеРежима = ДобавитьОбработчикИсключений(() => {
-		обновить();
+	const handleModeChange = wrapErrors(() => {
+		refresh();
 	});
-	function включен() {
+	function isTurnedOn() {
 		return Boolean(document.pictureInPictureElement);
 	}
-	function обновить() {
-		const лВключен = включен();
-		м_Журнал.Окак(`[КартинкаВКартинке] Режим включен: ${лВключен}`);
-		ИзменитьКнопку('переключитькартинкавкартинке', лВключен);
+	function refresh() {
+		const isEnabled = isTurnedOn();
+		log.logOk(`[PictureInPicture] Mode enabled: ${isEnabled}`);
+		updateButton('toggle-picture-in-picture', isEnabled);
 	}
-	function включить() {
-		if (включен()) {
+	function turnOn() {
+		if (isTurnedOn()) {
 			return false;
 		}
-		м_Журнал.Вот('[КартинкаВКартинке] Включаю режим');
-		м_ПолноэкранныйРежим.Отключить();
+		log.logInfo('[PictureInPicture] Enabling mode');
+		fullscreenMode.disable();
 		_oMediaElement.requestPictureInPicture();
 		return true;
 	}
-	function отключить() {
-		if (!включен()) {
+	function disableControl() {
+		if (!isTurnedOn()) {
 			return false;
 		}
-		м_Журнал.Вот('[КартинкаВКартинке] Отключаю режим');
+		log.logInfo('[PictureInPicture] Disabling mode');
 		document.exitPictureInPicture();
 		return true;
 	}
-	function переключить() {
-		_oMediaElement && !document.body.classList.contains('нетвидео') && (включить() || отключить());
+	function toggle() {
+		_oMediaElement && !document.body.classList.contains('no-video') && (turnOn() || disableControl());
 	}
-	function запустить(oMediaElement) {
+	function startInternal(oMediaElement) {
 		if (!document.pictureInPictureEnabled || oMediaElement.disablePictureInPicture) {
-			м_Журнал.Ой(`[КартинкаВКартинке] pictureInPictureEnabled=${document.pictureInPictureEnabled} disablePictureInPicture=${oMediaElement.disablePictureInPicture}`);
+			log.logError(`[PictureInPicture] pictureInPictureEnabled=${document.pictureInPictureEnabled} disablePictureInPicture=${oMediaElement.disablePictureInPicture}`);
 			return;
 		}
 		_oMediaElement = oMediaElement;
-		oMediaElement.addEventListener('enterpictureinpicture', обработатьИзменениеРежима);
-		oMediaElement.addEventListener('leavepictureinpicture', обработатьИзменениеРежима);
-		обновить();
-		ПоказатьЭлемент('переключитькартинкавкартинке', true);
+		oMediaElement.addEventListener('enterpictureinpicture', handleModeChange);
+		oMediaElement.addEventListener('leavepictureinpicture', handleModeChange);
+		refresh();
+		showElement('toggle-picture-in-picture', true);
 	}
 	return {
-		запустить,
-		отключить,
-		переключить
+		startInternal,
+		disableControl,
+		toggle
 	};
 })();
 
-const м_Тащилка = (() => {
-	const МИН_ИНТЕРВАЛ_ПЕРЕТАСКИВАНИЯ = 45;
-	let _чИдУказателя = NaN;
-	let _оПараметры = null;
-	let _чВремяПоследнегоПеретаскивания;
-	let _чНачальнаяX, _чНачальнаяY;
-	let _чПоследняяX, _чПоследняяY;
-	function Параметры(узНажат, узТащится) {
-		this.узНажат = узНажат;
-		this.узТащится = узТащится;
-		this.чШаг = 1;
-		this.лОтмена = false;
-		this.лИзмениласьX = false;
-		this.лИзмениласьY = false;
-		this.чИзменениеX = 0;
-		this.чИзменениеY = 0;
+const draggerModule = (() => {
+	const MIN_DRAG_INTERVAL = 45;
+	let _pointerId = NaN;
+	let _params = null;
+	let _lastDragTimeMs;
+	let _initialX, _initialY;
+	let _lastX, _lastY;
+	function params3(pressedElement, draggedElement) {
+		this.pressedElement = pressedElement;
+		this.draggedElement = draggedElement;
+		this.step = 1;
+		this.isCancelled2 = false;
+		this.hasXChanged = false;
+		this.hasYChanged = false;
+		this.deltaX = 0;
+		this.deltaY = 0;
 	}
-	const ОбработатьPointerDown = создатьОбработчикСобытийЭлемента(оСобытие => {
-		if (!Number.isNaN(_чИдУказателя) || оСобытие.button !== ЛЕВАЯ_КНОПКА) {
+	const handlePointerDown = createElementEventHandler(event => {
+		if (!Number.isNaN(_pointerId) || event.button !== leftButton) {
 			return;
 		}
-		const узНажат = оСобытие.target.closest('[data-тащилка]');
-		if (узНажат === null) {
+		const pressedElement = event.target.closest('[data-drag-handle]');
+		if (pressedElement === null) {
 			return;
 		}
-		_чИдУказателя = оСобытие.pointerId;
-		_оПараметры = new Параметры(узНажат, Узел(узНажат.getAttribute('data-тащилка')));
-		_чВремяПоследнегоПеретаскивания = 0;
-		_чНачальнаяX = _чПоследняяX = оСобытие.clientX;
-		_чНачальнаяY = _чПоследняяY = оСобытие.clientY;
-		м_Журнал.Окак(`[Тащилка] Начинаю перетаскивать ${_оПараметры.узТащится.id} X=${_чНачальнаяX} Y=${_чНачальнаяY} id=${_чИдУказателя} type=${оСобытие.pointerType} primary=${оСобытие.isPrimary}`);
-		document.addEventListener('pointermove', ОбработатьPointerMove, ПАССИВНЫЙ_ОБРАБОТЧИК);
-		document.addEventListener('pointerup', ОбработатьPointerUpИPointerCancel, ПАССИВНЫЙ_ОБРАБОТЧИК);
-		document.addEventListener('pointercancel', ОбработатьPointerUpИPointerCancel);
-		м_События.ДобавитьОбработчик('фокусник-изменилосьсостояние', ОбработатьПокиданиеВкладки);
-		м_ПолноэкранныйРежим.ПолучитьЭлемент().style.setProperty('cursor', getComputedStyle(узНажат).cursor, 'important');
-		м_ПолноэкранныйРежим.ПолучитьЭлемент().classList.add('тащилка-перехват');
-		_оПараметры.узТащится.classList.add('тащилка');
-		м_События.ПослатьСобытие(`тащилка-перетаскивание-${_оПараметры.узТащится.id}`, _оПараметры);
+		_pointerId = event.pointerId;
+		_params = new params3(pressedElement, element(pressedElement.getAttribute('data-drag-handle')));
+		_lastDragTimeMs = 0;
+		_initialX = _lastX = event.clientX;
+		_initialY = _lastY = event.clientY;
+		log.logOk(`[Drag] Starting drag of ${_params.draggedElement.id} X=${_initialX} Y=${_initialY} id=${_pointerId} type=${event.pointerType} primary=${event.isPrimary}`);
+		document.addEventListener('pointermove', handlePointerMove, passiveHandler);
+		document.addEventListener('pointerup', handlePointerUpAndCancel, passiveHandler);
+		document.addEventListener('pointercancel', handlePointerUpAndCancel);
+		events.addHandler('focus-manager-state-changed', handleTabLeave);
+		fullscreenMode.getElement().style.setProperty('cursor', getComputedStyle(pressedElement).cursor, 'important');
+		fullscreenMode.getElement().classList.add('drag-handle-intercept');
+		_params.draggedElement.classList.add('drag-handle');
+		events.sendEvent(`drag-handle-dragging-${_params.draggedElement.id}`, _params);
 	});
-	const ОбработатьPointerMove = ДобавитьОбработчикИсключений(оСобытие => {
-		if (_чИдУказателя === оСобытие.pointerId) {
-			if ((оСобытие.buttons & НАЖАТА_ЛЕВАЯ_КНОПКА) == 0) {
-				ЗавершитьПеретаскивание('кнопка отпущена');
+	const handlePointerMove = wrapErrors(event => {
+		if (_pointerId === event.pointerId) {
+			if ((event.buttons & leftButtonPressed) == 0) {
+				endDrag('button released');
 			} else {
-				const чВремя = performance.now();
-				if (чВремя - _чВремяПоследнегоПеретаскивания >= МИН_ИНТЕРВАЛ_ПЕРЕТАСКИВАНИЯ) {
-					_чВремяПоследнегоПеретаскивания = чВремя;
-					_оПараметры.лИзмениласьX = _чПоследняяX !== оСобытие.clientX;
-					_оПараметры.лИзмениласьY = _чПоследняяY !== оСобытие.clientY;
-					if (_оПараметры.лИзмениласьX || _оПараметры.лИзмениласьY) {
-						_чПоследняяX = оСобытие.clientX;
-						_чПоследняяY = оСобытие.clientY;
-						_оПараметры.чШаг = 2;
-						_оПараметры.чИзменениеX = _чПоследняяX - _чНачальнаяX;
-						_оПараметры.чИзменениеY = _чПоследняяY - _чНачальнаяY;
-						м_События.ПослатьСобытие(`тащилка-перетаскивание-${_оПараметры.узТащится.id}`, _оПараметры);
+				const time = performance.now();
+				if (time - _lastDragTimeMs >= MIN_DRAG_INTERVAL) {
+					_lastDragTimeMs = time;
+					_params.hasXChanged = _lastX !== event.clientX;
+					_params.hasYChanged = _lastY !== event.clientY;
+					if (_params.hasXChanged || _params.hasYChanged) {
+						_lastX = event.clientX;
+						_lastY = event.clientY;
+						_params.step = 2;
+						_params.deltaX = _lastX - _initialX;
+						_params.deltaY = _lastY - _initialY;
+						events.sendEvent(`drag-handle-dragging-${_params.draggedElement.id}`, _params);
 					}
 				}
 			}
 		}
 	});
-	const ОбработатьPointerUpИPointerCancel = ДобавитьОбработчикИсключений(оСобытие => {
-		if (_чИдУказателя === оСобытие.pointerId) {
-			ЗавершитьПеретаскивание(оСобытие.type);
+	const handlePointerUpAndCancel = wrapErrors(event => {
+		if (_pointerId === event.pointerId) {
+			endDrag(event.type);
 		}
 	});
-	function ОбработатьПокиданиеВкладки({лАктивен}) {
-		if (!лАктивен) {
-			ЗавершитьПеретаскивание('вкладка неактивна');
+	function handleTabLeave({isActive}) {
+		if (!isActive) {
+			endDrag('tab inactive');
 		}
 	}
-	function ОтменитьПеретаскивание(сИдУзла) {
-		Проверить(сИдУзла === void 0 || ЭтоНепустаяСтрока(сИдУзла));
-		if (!Number.isNaN(_чИдУказателя) && (сИдУзла === void 0 || сИдУзла === _оПараметры.узТащится.id)) {
-			_оПараметры.лОтмена = true;
-			ЗавершитьПеретаскивание('операция отменена');
+	function cancelDrag(nodeId) {
+		assert(nodeId === void 0 || isNonEmptyString(nodeId));
+		if (!Number.isNaN(_pointerId) && (nodeId === void 0 || nodeId === _params.draggedElement.id)) {
+			_params.isCancelled2 = true;
+			endDrag('operation cancelled');
 		}
 	}
-	function ЗавершитьПеретаскивание(сПричина) {
-		if (_оПараметры.чШаг !== 3) {
-			м_Журнал.Окак(`[Тащилка] Заканчиваю перетаскивание: ${сПричина} X=${_чПоследняяX} Y=${_чПоследняяY}`);
-			_оПараметры.чШаг = 3;
-			м_События.ПослатьСобытие(`тащилка-перетаскивание-${_оПараметры.узТащится.id}`, _оПараметры);
-			м_ПолноэкранныйРежим.ПолучитьЭлемент().style.removeProperty('cursor');
-			м_ПолноэкранныйРежим.ПолучитьЭлемент().classList.remove('тащилка-перехват');
-			_оПараметры.узТащится.classList.remove('тащилка');
-			document.removeEventListener('pointermove', ОбработатьPointerMove, ПАССИВНЫЙ_ОБРАБОТЧИК);
-			document.removeEventListener('pointerup', ОбработатьPointerUpИPointerCancel, ПАССИВНЫЙ_ОБРАБОТЧИК);
-			document.removeEventListener('pointercancel', ОбработатьPointerUpИPointerCancel);
-			м_События.УдалитьОбработчик('фокусник-изменилосьсостояние', ОбработатьПокиданиеВкладки);
-			_чИдУказателя = NaN;
-			_оПараметры = null;
+	function endDrag(reasonText) {
+		if (_params.step !== 3) {
+			log.logOk(`[Drag] Ending drag: ${reasonText} X=${_lastX} Y=${_lastY}`);
+			_params.step = 3;
+			events.sendEvent(`drag-handle-dragging-${_params.draggedElement.id}`, _params);
+			fullscreenMode.getElement().style.removeProperty('cursor');
+			fullscreenMode.getElement().classList.remove('drag-handle-intercept');
+			_params.draggedElement.classList.remove('drag-handle');
+			document.removeEventListener('pointermove', handlePointerMove, passiveHandler);
+			document.removeEventListener('pointerup', handlePointerUpAndCancel, passiveHandler);
+			document.removeEventListener('pointercancel', handlePointerUpAndCancel);
+			events.removeHandler('focus-manager-state-changed', handleTabLeave);
+			_pointerId = NaN;
+			_params = null;
 		}
 	}
-	document.addEventListener('pointerdown', ОбработатьPointerDown, ПАССИВНЫЙ_ОБРАБОТЧИК);
+	document.addEventListener('pointerdown', handlePointerDown, passiveHandler);
 	return {
-		ОтменитьПеретаскивание
+		cancelDrag
 	};
 })();
 
-const м_Автоскрытие = (() => {
-	const МИН_ИНТЕРВАЛ_ДВИЖЕНИЯ = 150;
-	const ПОРОГ_ДВИЖЕНИЯ = 3;
-	const _узАвтоскрытие = document.getElementById('проигрыватель');
-	let _чТаймер = 0;
-	let _чСкрытьПосле = 0;
-	let _чНеПоказыватьДо = 0;
-	let _чЭкранX = 0, _чЭкранY = 0;
-	let _чКлиентX = 0, _чКлиентY = 0;
-	let _чИдТаймераВыбораСкорости = 0;
-	function Показать() {
-		if (_чТаймер === 0) {
-			document.body.classList.remove('автоскрытие');
-			document.body.classList.add('анимацияпанели');
-			_чТаймер = setTimeout(обработатьТаймер, м_Настройки.Получить('чИнтервалАвтоскрытия') * 1e3);
-			_чСкрытьПосле = _чНеПоказыватьДо = 0;
+const autoHide = (() => {
+	const MIN_MOVE_INTERVAL = 150;
+	const movementThreshold = 3;
+	const _autoHideElement = document.getElementById('player');
+	let _timer = 0;
+	let _hideAfterMs = 0;
+	let _hideUntilMs = 0;
+	let _screenX = 0, _screenY = 0;
+	let _clientX = 0, _clientY = 0;
+	let _speedSelectTimerId = 0;
+	function show() {
+		if (_timer === 0) {
+			document.body.classList.remove('auto-hide');
+			document.body.classList.add('panel-animation');
+			_timer = setTimeout(handleTimer, settings.get('autoHideInterval') * 1e3);
+			_hideAfterMs = _hideUntilMs = 0;
 		} else {
-			_чСкрытьПосле = performance.now() + м_Настройки.Получить('чИнтервалАвтоскрытия') * 1e3;
+			_hideAfterMs = performance.now() + settings.get('autoHideInterval') * 1e3;
 		}
 	}
-	function Скрыть(лСАнимацией = true) {
-		if (_чТаймер !== 0) {
-			clearTimeout(_чТаймер);
-			_чТаймер = 0;
-			document.body.classList.add('автоскрытие');
+	function hide(isAnimated = true) {
+		if (_timer !== 0) {
+			clearTimeout(_timer);
+			_timer = 0;
+			document.body.classList.add('auto-hide');
 		}
-		document.body.classList.toggle('анимацияпанели', лСАнимацией);
-		if (!лСАнимацией) {
+		document.body.classList.toggle('panel-animation', isAnimated);
+		if (!isAnimated) {
 			document.body.clientTop;
-			document.body.classList.add('анимацияпанели');
-			_чНеПоказыватьДо = performance.now() + 500;
+			document.body.classList.add('panel-animation');
+			_hideUntilMs = performance.now() + 500;
 		}
 	}
-	const обработатьТаймер = ДобавитьОбработчикИсключений(() => {
-		Проверить(_чТаймер !== 0);
-		const чСкрытьЧерез = _чСкрытьПосле - performance.now();
-		if (чСкрытьЧерез > 50) {
-			_чТаймер = setTimeout(обработатьТаймер, чСкрытьЧерез);
-			_чСкрытьПосле = 0;
+	const handleTimer = wrapErrors(() => {
+		assert(_timer !== 0);
+		const hideAfterMs = _hideAfterMs - performance.now();
+		if (hideAfterMs > 50) {
+			_timer = setTimeout(handleTimer, hideAfterMs);
+			_hideAfterMs = 0;
 		} else {
-			Скрыть();
+			hide();
 		}
 	});
-	const обработатьДвижениеУказателя = ДобавитьОбработчикИсключений(({screenX, screenY, clientX, clientY}) => {
-		_узАвтоскрытие.removeEventListener('pointermove', обработатьДвижениеУказателя, ПАССИВНЫЙ_ОБРАБОТЧИК);
-		setTimeout(перехватитьДвижениеУказателя, МИН_ИНТЕРВАЛ_ДВИЖЕНИЯ);
-		if ((_чЭкранX !== screenX || _чЭкранY !== screenY) && (_чКлиентX !== clientX || _чКлиентY !== clientY) && (Math.abs(_чКлиентX - clientX) >= ПОРОГ_ДВИЖЕНИЯ || Math.abs(_чКлиентY - clientY) >= ПОРОГ_ДВИЖЕНИЯ) && performance.now() >= _чНеПоказыватьДо) {
-			Показать();
+	const handlePointerMovement = wrapErrors(({screenX, screenY, clientX, clientY}) => {
+		_autoHideElement.removeEventListener('pointermove', handlePointerMovement, passiveHandler);
+		setTimeout(interceptPointerMovement, MIN_MOVE_INTERVAL);
+		if ((_screenX !== screenX || _screenY !== screenY) && (_clientX !== clientX || _clientY !== clientY) && (Math.abs(_clientX - clientX) >= movementThreshold || Math.abs(_clientY - clientY) >= movementThreshold) && performance.now() >= _hideUntilMs) {
+			show();
 		}
-		_чЭкранX = screenX;
-		_чЭкранY = screenY;
-		_чКлиентX = clientX;
-		_чКлиентY = clientY;
+		_screenX = screenX;
+		_screenY = screenY;
+		_clientX = clientX;
+		_clientY = clientY;
 	});
-	const перехватитьДвижениеУказателя = ДобавитьОбработчикИсключений(() => {
-		_узАвтоскрытие.addEventListener('pointermove', обработатьДвижениеУказателя, ПАССИВНЫЙ_ОБРАБОТЧИК);
+	const interceptPointerMovement = wrapErrors(() => {
+		_autoHideElement.addEventListener('pointermove', handlePointerMovement, passiveHandler);
 	});
-	const обработатьЩелчок = ДобавитьОбработчикИсключений(() => {
-		Показать();
+	const handleClickInternal = wrapErrors(() => {
+		show();
 	});
-	const обработатьПокиданиеУказателя = ДобавитьОбработчикИсключений(() => {
-		Скрыть();
+	const handlePointerLeave = wrapErrors(() => {
+		hide();
 	});
-	const обработатьВыборСкорости = ДобавитьОбработчикИсключений(оСобытие => {
-		if (оСобытие.button === ЛЕВАЯ_КНОПКА) {
-			if (_чИдТаймераВыбораСкорости !== 0) {
-				clearTimeout(_чИдТаймераВыбораСкорости);
+	const handleSpeedSelect = wrapErrors(event => {
+		if (event.button === leftButton) {
+			if (_speedSelectTimerId !== 0) {
+				clearTimeout(_speedSelectTimerId);
 			}
-			_чИдТаймераВыбораСкорости = setTimeout(() => document.body.classList.remove('выборскорости'), 5e3);
-			document.body.classList.add('выборскорости');
+			_speedSelectTimerId = setTimeout(() => document.body.classList.remove('speed-select'), 5e3);
+			document.body.classList.add('speed-select');
 		}
 	});
-	function Запустить() {
-		перехватитьДвижениеУказателя();
-		_узАвтоскрытие.addEventListener('click', обработатьЩелчок);
-		_узАвтоскрытие.addEventListener('mouseleave', обработатьПокиданиеУказателя);
-		Узел('скорость').addEventListener('pointerdown', обработатьВыборСкорости);
+	function start() {
+		interceptPointerMovement();
+		_autoHideElement.addEventListener('click', handleClickInternal);
+		_autoHideElement.addEventListener('mouseleave', handlePointerLeave);
+		element('speed').addEventListener('pointerdown', handleSpeedSelect);
 	}
 	return {
-		Запустить,
-		Показать,
-		Скрыть
+		start,
+		show,
+		hide
 	};
 })();
 
-const м_Медиазапрос = (() => {
-	let _чТаймер = -2;
-	const обновить = ДобавитьОбработчикИсключений(() => {
-		Проверить(_чТаймер !== 0);
-		_чТаймер = 0;
-		const элПроигрыватель = Узел('проигрыватель');
-		const чВысотаПроигрывателя = элПроигрыватель.clientHeight * 100 / м_Настройки.Получить('чРазмерИнтерфейса');
-		Проверить(чВысотаПроигрывателя > 0);
-		элПроигрыватель.classList.toggle('ужатьглавноеменю', чВысотаПроигрывателя <= 460);
-		элПроигрыватель.classList.toggle('ужатьнастройки', чВысотаПроигрывателя <= 412);
-		const РАЗМЕР_ШРИФТА_МИН = 100;
-		const РАЗМЕР_ШРИФТА_МАКС = 124;
-		const РАЗМЕР_ШРИФТА_ШАГ = 8;
-		const оСтильПанели = Узел('верхняяпанель').style;
-		const элЗаполнитель = Узел('заполнитель');
-		for (let чРазмерШрифта = РАЗМЕР_ШРИФТА_МАКС; ;чРазмерШрифта -= РАЗМЕР_ШРИФТА_ШАГ) {
-			оСтильПанели.fontSize = `${чРазмерШрифта}%`;
-			if (чРазмерШрифта === РАЗМЕР_ШРИФТА_МИН || элЗаполнитель.clientWidth > 0) {
+const mediaQuery = (() => {
+	let _timer = -2;
+	const refresh = wrapErrors(() => {
+		assert(_timer !== 0);
+		_timer = 0;
+		const playerElement = element('player');
+		const playerHeightPx = playerElement.clientHeight * 100 / settings.get('uiSize');
+		assert(playerHeightPx > 0);
+		playerElement.classList.toggle('collapse-main-menu', playerHeightPx <= 460);
+		playerElement.classList.toggle('collapse-settings', playerHeightPx <= 412);
+		const FONT_SIZE_MIN = 100;
+		const FONT_SIZE_MAX = 124;
+		const FONT_SIZE_STEP = 8;
+		const panelStyle = element('top-panel').style;
+		const fillerElement = element('placeholder');
+		for (let fontSize = FONT_SIZE_MAX; ;fontSize -= FONT_SIZE_STEP) {
+			panelStyle.fontSize = `${fontSize}%`;
+			if (fontSize === FONT_SIZE_MIN || fillerElement.clientWidth > 0) {
 				break;
 			}
 		}
 	});
-	function обновитьБыстро() {
-		if (_чТаймер !== -1) {
-			if (_чТаймер > 0) {
-				clearTimeout(_чТаймер);
+	function refreshFast() {
+		if (_timer !== -1) {
+			if (_timer > 0) {
+				clearTimeout(_timer);
 			}
-			_чТаймер = -1;
-			requestAnimationFrame(обновить);
+			_timer = -1;
+			requestAnimationFrame(refresh);
 		}
 	}
-	function обновитьМедленно() {
-		if (_чТаймер === -2 || _чТаймер === 0) {
-			_чТаймер = setTimeout(обновить, 200);
-			Проверить(_чТаймер > 0);
+	function updateSlowly() {
+		if (_timer === -2 || _timer === 0) {
+			_timer = setTimeout(refresh, 200);
+			assert(_timer > 0);
 		}
 	}
-	window.addEventListener('resize', ДобавитьОбработчикИсключений(() => {
-		if (_чТаймер !== -2) {
-			обновитьМедленно();
+	window.addEventListener('resize', wrapErrors(() => {
+		if (_timer !== -2) {
+			updateSlowly();
 		}
 	}));
 	return {
-		обновитьБыстро,
-		обновитьМедленно
+		refreshFast,
+		updateSlowly
 	};
 })();
 
-const м_Оформление = (() => {
-	const СЕЛЕКТОР_КНОПКИ_ЦВЕТА = 'input[type="color"]';
-	let _оПрозрачность = null;
-	const ОбработатьВводЦвета = ДобавитьОбработчикИсключений(оСобытие => {
-		if (оСобытие.target.matches(СЕЛЕКТОР_КНОПКИ_ЦВЕТА)) {
-			ОбновитьСтили();
+const themeModule = (() => {
+	const colorButtonSelector = 'input[type="color"]';
+	const colorSettingNames = new Map([
+		[ 'background-color', 'backgroundColor' ],
+		[ 'gradient-color', 'gradientColor' ],
+		[ 'button-color', 'buttonColor' ],
+		[ 'header-color', 'titleColor' ],
+		[ 'selection-color', 'selectionColor' ]
+	]);
+	function getColorSettingName(buttonElement) {
+		const name = colorSettingNames.get(buttonElement.id);
+		assert(name);
+		return name;
+	}
+	let _opacityInfo = null;
+	const handleColorInput = wrapErrors(event => {
+		if (event.target.matches(colorButtonSelector)) {
+			updateStyles();
 		}
 	});
-	const ОбработатьИзменениеЦвета = ДобавитьОбработчикИсключений(оСобытие => {
-		if (оСобытие.target.matches(СЕЛЕКТОР_КНОПКИ_ЦВЕТА)) {
-			м_Настройки.Изменить(оСобытие.target.id, оСобытие.target.value);
+	const handleColorChange = wrapErrors(event => {
+		if (event.target.matches(colorButtonSelector)) {
+			settings.set(getColorSettingName(event.target), event.target.value);
 		}
 	});
-	function ОбработатьИзменениеПредустановкиОформления() {
-		ОбновитьОкноНастроек();
-		ОбновитьСтили();
+	function handleThemePresetChange() {
+		updateSettingsWindow();
+		updateStyles();
 	}
-	function ОбновитьОкноНастроек() {
-		for (let узКнопка of document.querySelectorAll(СЕЛЕКТОР_КНОПКИ_ЦВЕТА)) {
-			узКнопка.value = м_Настройки.Получить(узКнопка.id);
+	function updateSettingsWindow() {
+		for (let buttonElement of document.querySelectorAll(colorButtonSelector)) {
+			buttonElement.value = settings.get(getColorSettingName(buttonElement));
 		}
-		_оПрозрачность.Обновить();
+		_opacityInfo.update();
 	}
-	function ОбновитьСтили() {
-		const оСтиль = document.documentElement.style;
-		for (let узКнопка of document.querySelectorAll(СЕЛЕКТОР_КНОПКИ_ЦВЕТА)) {
-			оСтиль.setProperty(`--${узКнопка.id}`, Number.parseInt(узКнопка.value.slice(1, 3), 16) + ',' + Number.parseInt(узКнопка.value.slice(3, 5), 16) + ',' + Number.parseInt(узКнопка.value.slice(5, 7), 16));
+	function updateStyles() {
+		const style = document.documentElement.style;
+		for (let buttonElement of document.querySelectorAll(colorButtonSelector)) {
+			style.setProperty(`--${buttonElement.id}`, Number.parseInt(buttonElement.value.slice(1, 3), 16) + ',' + Number.parseInt(buttonElement.value.slice(3, 5), 16) + ',' + Number.parseInt(buttonElement.value.slice(5, 7), 16));
 		}
-		const чНепрозрачность = Округлить(1 - м_Настройки.Получить('чПрозрачность') / 100, 2);
-		оСтиль.setProperty('--чНепрозрачность', чНепрозрачность);
-		оСтиль.setProperty('--чНепрозрачностьОкна', Ограничить(чНепрозрачность, .85, 1));
+		const opacity = round(1 - settings.get('opacityValue') / 100, 2);
+		style.setProperty('--opacity', opacity);
+		style.setProperty('--window-opacity', limit(opacity, .85, 1));
 	}
-	function ПрименитьРазмерИнтерфейса() {
-		document.documentElement.style.fontSize = `${16 * м_Настройки.Получить('чРазмерИнтерфейса') / 100}px`;
-		м_Медиазапрос.обновитьМедленно();
+	function applyUiSize() {
+		document.documentElement.style.fontSize = `${16 * settings.get('uiSize') / 100}px`;
+		mediaQuery.updateSlowly();
 	}
-	function Запустить() {
-		м_i18n.TranslateDocument(document);
-		_оПрозрачность = new ВводЧисла('чПрозрачность', 5, 0, 'прозрачность');
-		_оПрозрачность.ПослеИзменения = ОбновитьСтили;
-		document.addEventListener('input', ОбработатьВводЦвета);
-		document.addEventListener('change', ОбработатьИзменениеЦвета);
-		м_События.ДобавитьОбработчик('настройки-измениласьпредустановка-оформление', ОбработатьИзменениеПредустановкиОформления);
-		ОбработатьИзменениеПредустановкиОформления();
-		new ВводЧисла('чРазмерИнтерфейса', 1, 0, 'размеринтерфейса').ПослеИзменения = ПрименитьРазмерИнтерфейса;
-		ПрименитьРазмерИнтерфейса();
-		ПоказатьЭлемент(document.body, true);
+	function start() {
+		i18n.TranslateDocument(document);
+		_opacityInfo = new numberInput('opacityValue', 5, 0, 'transparency');
+		_opacityInfo.afterChange = updateStyles;
+		document.addEventListener('input', handleColorInput);
+		document.addEventListener('change', handleColorChange);
+		events.addHandler('settings-appearance-preset-changed', handleThemePresetChange);
+		handleThemePresetChange();
+		new numberInput('uiSize', 1, 0, 'interface-size').afterChange = applyUiSize;
+		applyUiSize();
+		showElement(document.body, true);
 	}
 	return {
-		Запустить
+		start
 	};
 })();
 
-const м_Уведомление = (() => {
-	const ПОКАЗЫВАТЬ_УВЕДОМЛЕНИЕ = 2e3;
-	let _чТаймер = 0;
-	function Показать(сИдЗначка, лЖопа) {
-		Проверить(document.getElementById(сИдЗначка) && typeof лЖопа == 'boolean');
-		const узУведомление = Узел('уведомление');
-		узУведомление.classList.toggle('жопа', лЖопа);
-		ПоказатьЭлемент(узУведомление, true);
-		узУведомление.firstElementChild.setAttributeNS('http://www.w3.org/1999/xlink', 'href', `#${сИдЗначка}`);
-		if (_чТаймер !== 0) {
-			clearTimeout(_чТаймер);
+const notification = (() => {
+	const SHOW_NOTIFICATION = 2e3;
+	let _timer = 0;
+	function show(badgeId, isAnnoying) {
+		assert(document.getElementById(badgeId) && typeof isAnnoying == 'boolean');
+		const notificationElement = element('notification');
+		notificationElement.classList.toggle('butt', isAnnoying);
+		showElement(notificationElement, true);
+		notificationElement.firstElementChild.setAttributeNS('http://www.w3.org/1999/xlink', 'href', `#${badgeId}`);
+		if (_timer !== 0) {
+			clearTimeout(_timer);
 		}
-		_чТаймер = setTimeout(СкрытьУведомление, ПОКАЗЫВАТЬ_УВЕДОМЛЕНИЕ);
+		_timer = setTimeout(hideNotification, SHOW_NOTIFICATION);
 	}
-	function ПоказатьСчастье() {
-		Показать('svg-success', false);
+	function showHappiness() {
+		show('svg-success', false);
 	}
-	function ПоказатьЖопу() {
-		Показать('svg-fail', true);
+	function showButt() {
+		show('svg-fail', true);
 	}
-	const СкрытьУведомление = ДобавитьОбработчикИсключений(() => {
-		ПоказатьЭлемент('уведомление', false);
-		_чТаймер = 0;
+	const hideNotification = wrapErrors(() => {
+		showElement('notification', false);
+		_timer = 0;
 	});
 	return {
-		Показать,
-		ПоказатьСчастье,
-		ПоказатьЖопу
+		show,
+		showHappiness,
+		showButt
 	};
 })();
 
-const м_Шкала = (() => {
-	let _чНачало = 0;
-	let _чКонец = 0;
-	let _чПросмотрено;
-	function ОграничитьВремя(чВремя) {
-		return Ограничить(чВремя, _чНачало, _чКонец);
+const scale = (() => {
+	let _startTime = 0;
+	let _endPosition = 0;
+	let _watchedCount;
+	function clampTime(time) {
+		return limit(time, _startTime, _endPosition);
 	}
-	function Обновить() {
-		Проверить(Number.isFinite(_чНачало) && Number.isFinite(_чКонец) && Number.isFinite(_чПросмотрено));
-		Узел('шкала-просмотрено').style.transform = `scaleX(${((_чПросмотрено - _чНачало) / (_чКонец - _чНачало)).toFixed(4)})`;
+	function update() {
+		assert(Number.isFinite(_startTime) && Number.isFinite(_endPosition) && Number.isFinite(_watchedCount));
+		element('scale-watched').style.transform = `scaleX(${((_watchedCount - _startTime) / (_endPosition - _startTime)).toFixed(4)})`;
 	}
-	const ОбработатьЩелчок = ДобавитьОбработчикИсключений(оСобытие => {
-		if (м_Управление.ПолучитьСостояние() !== СОСТОЯНИЕ_ПОВТОР) {
+	const handleClick = wrapErrors(event => {
+		if (control.getState() !== repeatState) {
 			return;
 		}
-		const оБордюр = оСобытие.currentTarget.getBoundingClientRect();
-		const оСтиль = getComputedStyle(оСобытие.currentTarget);
-		const чНачалоШкалы = Math.round(оБордюр.left + Number.parseFloat(оСтиль.paddingLeft));
-		const чКонецШкалы = Math.round(оБордюр.right - Number.parseFloat(оСтиль.paddingRight));
-		const чУказатель = оСобытие.clientX + 1;
-		const чПеремотатьДо = ОграничитьВремя((чУказатель - чНачалоШкалы) / (чКонецШкалы - чНачалоШкалы) * (_чКонец - _чНачало) + _чНачало);
-		м_Журнал.Окак(`[Шкала] Перематываю до ${чПеремотатьДо}`);
-		м_Проигрыватель.ПеремотатьПовторДо(чПеремотатьДо);
+		const borderObject = event.currentTarget.getBoundingClientRect();
+		const style = getComputedStyle(event.currentTarget);
+		const scaleStart = Math.round(borderObject.left + Number.parseFloat(style.paddingLeft));
+		const scaleEnd = Math.round(borderObject.right - Number.parseFloat(style.paddingRight));
+		const pointer = event.clientX + 1;
+		const seekToTime = clampTime((pointer - scaleStart) / (scaleEnd - scaleStart) * (_endPosition - _startTime) + _startTime);
+		log.logOk(`[Timeline] Seeking to ${seekToTime}`);
+		player.seekReplayBack(seekToTime);
 	});
-	function ЗадатьНачалоИКонец(чНачало, чКонец) {
-		Проверить(чНачало <= чКонец);
-		_чНачало = чНачало;
-		_чКонец = чКонец;
-		document.getElementById('шкала').addEventListener('click', ОбработатьЩелчок);
+	function setStartAndEnd(startTime, endTime) {
+		assert(startTime <= endTime);
+		_startTime = startTime;
+		_endPosition = endTime;
+		document.getElementById('scale').addEventListener('click', handleClick);
 	}
-	function ЗадатьПросмотрено(чПросмотрено) {
-		_чПросмотрено = ОграничитьВремя(чПросмотрено);
-		Обновить();
+	function setWatched(watchedCount) {
+		_watchedCount = clampTime(watchedCount);
+		update();
 	}
-	function ПолучитьНачало() {
-		return _чНачало;
+	function getStart() {
+		return _startTime;
 	}
-	function ПолучитьКонец() {
-		return _чКонец;
+	function getEnd() {
+		return _endPosition;
 	}
 	return {
-		ЗадатьНачалоИКонец,
-		ЗадатьПросмотрено,
-		ПолучитьНачало,
-		ПолучитьКонец
+		setStartAndEnd,
+		setWatched,
+		getStart,
+		getEnd
 	};
 })();
 
-const м_Новости = (() => {
-	const ПОКАЗАТЬ_ОДИН_РАЗ = '2000.1.1';
-	const ПОКАЗЫВАТЬ_ВСЕГДА = '2000.2.2';
-	const ПОЛНАЯ_СПРАВКА = '2000.3.3';
-	const ДЛЯ_ПЛАНШЕТА = '2000.4.4';
-	const _мНовости = [ [ '2025.5.28', 'J1010', 'F1078' ], [ '2024.6.14', 'J1010', 'F1077' ], [ '2024.6.5', 'J1010', 'F1076' ], [ '2024.6.5', 'J1010', 'F1074' ], [ '2024.5.31', 'F1072', 'F1073' ], [ '2022.1.20', 'J1513', 'F1515' ], [ '2021.12.17', 'J1066', 'F1070', 'F1514' ], [ '2021.12.17', 'J1010', 'F1069' ], [ '2021.3.7', 'J1010', 'F1068' ], [ '2020.10.30', 'J1066', 'F1067' ], [ '2020.10.5', 'J1010', 'F1065' ], [ '2019.10.9', 'J1010', 'F1064' ], [ '2019.3.17', 'J1010', 'F1063' ], [ '2018.10.28', 'J1010', 'F1062' ], [ '2018.8.17', 'J1010', 'F1060' ], [ '2018.7.30', 'J1010', 'F1059' ], [ '2018.6.27', 'J1010', 'F1058' ], [ '2018.6.12', 'J1010', 'F1057' ], [ '2018.5.18', 'J1010', 'F1049' ], [ '2018.4.24', 'J1036', 'F1048' ], [ '2018.4.6', 'J1010', 'F1047' ], [ '2018.3.17', 'J1010', 'F1046' ], [ '2018.3.4', 'J1041', 'F1042' ], [ '2018.2.17', 'J1010', 'F1044' ], [ '2018.1.7', 'J1010', 'F1043' ], [ '2017.11.6', 'J1010', 'F1037', 'F1038' ], [ '2017.10.22', 'J1010', 'F1023' ], [ '2017.10.14', 'J1010', 'F1020' ], [ '2017.9.11', 'J1010', 'F1018' ], [ '2017.8.8', 'J1035', 'F1017' ], [ '2017.6.23', 'J1010', 'F1014' ], [ '2017.5.29', 'J1010', 'F1013' ], [ '2017.3.31', 'J1031', 'F1012' ], [ '2017.2.26', 'J1030', 'F1011' ], [ ПОЛНАЯ_СПРАВКА, 'J1500', 'F1501', 'F1503', 'F1502', 'F1575', 'F1509', 'F1573', 'F1574', 'F1504', 'F1514', 'F1507' ], [ ПОЛНАЯ_СПРАВКА, 'J1513', 'F1570', 'F1571', 'F1572', 'F1515', 'F1511', 'F1506', 'F1510' ], [ ПОКАЗАТЬ_ОДИН_РАЗ, 'J1054', 'F1501' ], [ ДЛЯ_ПЛАНШЕТА, 'J1055', 'F1056' ], [ ПОКАЗЫВАТЬ_ВСЕГДА, 'J1003', 'F1000' ] ];
-	function ПеревестиВерсиюВМиллисекунды(сВерсия) {
-		const мчЧасти = /^(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?$/.exec(сВерсия);
-		мчЧасти[1] |= 0;
-		мчЧасти[2] |= 0;
-		мчЧасти[3] |= 0;
-		мчЧасти[4] |= 0;
-		return Date.UTC(мчЧасти[1], мчЧасти[2] - 1, мчЧасти[3], 0, 0, 0, мчЧасти[4]);
+const newsModule = (() => {
+	const showOnce = '2000.1.1';
+	const alwaysShow = '2000.2.2';
+	const fullHelp = '2000.3.3';
+	const forTablet = '2000.4.4';
+	const _newsModule = [ [ '2025.5.28', 'J1010', 'F1078' ], [ '2024.6.14', 'J1010', 'F1077' ], [ '2024.6.5', 'J1010', 'F1076' ], [ '2024.6.5', 'J1010', 'F1074' ], [ '2024.5.31', 'F1072', 'F1073' ], [ '2022.1.20', 'J1513', 'F1515' ], [ '2021.12.17', 'J1066', 'F1070', 'F1514' ], [ '2021.12.17', 'J1010', 'F1069' ], [ '2021.3.7', 'J1010', 'F1068' ], [ '2020.10.30', 'J1066', 'F1067' ], [ '2020.10.5', 'J1010', 'F1065' ], [ '2019.10.9', 'J1010', 'F1064' ], [ '2019.3.17', 'J1010', 'F1063' ], [ '2018.10.28', 'J1010', 'F1062' ], [ '2018.8.17', 'J1010', 'F1060' ], [ '2018.7.30', 'J1010', 'F1059' ], [ '2018.6.27', 'J1010', 'F1058' ], [ '2018.6.12', 'J1010', 'F1057' ], [ '2018.5.18', 'J1010', 'F1049' ], [ '2018.4.24', 'J1036', 'F1048' ], [ '2018.4.6', 'J1010', 'F1047' ], [ '2018.3.17', 'J1010', 'F1046' ], [ '2018.3.4', 'J1041', 'F1042' ], [ '2018.2.17', 'J1010', 'F1044' ], [ '2018.1.7', 'J1010', 'F1043' ], [ '2017.11.6', 'J1010', 'F1037', 'F1038' ], [ '2017.10.22', 'J1010', 'F1023' ], [ '2017.10.14', 'J1010', 'F1020' ], [ '2017.9.11', 'J1010', 'F1018' ], [ '2017.8.8', 'J1035', 'F1017' ], [ '2017.6.23', 'J1010', 'F1014' ], [ '2017.5.29', 'J1010', 'F1013' ], [ '2017.3.31', 'J1031', 'F1012' ], [ '2017.2.26', 'J1030', 'F1011' ], [ fullHelp, 'J1500', 'F1501', 'F1503', 'F1502', 'F1575', 'F1509', 'F1573', 'F1574', 'F1504', 'F1514', 'F1507' ], [ fullHelp, 'J1513', 'F1570', 'F1571', 'F1572', 'F1515', 'F1511', 'F1506', 'F1510' ], [ showOnce, 'J1054', 'F1501' ], [ forTablet, 'J1055', 'F1056' ], [ alwaysShow, 'J1003', 'F1000' ] ];
+	function convertVersionToMilliseconds(versionName) {
+		const partCount = /^(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?$/.exec(versionName);
+		partCount[1] |= 0;
+		partCount[2] |= 0;
+		partCount[3] |= 0;
+		partCount[4] |= 0;
+		return Date.UTC(partCount[1], partCount[2] - 1, partCount[3], 0, 0, 0, partCount[4]);
 	}
-	function ЕстьНовостиСВерсиейСтарше(сВерсия) {
-		const чВерсия = ПеревестиВерсиюВМиллисекунды(сВерсия);
-		return _мНовости.some(мНовость => ПеревестиВерсиюВМиллисекунды(мНовость[0]) > чВерсия);
+	function hasNewsWithNewerVersion(versionName) {
+		const versionNumber = convertVersionToMilliseconds(versionName);
+		return _newsModule.some(news => convertVersionToMilliseconds(news[0]) > versionNumber);
 	}
-	function ДобавитьНовости(чДобавитьВерсииСтарше, сДобавитьВерсиюСправки) {
-		Проверить(typeof чДобавитьВерсииСтарше == 'number' && чДобавитьВерсииСтарше >= 0);
-		Проверить(сДобавитьВерсиюСправки === '' || сДобавитьВерсиюСправки.startsWith('2000'));
-		Проверить(Number.isFinite(чДобавитьВерсииСтарше) || сДобавитьВерсиюСправки !== '');
-		const элДобавитьВ = Узел('текстновостей');
-		элДобавитьВ.textContent = '';
-		for (let мНовость of _мНовости) {
-			const сВерсия = мНовость[0];
-			if (сВерсия.startsWith('2000')) {
-				if (сВерсия === сДобавитьВерсиюСправки || сВерсия === ДЛЯ_ПЛАНШЕТА && этоМобильноеУстройство() || сВерсия === ПОКАЗЫВАТЬ_ВСЕГДА) {
-					ДобавитьНовость(элДобавитьВ, мНовость, 0);
+	function addNews(versionsOlderToAddCount, helpVersionToAdd) {
+		assert(typeof versionsOlderToAddCount == 'number' && versionsOlderToAddCount >= 0);
+		assert(helpVersionToAdd === '' || helpVersionToAdd.startsWith('2000'));
+		assert(Number.isFinite(versionsOlderToAddCount) || helpVersionToAdd !== '');
+		const addToElement = element('news-body');
+		addToElement.textContent = '';
+		for (let news of _newsModule) {
+			const versionName = news[0];
+			if (versionName.startsWith('2000')) {
+				if (versionName === helpVersionToAdd || versionName === forTablet && isMobileDevice() || versionName === alwaysShow) {
+					addNews2(addToElement, news, 0);
 				}
 			} else {
-				const чВерсия = ПеревестиВерсиюВМиллисекунды(сВерсия);
-				if (чВерсия > чДобавитьВерсииСтарше) {
-					ДобавитьНовость(элДобавитьВ, мНовость, чВерсия);
+				const versionNumber = convertVersionToMilliseconds(versionName);
+				if (versionNumber > versionsOlderToAddCount) {
+					addNews2(addToElement, news, versionNumber);
 				}
 			}
 		}
-		м_Окно.настроитьИндикаторПрокрутки(элДобавитьВ);
+		windowModule.setupScrollIndicator(addToElement);
 	}
-	function ДобавитьНовость(элДобавитьВ, мНовость, чДатаНовости) {
-		if (элДобавитьВ.firstElementChild) {
-			элДобавитьВ.appendChild(document.createElement('hr'));
+	function addNews2(addToElement, news, newsDate) {
+		if (addToElement.firstElementChild) {
+			addToElement.appendChild(document.createElement('hr'));
 		}
-		const узЗаголовок = document.createElement('h4');
-		if (чДатаНовости === 0) {
-			узЗаголовок.textContent = Текст(мНовость[1]);
+		const titleElement = document.createElement('h4');
+		if (newsDate === 0) {
+			titleElement.textContent = getMessageText(news[1]);
 		} else {
-			узЗаголовок.textContent = `${м_i18n.ФорматироватьДату(чДатаНовости)} · ${Текст(мНовость[1])}`;
+			titleElement.textContent = `${i18n.formatDate(newsDate)} · ${getMessageText(news[1])}`;
 		}
-		элДобавитьВ.appendChild(узЗаголовок);
-		if (Текст('M0010') !== 'ru') {
-			const элСсылка = узЗаголовок.appendChild(document.createElement('a'));
-			элСсылка.className = 'новость-перевести';
-			элСсылка.href = 'translate:';
-			элСсылка.target = '_blank';
-			элСсылка.title = Текст('J0148');
+		addToElement.appendChild(titleElement);
+		if (getMessageText('M0010') !== 'ru') {
+			const link = titleElement.appendChild(document.createElement('a'));
+			link.className = 'translate-news';
+			link.href = 'translate:';
+			link.target = '_blank';
+			link.title = getMessageText('J0148');
 		}
-		for (let ы = 2; ы < мНовость.length; ++ы) {
-			м_i18n.InsertAdjacentHtmlMessage(элДобавитьВ, 'beforeend', мНовость[ы]);
+		for (let yMarker = 2; yMarker < news.length; ++yMarker) {
+			i18n.InsertAdjacentHtmlMessage(addToElement, 'beforeend', news[yMarker]);
 		}
 	}
-	function ОткрытьОкно(лПодтвердитьПрочтение) {
-		if (лПодтвердитьПрочтение) {
-			м_i18n.InsertAdjacentHtmlMessage('закрытьновости', 'content', 'F0619').title = Текст('A0620');
-			ПоказатьЭлемент('отложитьновости', true);
+	function openWindow(shouldConfirmRead) {
+		if (shouldConfirmRead) {
+			i18n.InsertAdjacentHtmlMessage('close-news', 'content', 'F0619').title = getMessageText('A0620');
+			showElement('postpone-news', true);
 		} else {
-			м_i18n.InsertAdjacentHtmlMessage('закрытьновости', 'content', 'F0663').title = '';
-			ПоказатьЭлемент('отложитьновости', false);
+			i18n.InsertAdjacentHtmlMessage('close-news', 'content', 'F0663').title = '';
+			showElement('postpone-news', false);
 		}
-		м_События.ДобавитьОбработчик('управление-левыйщелчок', ОбработатьЛевыйЩелчок);
-		м_Окно.открыть('новости');
+		events.addHandler('control-left-click', handleLeftClick);
+		windowModule.open('news');
 	}
-	function ОбработатьЛевыйЩелчок(оСобытие) {
-		if (оСобытие.сПозывной === 'закрытьновости' && ЭлементПоказан('отложитьновости')) {
-			ПоказатьЭлемент('открытьновости', false);
-			м_Настройки.Изменить('сПредыдущаяВерсия', ВЕРСИЯ_РАСШИРЕНИЯ);
-		} else if (оСобытие.target.href === 'translate:') {
-			let сТекст = '';
-			for (let элТекст = оСобытие.target.parentElement; элТекст && элТекст.nodeName !== 'HR'; элТекст = элТекст.nextElementSibling) {
-				сТекст += `${элТекст.textContent}\n\n`;
+	function handleLeftClick(event) {
+		if (event.callSign === 'close-news' && isElementShown('postpone-news')) {
+			showElement('open-news', false);
+			settings.set('previousVersionName', extensionVersion);
+		} else if (event.target.href === 'translate:') {
+			let textString = '';
+			for (let textElement2 = event.target.parentElement; textElement2 && textElement2.nodeName !== 'HR'; textElement2 = textElement2.nextElementSibling) {
+				textString += `${textElement2.textContent}\n\n`;
 			}
-			оСобытие.target.href = `https://translate.google.com/?op=translate&sl=${Текст('M0010')}&text=${encodeURIComponent(сТекст)}`;
+			event.target.href = `https://translate.google.com/?op=translate&sl=${getMessageText('M0010')}&text=${encodeURIComponent(textString)}`;
 		}
 	}
-	function ОткрытьСправку() {
-		ДобавитьНовости(Infinity, ПОЛНАЯ_СПРАВКА);
-		ОткрытьОкно(false);
+	function openHelp() {
+		addNews(Infinity, fullHelp);
+		openWindow(false);
 	}
-	function ОткрытьНовости() {
-		const {пТекущее: сПредыдущаяВерсия, пНачальное: сНачальнаяВерсия} = м_Настройки.ПолучитьПараметрыНастройки('сПредыдущаяВерсия');
-		if (сПредыдущаяВерсия === сНачальнаяВерсия) {
-			ДобавитьНовости(Infinity, ПОКАЗАТЬ_ОДИН_РАЗ);
-			ОткрытьОкно(false);
-			ПоказатьЭлемент('открытьновости', false);
-			м_Настройки.Изменить('сПредыдущаяВерсия', ВЕРСИЯ_РАСШИРЕНИЯ);
-		} else if (сПредыдущаяВерсия !== ВЕРСИЯ_РАСШИРЕНИЯ) {
-			ДобавитьНовости(ПеревестиВерсиюВМиллисекунды(сПредыдущаяВерсия), '');
-			ОткрытьОкно(true);
-			Узел('открытьновости').classList.remove('непрочитано');
+	function openNews() {
+		const {currentValue: previousVersionName, initialValue: initialVersion} = settings.getSettingParam('previousVersionName');
+		if (previousVersionName === initialVersion) {
+			addNews(Infinity, showOnce);
+			openWindow(false);
+			showElement('open-news', false);
+			settings.set('previousVersionName', extensionVersion);
+		} else if (previousVersionName !== extensionVersion) {
+			addNews(convertVersionToMilliseconds(previousVersionName), '');
+			openWindow(true);
+			element('open-news').classList.remove('unread');
 		} else {
-			ДобавитьНовости(0, '');
-			ОткрытьОкно(false);
+			addNews(0, '');
+			openWindow(false);
 		}
 	}
-	function проверитьОбновлениеРасширения() {
-		const ИНТЕРВАЛ_ПРОВЕРКИ_ОБНОВЛЕНИЯ = 1e3 * 60 * 60 * 24 * 5;
-		const ЗАНИМАЕТ_УСТАНОВКА_ОБНОВЛЕНИЯ = 1e3 * 60 * 60 * 24 * 3;
-		const чСейчас = Date.now();
-		let чПоследняяПроверка = м_Настройки.Получить('чПоследняяПроверкаОбновленияРасширения');
-		if (Math.abs(чСейчас - Math.abs(чПоследняяПроверка)) < ИНТЕРВАЛ_ПРОВЕРКИ_ОБНОВЛЕНИЯ) {
+	function assertExtensionUpdate() {
+		const updateCheckInterval = 1e3 * 60 * 60 * 24 * 5;
+		const UPDATE_INSTALLATION_IN_PROGRESS = 1e3 * 60 * 60 * 24 * 3;
+		const now = Date.now();
+		let lastCheck = settings.get('lastExtensionUpdateCheck');
+		if (Math.abs(now - Math.abs(lastCheck)) < updateCheckInterval) {
 			return;
 		}
-		Ждать(null, 900).then(() => {
-			return м_Загрузчик.ЗагрузитьJson(null, `https://coolcmd.github.io/tw5/version.json?${чСейчас}`, 3e4, 'обновление расширения', false);
-		}).then(оРезультат => {
-			let лОбновлениеДоступно = false;
+		wait(null, 900).then(() => {
+			return loader.loadJson(null, `https://coolcmd.github.io/tw5/version.json?${now}`, 3e4, 'extension update', false);
+		}).then(result => {
+			let isUpdateAvailable = false;
 			try {
-				const {оПоддерживаемаяВерсия: {оХромой: {сВерсияРасширения, чВерсияБраузера}}} = оРезультат;
-				Проверить(ЭтоНепустаяСтрока(сВерсияРасширения) && Number.isSafeInteger(чВерсияБраузера));
-				лОбновлениеДоступно = получитьВерсиюДвижкаБраузера() >= чВерсияБраузера && ПеревестиВерсиюВМиллисекунды(ВЕРСИЯ_РАСШИРЕНИЯ) < ПеревестиВерсиюВМиллисекунды(сВерсияРасширения);
-			} catch (пИсключение) {
-				throw String(пИсключение);
+				const {supportedVersion: {chrome: {extensionVersion2, browserVersion}}} = result;
+				assert(isNonEmptyString(extensionVersion2) && Number.isSafeInteger(browserVersion));
+				isUpdateAvailable = getBrowserEngineVersion() >= browserVersion && convertVersionToMilliseconds(extensionVersion) < convertVersionToMilliseconds(extensionVersion2);
+			} catch (exception) {
+				throw String(exception);
 			}
-			if (!лОбновлениеДоступно) {
-				чПоследняяПроверка = чСейчас;
-			} else if (чПоследняяПроверка >= 0) {
-				чПоследняяПроверка = -(чСейчас - (ИНТЕРВАЛ_ПРОВЕРКИ_ОБНОВЛЕНИЯ - ЗАНИМАЕТ_УСТАНОВКА_ОБНОВЛЕНИЯ));
+			if (!isUpdateAvailable) {
+				lastCheck = now;
+			} else if (lastCheck >= 0) {
+				lastCheck = -(now - (updateCheckInterval - UPDATE_INSTALLATION_IN_PROGRESS));
 			} else {
-				чПоследняяПроверка = -чСейчас;
-				м_Окно.открыть('обновлениерасширения');
+				lastCheck = -now;
+				windowModule.open('extension-update');
 			}
-			м_Настройки.Изменить('чПоследняяПроверкаОбновленияРасширения', чПоследняяПроверка);
-			м_Настройки.СохранитьИзменения();
-		}).catch(ДобавитьОбработчикИсключений(пПричина => {
-			if (typeof пПричина == 'string') {
-				м_Журнал.Ой(`[Новости] Не удалось проверить обновление расширения. ${пПричина}`);
-				м_Настройки.Изменить('чПоследняяПроверкаОбновленияРасширения', чПоследняяПроверка < 0 ? -чСейчас : чСейчас);
-				м_Настройки.СохранитьИзменения();
+			settings.set('lastExtensionUpdateCheck', lastCheck);
+			settings.flushChanges();
+		}).catch(wrapErrors(reasonValue => {
+			if (typeof reasonValue == 'string') {
+				log.logError(`[News] Failed to check for extension update. ${reasonValue}`);
+				settings.set('lastExtensionUpdateCheck', lastCheck < 0 ? -now : now);
+				settings.flushChanges();
 			} else {
-				throw пПричина;
+				throw reasonValue;
 			}
 		}));
 	}
-	function Запустить() {
-		const {пТекущее: сПредыдущаяВерсия, пНачальное: сНачальнаяВерсия} = м_Настройки.ПолучитьПараметрыНастройки('сПредыдущаяВерсия');
-		if (сПредыдущаяВерсия !== ВЕРСИЯ_РАСШИРЕНИЯ) {
-			м_Журнал.Окак(`[Новости] Версия расширения изменилась с ${сПредыдущаяВерсия} на ${ВЕРСИЯ_РАСШИРЕНИЯ}`);
-			if (сПредыдущаяВерсия === сНачальнаяВерсия || ЕстьНовостиСВерсиейСтарше(сПредыдущаяВерсия)) {
-				ПоказатьЭлемент('открытьновости', true).classList.add('непрочитано');
+	function start() {
+		const {currentValue: previousVersionName, initialValue: initialVersion} = settings.getSettingParam('previousVersionName');
+		if (previousVersionName !== extensionVersion) {
+			log.logOk(`[News] Extension version changed from ${previousVersionName} to ${extensionVersion}`);
+			if (previousVersionName === initialVersion || hasNewsWithNewerVersion(previousVersionName)) {
+				showElement('open-news', true).classList.add('unread');
 			} else {
-				м_Настройки.Изменить('сПредыдущаяВерсия', ВЕРСИЯ_РАСШИРЕНИЯ);
+				settings.set('previousVersionName', extensionVersion);
 			}
 		}
-		проверитьОбновлениеРасширения();
+		assertExtensionUpdate();
 	}
 	return {
-		Запустить,
-		ОткрытьНовости,
-		ОткрытьСправку
+		start,
+		openNews,
+		openHelp
 	};
 })();
 
-const м_Управление = (() => {
-	const ПЕРЕМАТЫВАТЬ_СТРЕЛКАМИ_НА = 5;
-	const ПЕРЕМАТЫВАТЬ_ПО_КАДРАМ_НА = 3;
-	const НАЗВАНИЕ_ТРАНСЛЯЦИИ_НЕИЗВЕСТНО = '• • •';
-	let _чСостояние;
-	let _оНачалоВоспроизведения, _оРазмерБуфера, _оРастягиваниеБуфера, _оДлительностьПовтора;
-	let _оИнтервалАвтоскрытия;
-	function запуститьИзменениеГромкостиКолесом() {
-		document.removeEventListener('pointerdown', обработатьНажатиеКолеса);
-		document.removeEventListener('wheel', обработатьВращениеКолеса);
-		if (м_Настройки.Получить('лМенятьГромкостьКолесом')) {
-			document.addEventListener('pointerdown', обработатьНажатиеКолеса);
-			if (м_Настройки.Получить('чШагИзмененияГромкостиКолесом') !== 0) {
-				document.addEventListener('wheel', обработатьВращениеКолеса, {
+const control = (() => {
+	const arrowSeekTo = 5;
+	const FRAME_SEEK_STEP = 3;
+	const unknownStreamTitle = '• • •';
+	let _state;
+	let _playbackStartInfo, _bufferSizeInfo, _bufferStretchInfo, _repeatDurationObj;
+	let _autoHideIntervalObj;
+	function startWheelVolumeChange() {
+		document.removeEventListener('pointerdown', handleWheelPress);
+		document.removeEventListener('wheel', handleWheelRotation);
+		if (settings.get('shouldChangeVolumeWithWheel')) {
+			document.addEventListener('pointerdown', handleWheelPress);
+			if (settings.get('wheelVolumeStep') !== 0) {
+				document.addEventListener('wheel', handleWheelRotation, {
 					passive: false
 				});
 			}
 		}
 	}
-	const обработатьНажатиеКолеса = создатьОбработчикСобытийЭлемента(оСобытие => {
-		if (!(оСобытие.button !== СРЕДНЯЯ_КНОПКА || оСобытие.shiftKey || оСобытие.ctrlKey || оСобытие.altKey || оСобытие.metaKey || ЭтоСобытиеДляСсылки(оСобытие))) {
-			оСобытие.preventDefault();
-			СохранитьИПрименитьГромкость(!м_Настройки.Получить('лПриглушить'));
+	const handleWheelPress = createElementEventHandler(event => {
+		if (!(event.button !== middleButton || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || isEventForLink(event))) {
+			event.preventDefault();
+			saveAndApplyVolume(!settings.get('isMuted'));
 		}
 	});
-	const обработатьВращениеКолеса = ДобавитьОбработчикИсключений(оСобытие => {
-		if (!(оСобытие.shiftKey || оСобытие.ctrlKey || оСобытие.altKey || оСобытие.metaKey || ЭлементВЭтойТочкеМожноПрокрутить(оСобытие.clientX, оСобытие.clientY))) {
-			оСобытие.preventDefault();
-			м_Журнал.Вот(`[Управление] Движение колеса deltaY=${оСобытие.deltaY} deltaMode=${оСобытие.deltaMode}`);
-			if (оСобытие.deltaY !== 0) {
-				СохранитьИПрименитьГромкость(void 0, Ограничить(ПолучитьГромкость() - м_Настройки.Получить('чШагИзмененияГромкостиКолесом') * Math.sign(оСобытие.deltaY), МИНИМАЛЬНАЯ_ГРОМКОСТЬ, ПолучитьМаксимальнуюГромкость()));
+	const handleWheelRotation = wrapErrors(event => {
+		if (!(event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || canScrollElementAtPoint(event.clientX, event.clientY))) {
+			event.preventDefault();
+			log.logInfo(`[Controls] Wheel movement deltaY=${event.deltaY} deltaMode=${event.deltaMode}`);
+			if (event.deltaY !== 0) {
+				saveAndApplyVolume(void 0, limit(getVolume() - settings.get('wheelVolumeStep') * Math.sign(event.deltaY), minVolume, getMaxVolume()));
 			}
 		}
 	});
-	function ПрименитьМасштабированиеИзображения() {
-		Узел('глаз').classList.toggle('масштабировать', м_Настройки.Получить('лМасштабироватьИзображение'));
+	function applyImageScaling() {
+		element('eye').classList.toggle('zoom', settings.get('shouldScaleImage'));
 	}
-	function ПрименитьАнимациюИнтерфейса() {
-		document.body.classList.toggle('анимацияинтерфейса', м_Настройки.Получить('лАнимацияИнтерфейса'));
+	function applyUiAnimation() {
+		document.body.classList.toggle('interface-animation', settings.get('isUiAnimationEnabled'));
 	}
-	function ОстановитьПросмотрТрансляции() {
-		if (_чСостояние === СОСТОЯНИЕ_ОСТАНОВКА || _чСостояние === СОСТОЯНИЕ_ПОВТОР) {
+	function stopWatchingStream() {
+		if (_state === stoppedState || _state === repeatState) {
 			return false;
 		}
-		м_Журнал.Окак('[Управление] Останавливаю просмотр трансляции');
-		м_Список.Остановить();
-		м_Преобразователь.Остановить();
-		г_моОчередь.Очистить();
-		г_моОчередь.Добавить(new Сегмент(ОБРАБОТКА_ПРЕОБРАЗОВАН, СОСТОЯНИЕ_ПОВТОР));
-		м_Проигрыватель.ДобавитьСледующийСегмент();
+		log.logOk('[Controls] Stopping stream viewing');
+		listModule.stop();
+		converterModule.stop();
+		globalQueue.clear();
+		globalQueue.add(new segmentItem(processingTransformed, repeatState));
+		player.addNextSegment();
 		return true;
 	}
-	function ПереключитьПросмотрТрансляции() {
-		if (!ОстановитьПросмотрТрансляции()) {
-			м_Журнал.Окак('[Управление] Начинаю просмотр трансляции');
-			г_моОчередь.Очистить();
-			м_Проигрыватель.Перезагрузить(СОСТОЯНИЕ_ЗАПУСК);
-			м_Список.Запустить();
+	function toggleStreamViewing() {
+		if (!stopWatchingStream()) {
+			log.logOk('[Controls] Starting stream viewing');
+			globalQueue.clear();
+			player.reload(launchState);
+			listModule.start();
 		}
 	}
-	function ПереключитьОкноСтатистики() {
-		if (м_Статистика.ОкноОткрыто()) {
-			м_Статистика.ЗакрытьОкно();
+	function toggleStatsWindow() {
+		if (stats.isWindowOpen()) {
+			stats.closeWindow();
 		} else {
-			м_Статистика.ОткрытьОкно();
+			stats.openWindow();
 		}
 	}
-	function ПереключитьПроверкуЦвета(оСобытие) {
-		if (document.body.classList.toggle('проверкацвета')) {
-			document.body.classList.toggle('проверкацветафон', !оСобытие.shiftKey);
-			м_Новости.ОткрытьСправку();
+	function toggleColorCheck(event) {
+		if (document.body.classList.toggle('color-check')) {
+			document.body.classList.toggle('background-color-check', !event.shiftKey);
+			newsModule.openHelp();
 		} else {
-			document.body.classList.remove('проверкацветафон');
+			document.body.classList.remove('background-color-check');
 		}
 	}
-	function КопироватьТекстВБуферОбмена(сТекст) {
-		Проверить(typeof сТекст == 'string');
-		if (сТекст === '') {
-			м_Уведомление.ПоказатьЖопу();
+	function copyTextToClipboard(textString) {
+		assert(typeof textString == 'string');
+		if (textString === '') {
+			notification.showButt();
 			return;
 		}
-		navigator.clipboard.writeText(сТекст).then(() => {
-			м_Журнал.Вот('[Управление] Копирование в буфер обмена завершено');
-			м_Уведомление.ПоказатьСчастье();
-		}, пПричина => {
-			м_Журнал.Ой(`[Управление] Ошибка при копировании в буфер обмена: ${пПричина}`);
-			м_Уведомление.ПоказатьЖопу();
-		}).catch(м_Отладка.ПойманоИсключение);
+		navigator.clipboard.writeText(textString).then(() => {
+			log.logInfo('[Controls] Clipboard copy completed');
+			notification.showHappiness();
+		}, reasonValue => {
+			log.logError(`[Controls] Error copying to clipboard: ${reasonValue}`);
+			notification.showButt();
+		}).catch(debug.exceptionCaught);
 	}
-	function КопироватьАдресТрансляцииВБуферОбмена() {
-		if (КопироватьАдресТрансляцииВБуферОбмена.лИдетВыполнение) {
+	function copyStreamUrlToClipboard() {
+		if (copyStreamUrlToClipboard.isRunning) {
 			return;
 		}
-		КопироватьАдресТрансляцииВБуферОбмена.лИдетВыполнение = true;
-		м_Журнал.Окак('[Управление] Получаю адрес трансляции для копирования');
-		м_Twitch.ПолучитьАбсолютныйАдресСпискаВариантов(null, true, false).then(сРезультат => {
-			м_Журнал.Вот('[Управление] Копирую адрес трансляции в буфер обмена');
-			return navigator.clipboard.writeText(сРезультат).then(() => {
-				КопироватьАдресТрансляцииВБуферОбмена.лИдетВыполнение = false;
-				м_Журнал.Вот('[Управление] Копирование в буфер обмена завершено');
-				м_Управление.ОстановитьПросмотрТрансляции();
-				м_Уведомление.ПоказатьСчастье();
-			}, пПричина => {
-				throw `Ошибка при копировании в буфер обмена: ${пПричина}`;
+		copyStreamUrlToClipboard.isRunning = true;
+		log.logOk('[Controls] Getting stream URL for copying');
+		Twitch.getAbsoluteOptionListUrl(null, true, false).then(resultText => {
+			log.logInfo('[Controls] Copying stream URL to clipboard');
+			return navigator.clipboard.writeText(resultText).then(() => {
+				copyStreamUrlToClipboard.isRunning = false;
+				log.logInfo('[Controls] Clipboard copy completed');
+				control.stopWatchingStream();
+				notification.showHappiness();
+			}, reasonValue => {
+				throw `Error copying to clipboard: ${reasonValue}`;
 			});
-		}).catch(ДобавитьОбработчикИсключений(пПричина => {
-			КопироватьАдресТрансляцииВБуферОбмена.лИдетВыполнение = false;
-			if (typeof пПричина == 'string') {
-				м_Журнал.Ой(`[Управление] Ошибка при копировании адреса трансляции в буфер обмена: ${пПричина}`);
-				м_Уведомление.ПоказатьЖопу();
+		}).catch(wrapErrors(reasonValue => {
+			copyStreamUrlToClipboard.isRunning = false;
+			if (typeof reasonValue == 'string') {
+				log.logError(`[Controls] Error copying stream URL to clipboard: ${reasonValue}`);
+				notification.showButt();
 			} else {
-				throw пПричина;
+				throw reasonValue;
 			}
 		}));
 	}
-	const ОбработатьИзменениеГромкости = ДобавитьОбработчикИсключений(оСобытие => {
-		СохранитьИПрименитьГромкость(false, оСобытие.target.valueAsNumber);
+	const handleVolumeChange = wrapErrors(event => {
+		saveAndApplyVolume(false, event.target.valueAsNumber);
 	});
-	function СохранитьИПрименитьГромкость(лПриглушить, чГромкость) {
-		Проверить(лПриглушить !== void 0 || чГромкость !== void 0);
-		if (document.body.classList.contains('нетзвука')) {
+	function saveAndApplyVolume(isMuted, volume) {
+		assert(isMuted !== void 0 || volume !== void 0);
+		if (document.body.classList.contains('no-sound')) {
 			return;
 		}
-		if (лПриглушить !== void 0) {
-			м_Настройки.Изменить('лПриглушить', лПриглушить);
+		if (isMuted !== void 0) {
+			settings.set('isMuted', isMuted);
 		}
-		if (чГромкость !== void 0) {
-			м_Настройки.Изменить('чГромкость2', Ограничить(Math.round(чГромкость), МИНИМАЛЬНАЯ_ГРОМКОСТЬ, ПолучитьМаксимальнуюГромкость()));
+		if (volume !== void 0) {
+			settings.set('volume2', limit(Math.round(volume), minVolume, getMaxVolume()));
 		}
-		м_Проигрыватель.ПрименитьГромкость();
-		ОбновитьГромкость();
-		м_Автоскрытие.Показать();
+		player.applyVolume();
+		updateVolume();
+		autoHide.show();
 	}
-	function ОбновитьГромкость() {
-		const чМаксимальнаяГромкость = ПолучитьМаксимальнуюГромкость();
-		const чГромкость = ПолучитьГромкость();
-		const узГромкость = Узел('громкость');
-		узГромкость.max = чМаксимальнаяГромкость;
-		узГромкость.value = чГромкость;
-		узГромкость.style.setProperty('--ширина', `${(чГромкость - МИНИМАЛЬНАЯ_ГРОМКОСТЬ) / (чМаксимальнаяГромкость - МИНИМАЛЬНАЯ_ГРОМКОСТЬ) * 100}%`);
-		ИзменитьКнопку('переключитьприглушить', м_Настройки.Получить('лПриглушить'));
+	function updateVolume() {
+		const maxVolume2 = getMaxVolume();
+		const volume = getVolume();
+		const volumeElement = element('volume');
+		volumeElement.max = maxVolume2;
+		volumeElement.value = volume;
+		volumeElement.style.setProperty('--width', `${(volume - minVolume) / (maxVolume2 - minVolume) * 100}%`);
+		updateButton('toggle-mute', settings.get('isMuted'));
 	}
-	function ОбновитьКоличествоДорожек(лЕстьВидео, лЕстьЗвук) {
-		document.body.classList.toggle('нетвидео', !лЕстьВидео);
-		document.body.classList.toggle('нетзвука', !лЕстьЗвук);
+	function updateTrackCount(hasVideo, hasAudio) {
+		document.body.classList.toggle('no-video', !hasVideo);
+		document.body.classList.toggle('no-sound', !hasAudio);
 	}
-	function ИзменитьПодпискуЗрителяНаКанал(чПодписка) {
-		if (!document.getElementById('зритель-подписка').classList.contains('обновляется')) {
-			м_Twitch.ИзменитьПодпискуЗрителяНаКанал(чПодписка);
+	function changeViewerSubscriptionToChannel(subscriptionCount) {
+		if (!document.getElementById('viewer-subscription').classList.contains('updating')) {
+			Twitch.changeViewerSubscriptionToChannel(subscriptionCount);
 		}
 	}
-	const ОбработатьЛевыйЩелчок = создатьОбработчикСобытийЭлемента(оСобытие => {
-		if (оСобытие.button !== ЛЕВАЯ_КНОПКА) {
+	const handleLeftClick = createElementEventHandler(event => {
+		if (event.button !== leftButton) {
 			return;
 		}
-		const узЩелчок = оСобытие.target;
-		let узПозывной = узЩелчок;
-		let сПозывной = узПозывной.id || узПозывной.name;
-		if (!сПозывной && узЩелчок.parentNode) {
-			узПозывной = узЩелчок.parentNode;
-			сПозывной = узПозывной.id || узПозывной.name;
+		const clickedElement = event.target;
+		let callSignElement = clickedElement;
+		let callSign = callSignElement.id || callSignElement.name;
+		if (!callSign && clickedElement.parentNode) {
+			callSignElement = clickedElement.parentNode;
+			callSign = callSignElement.id || callSignElement.name;
 		}
-		оСобытие.узПозывной = узПозывной;
-		оСобытие.сПозывной = сПозывной;
-		м_События.ПослатьСобытие('управление-левыйщелчок', оСобытие);
-		switch (сПозывной) {
-		  case 'переключитьтрансляцию':
-			ПереключитьПросмотрТрансляции();
+		event.callSignElement = callSignElement;
+		event.callSign = callSign;
+		events.sendEvent('control-left-click', event);
+		switch (callSign) {
+		  case 'toggle-stream':
+			toggleStreamViewing();
 			break;
 
-		  case 'переключитьпаузу':
-			if (_чСостояние === СОСТОЯНИЕ_ПОВТОР) {
-				м_Проигрыватель.ПереключитьПаузу();
+		  case 'toggle-pause':
+			if (_state === repeatState) {
+				player.togglePause();
 			}
 			break;
 
-		  case 'переключитьприглушить':
-			СохранитьИПрименитьГромкость(!м_Настройки.Получить('лПриглушить'));
+		  case 'toggle-mute':
+			saveAndApplyVolume(!settings.get('isMuted'));
 			break;
 
-		  case 'переключитьчат':
-			м_Чат.ПереключитьСостояниеПанели();
+		  case 'toggle-chat':
+			chat.togglePanelState();
 			break;
 
-		  case 'создатьклип':
-			м_Twitch.СоздатьКлип();
+		  case 'create-clip':
+			Twitch.createClip();
 			break;
 
-		  case 'переключитькартинкавкартинке':
-			м_КартинкаВКартинке.переключить();
+		  case 'toggle-picture-in-picture':
+			pictureInPictureModule.toggle();
 			break;
 
-		  case 'переключитьполноэкранный':
-			м_ПолноэкранныйРежим.Переключить();
+		  case 'toggle-fullscreen':
+			fullscreenMode.toggle2();
 			break;
 
-		  case 'одновременныхзагрузок':
-			Проверить(узЩелчок.checked);
-			м_Настройки.Изменить('кОдновременныхЗагрузок', Number.parseInt(узЩелчок.value, 10));
-			м_Статистика.ОчиститьИсторию();
+		  case 'concurrent-loads':
+			assert(clickedElement.checked);
+			settings.set('concurrentLoadCount', Number.parseInt(clickedElement.value, 10));
+			stats.clearHistory();
 			break;
 
-		  case 'следоватьзарейдами':
-			м_Настройки.Изменить('лСледоватьЗаРейдами', узЩелчок.checked);
+		  case 'follow-raids':
+			settings.set('followRaids', clickedElement.checked);
 			break;
 
-		  case 'разрешитьусилениегромкости':
-			м_Настройки.Изменить('лРазрешитьУсилениеГромкости', узЩелчок.checked);
-			if (!узЩелчок.checked && м_Настройки.Получить('чГромкость2') > МАКСИМАЛЬНАЯ_ГРОМКОСТЬ) {
-				м_Настройки.Изменить('чГромкость2', МАКСИМАЛЬНАЯ_ГРОМКОСТЬ);
+		  case 'allow-volume-boost':
+			settings.set('volumeBoostEnabled', clickedElement.checked);
+			if (!clickedElement.checked && settings.get('volume2') > maxVolume) {
+				settings.set('volume2', maxVolume);
 			}
-			м_Проигрыватель.ПрименитьГромкость();
-			ОбновитьГромкость();
+			player.applyVolume();
+			updateVolume();
 			break;
 
-		  case 'анимацияинтерфейса':
-			м_Настройки.Изменить('лАнимацияИнтерфейса', узЩелчок.checked);
-			ПрименитьАнимациюИнтерфейса();
+		  case 'interface-animation':
+			settings.set('isUiAnimationEnabled', clickedElement.checked);
+			applyUiAnimation();
 			break;
 
-		  case 'масштабироватьизображение':
-			м_Настройки.Изменить('лМасштабироватьИзображение', узЩелчок.checked);
-			ПрименитьМасштабированиеИзображения();
+		  case 'scale-image':
+			settings.set('shouldScaleImage', clickedElement.checked);
+			applyImageScaling();
 			break;
 
-		  case 'автоположениечата':
-			м_Настройки.Изменить('лАвтоПоложениеЧата', узЩелчок.checked);
-			ОбновитьОкноНастроек();
-			м_Чат.ПрименитьПоложениеПанели();
+		  case 'auto-chat-position':
+			settings.set('isChatAutoPosition', clickedElement.checked);
+			updateSettingsWindow();
+			chat.applyPanelPosition();
 			break;
 
-		  case 'горизонтальноеположениечата':
-			Проверить(узЩелчок.checked);
-			м_Настройки.Изменить('чГоризонтальноеПоложениеЧата', Number.parseInt(узЩелчок.value, 10));
-			м_Чат.ПрименитьПоложениеПанели();
+		  case 'chat-horizontal-position-setting':
+			assert(clickedElement.checked);
+			settings.set('chatHorizontalPosition', Number.parseInt(clickedElement.value, 10));
+			chat.applyPanelPosition();
 			break;
 
-		  case 'вертикальноеположениечата':
-			Проверить(узЩелчок.checked);
-			м_Настройки.Изменить('чВертикальноеПоложениеЧата', Number.parseInt(узЩелчок.value, 10));
-			м_Чат.ПрименитьПоложениеПанели();
+		  case 'chat-vertical-position-setting':
+			assert(clickedElement.checked);
+			settings.set('chatVerticalPosition', Number.parseInt(clickedElement.value, 10));
+			chat.applyPanelPosition();
 			break;
 
-		  case 'положениечата':
-			Проверить(узЩелчок.checked);
-			м_Настройки.Изменить('чПоложениеПанелиЧата', Number.parseInt(узЩелчок.value, 10));
-			м_Чат.ПрименитьПоложениеПанели();
+		  case 'chat-position':
+			assert(clickedElement.checked);
+			settings.set('chatPanelPosition', Number.parseInt(clickedElement.value, 10));
+			chat.applyPanelPosition();
 			break;
 
-		  case 'состояниезакрытогочата':
-			Проверить(узЩелчок.checked);
-			м_Чат.СохранитьИПрименитьСостояниеЗакрытойПанели(Number.parseInt(узЩелчок.value, 10));
+		  case 'closed-chat-state-setting':
+			assert(clickedElement.checked);
+			chat.saveAndApplyClosedPanelState(Number.parseInt(clickedElement.value, 10));
 			break;
 
-		  case 'переключитьстатистику':
-		  case 'позиция':
-			ПереключитьОкноСтатистики();
+		  case 'toggle-stats':
+		  case 'position':
+			toggleStatsWindow();
 			break;
 
-		  case 'открытьновости':
-		  case 'открытьновости2':
-			м_Новости.ОткрытьНовости();
+		  case 'open-news':
+		  case 'open-news-2':
+			newsModule.openNews();
 			break;
 
-		  case 'открытьсправку':
-			м_Новости.ОткрытьСправку();
+		  case 'open-help':
+			newsModule.openHelp();
 			break;
 
-		  case 'отправитьотзыв':
-			м_Отладка.ЗавершитьРаботуИОтправитьОтзыв();
+		  case 'send-feedback':
+			debug.finishAndSendFeedback();
 			break;
 
-		  case 'экспортнастроек':
-			м_Настройки.Экспорт();
+		  case 'export-settings':
+			settings.exportSettings();
 			break;
 
-		  case 'импортнастроек':
-			const уз = document.getElementById('выборфайладляимпортанастроек');
-			уз.value = '';
-			уз.click();
+		  case 'import-settings':
+			const elementRef = document.getElementById('settings-import-file-picker');
+			elementRef.value = '';
+			elementRef.click();
 			break;
 
-		  case 'сброситьнастройки':
-			м_Настройки.Сбросить();
+		  case 'reset-settings':
+			settings.reset();
 			break;
 
-		  case 'проверкацвета':
-			ПереключитьПроверкуЦвета(оСобытие);
+		  case 'color-check':
+			toggleColorCheck(event);
 			break;
 
-		  case 'зритель-подписаться':
-			ИзменитьПодпискуЗрителяНаКанал(ПОДПИСКА_УВЕДОМЛЯТЬ);
+		  case 'viewer-subscribe':
+			changeViewerSubscriptionToChannel(subscriptionNotify);
 			break;
 
-		  case 'зритель-отписаться':
-			ИзменитьПодпискуЗрителяНаКанал(ПОДПИСКА_НЕОФОРМЛЕНА);
+		  case 'viewer-unsubscribe':
+			changeViewerSubscriptionToChannel(subscriptionNotSubscribed);
 			break;
 
-		  case 'зритель-уведомлять':
-			ИзменитьПодпискуЗрителяНаКанал(узЩелчок.checked ? ПОДПИСКА_УВЕДОМЛЯТЬ : ПОДПИСКА_НЕУВЕДОМЛЯТЬ);
+		  case 'viewer-notify':
+			changeViewerSubscriptionToChannel(clickedElement.checked ? subscriptionNotify : subscriptionDoNotNotify);
 			break;
 
-		  case 'закрытьстатистику':
-			м_Статистика.ЗакрытьОкно();
+		  case 'close-stats':
+			stats.closeWindow();
 			break;
 
-		  case 'копироватьадресканала':
-			м_Журнал.Вот('[Управление] Копирую адрес канала в буфер обмена');
-			КопироватьТекстВБуферОбмена(м_Twitch.ПолучитьАдресКанала(false));
+		  case 'copy-channel-url':
+			log.logInfo('[Controls] Copying channel URL to clipboard');
+			copyTextToClipboard(Twitch.getChannelUrl(false));
 			break;
 
-		  case 'копироватьадрестрансляции':
-			КопироватьАдресТрансляцииВБуферОбмена();
+		  case 'copy-stream-url':
+			copyStreamUrlToClipboard();
 		}
 	});
-	const ОбработатьНажатиеИОтпусканиеКлавы = ДобавитьОбработчикИсключений(оСобытие => {
+	const handleKeyPressAndRelease = wrapErrors(event => {
 		const SHIFT_KEY = 1 << 16;
 		const CTRL_KEY = 1 << 17;
 		const ALT_KEY = 1 << 18;
 		const META_KEY = 1 << 19;
-		const лНажатие = оСобытие.type === 'keydown';
-		const лНажатие1 = лНажатие && !оСобытие.repeat;
-		switch (оСобытие.keyCode + оСобытие.shiftKey * SHIFT_KEY + оСобытие.ctrlKey * CTRL_KEY + оСобытие.altKey * ALT_KEY + оСобытие.metaKey * META_KEY) {
+		const isPressed = event.type === 'keydown';
+		const isPressed1 = isPressed && !event.repeat;
+		switch (event.keyCode + event.shiftKey * SHIFT_KEY + event.ctrlKey * CTRL_KEY + event.altKey * ALT_KEY + event.metaKey * META_KEY) {
 		  case 27:
-			оСобытие.preventDefault();
-			if (лНажатие1) {
+			event.preventDefault();
+			if (isPressed1) {
 				getSelection().removeAllRanges();
-				м_Окно.закрыть(false);
-				м_Автоскрытие.Скрыть(false);
+				windowModule.close(false);
+				autoHide.hide(false);
 			}
 			break;
 
 		  case 70:
 		  case 13:
 		  case 13 + ALT_KEY:
-			if (лНажатие1) {
-				м_ПолноэкранныйРежим.Переключить();
+			if (isPressed1) {
+				fullscreenMode.toggle2();
 			}
 			break;
 
 		  case 13 + SHIFT_KEY:
-			if (лНажатие1) {
-				м_КартинкаВКартинке.переключить();
+			if (isPressed1) {
+				pictureInPictureModule.toggle();
 			}
 			break;
 
 		  case 93:
-			if (!лНажатие) {
-				Узел('глаз').focus();
+			if (!isPressed) {
+				element('eye').focus();
 			}
 			return;
 
 		  case 88:
-			if (лНажатие1) {
-				м_Окно.переключить('главноеменю');
+			if (isPressed1) {
+				windowModule.toggle('main-menu');
 			}
 			break;
 
 		  case 67:
-			if (лНажатие1) {
-				м_Чат.ПереключитьСостояниеПанели();
+			if (isPressed1) {
+				chat.togglePanelState();
 			}
 			break;
 
 		  case 86:
-			if (лНажатие1) {
-				м_Окно.переключить('настройки');
+			if (isPressed1) {
+				windowModule.toggle('settings');
 			}
 			break;
 
 		  case 73:
-			if (лНажатие1) {
-				м_Окно.переключить('канал');
+			if (isPressed1) {
+				windowModule.toggle('channel');
 			}
 			break;
 
 		  case 83:
-			if (лНажатие1) {
-				ПереключитьОкноСтатистики();
+			if (isPressed1) {
+				toggleStatsWindow();
 			}
 			break;
 
 		  case 112:
-			if (лНажатие1) {
-				м_Новости.ОткрытьСправку();
+			if (isPressed1) {
+				newsModule.openHelp();
 			}
 			break;
 
@@ -2724,16 +2736,16 @@ const м_Управление = (() => {
 			break;
 
 		  case 85 + CTRL_KEY:
-			if (лНажатие1) {
-				м_Чат.ПереключитьПоложениеПанели();
-				ОбновитьОкноНастроек();
+			if (isPressed1) {
+				chat.togglePanelPosition();
+				updateSettingsWindow();
 			}
 			break;
 
 		  case 32:
-			if (лНажатие1) {
-				ПереключитьПросмотрТрансляции();
-				м_Автоскрытие.Показать();
+			if (isPressed1) {
+				toggleStreamViewing();
+				autoHide.show();
 			}
 			break;
 
@@ -2747,1681 +2759,1699 @@ const м_Управление = (() => {
 		  case 56:
 		  case 57:
 		  case 48:
-			if (лНажатие1 && _чСостояние === СОСТОЯНИЕ_ПОВТОР) {
-				задатьСкоростьПовтора(58 - (оСобытие.keyCode === 48 ? 58 : оСобытие.keyCode));
-				м_Автоскрытие.Показать();
+			if (isPressed1 && _state === repeatState) {
+				configureReplaySpeed(58 - (event.keyCode === 48 ? 58 : event.keyCode));
+				autoHide.show();
 			}
 			break;
 
 		  case 187:
 		  case 107:
 		  case 190:
-			if (лНажатие1 && _чСостояние === СОСТОЯНИЕ_ПОВТОР) {
-				задатьСкоростьПовтора(-Infinity);
-				м_Автоскрытие.Показать();
+			if (isPressed1 && _state === repeatState) {
+				configureReplaySpeed(-Infinity);
+				autoHide.show();
 			}
 			break;
 
 		  case 189:
 		  case 109:
 		  case 188:
-			if (лНажатие1 && _чСостояние === СОСТОЯНИЕ_ПОВТОР) {
-				задатьСкоростьПовтора(Infinity);
-				м_Автоскрытие.Показать();
+			if (isPressed1 && _state === repeatState) {
+				configureReplaySpeed(Infinity);
+				autoHide.show();
 			}
 			break;
 
 		  case 75:
 		  case 12:
-			if (лНажатие1 && _чСостояние === СОСТОЯНИЕ_ПОВТОР) {
-				м_Проигрыватель.ПереключитьПаузу();
-				м_Автоскрытие.Показать();
+			if (isPressed1 && _state === repeatState) {
+				player.togglePause();
+				autoHide.show();
 			}
 			break;
 
 		  case 74:
 		  case 37:
-			if (лНажатие && _чСостояние === СОСТОЯНИЕ_ПОВТОР) {
-				м_Журнал.Окак(`[Управление] Перематываю на -${ПЕРЕМАТЫВАТЬ_СТРЕЛКАМИ_НА}с`);
-				м_Проигрыватель.ПеремотатьПовторНа(false, -ПЕРЕМАТЫВАТЬ_СТРЕЛКАМИ_НА);
-				м_Автоскрытие.Показать();
+			if (isPressed && _state === repeatState) {
+				log.logOk(`[Controls] Seeking -${arrowSeekTo}s`);
+				player.seekReplayForward(false, -arrowSeekTo);
+				autoHide.show();
 			}
 			break;
 
 		  case 76:
 		  case 39:
-			if (лНажатие && _чСостояние === СОСТОЯНИЕ_ПОВТОР) {
-				м_Журнал.Окак(`[Управление] Перематываю на +${ПЕРЕМАТЫВАТЬ_СТРЕЛКАМИ_НА}с`);
-				м_Проигрыватель.ПеремотатьПовторНа(false, ПЕРЕМАТЫВАТЬ_СТРЕЛКАМИ_НА);
-				м_Автоскрытие.Показать();
+			if (isPressed && _state === repeatState) {
+				log.logOk(`[Controls] Seeking +${arrowSeekTo}s`);
+				player.seekReplayForward(false, arrowSeekTo);
+				autoHide.show();
 			}
 			break;
 
 		  case 74 + SHIFT_KEY:
 		  case 37 + SHIFT_KEY:
-			if (лНажатие && _чСостояние === СОСТОЯНИЕ_ПОВТОР) {
-				м_Журнал.Окак(`[Управление] Перематываю на -${ПЕРЕМАТЫВАТЬ_ПО_КАДРАМ_НА} кадров`);
-				м_Проигрыватель.ПеремотатьПовторНа(true, -ПЕРЕМАТЫВАТЬ_ПО_КАДРАМ_НА);
+			if (isPressed && _state === repeatState) {
+				log.logOk(`[Controls] Seeking -${FRAME_SEEK_STEP} frames`);
+				player.seekReplayForward(true, -FRAME_SEEK_STEP);
 			}
 			break;
 
 		  case 76 + SHIFT_KEY:
 		  case 39 + SHIFT_KEY:
-			if (лНажатие && _чСостояние === СОСТОЯНИЕ_ПОВТОР) {
-				м_Журнал.Окак(`[Управление] Перематываю на +1 кадр`);
-				м_Проигрыватель.ПеремотатьПовторНа(true, 1);
+			if (isPressed && _state === repeatState) {
+				log.logOk(`[Controls] Seeking +1 frame`);
+				player.seekReplayForward(true, 1);
 			}
 			break;
 
 		  case 38:
-			if (лНажатие) {
-				СохранитьИПрименитьГромкость(false, Math.min(ПолучитьГромкость() + ШАГ_ПОВЫШЕНИЯ_ГРОМКОСТИ_КЛАВОЙ, ПолучитьМаксимальнуюГромкость()));
+			if (isPressed) {
+				saveAndApplyVolume(false, Math.min(getVolume() + volumeUpKeyStep, getMaxVolume()));
 			}
 			break;
 
 		  case 40:
-			if (лНажатие) {
-				СохранитьИПрименитьГромкость(false, Math.max(ПолучитьГромкость() - ШАГ_ПОНИЖЕНИЯ_ГРОМКОСТИ_КЛАВОЙ, МИНИМАЛЬНАЯ_ГРОМКОСТЬ));
+			if (isPressed) {
+				saveAndApplyVolume(false, Math.max(getVolume() - volumeDownKeyStep, minVolume));
 			}
 			break;
 
 		  case 33:
-			if (лНажатие1) {
-				СохранитьИПрименитьГромкость(false);
+			if (isPressed1) {
+				saveAndApplyVolume(false);
 			}
 			break;
 
 		  case 34:
-			if (лНажатие1) {
-				СохранитьИПрименитьГромкость(true);
+			if (isPressed1) {
+				saveAndApplyVolume(true);
 			}
 			break;
 
 		  case 77:
-			if (лНажатие1) {
-				СохранитьИПрименитьГромкость(!м_Настройки.Получить('лПриглушить'));
+			if (isPressed1) {
+				saveAndApplyVolume(!settings.get('isMuted'));
 			}
 			break;
 
 		  case 73 + CTRL_KEY:
-			if (лНажатие1) {
-				const лМасштабироватьИзображение = м_Настройки.Получить('лМасштабироватьИзображение');
-				м_Настройки.Изменить('лМасштабироватьИзображение', !лМасштабироватьИзображение);
-				ОбновитьОкноНастроек();
-				ПрименитьМасштабированиеИзображения();
-				м_Уведомление.Показать(`svg-fullscreen-${лМасштабироватьИзображение}`, false);
+			if (isPressed1) {
+				const shouldScaleImage = settings.get('shouldScaleImage');
+				settings.set('shouldScaleImage', !shouldScaleImage);
+				updateSettingsWindow();
+				applyImageScaling();
+				notification.show(`svg-fullscreen-${shouldScaleImage}`, false);
 			}
 			break;
 
 		  case 88 + ALT_KEY:
-			if (лНажатие1) {
-				м_Twitch.СоздатьКлип();
+			if (isPressed1) {
+				Twitch.createClip();
 			}
 			break;
 
 		  default:
 			return;
 		}
-		оСобытие.preventDefault();
+		event.preventDefault();
 	});
-	function ОбновитьОкноНастроек() {
-		document.querySelector(`input[name="одновременныхзагрузок"][value="${м_Настройки.Получить('кОдновременныхЗагрузок')}"]`).checked = true;
-		document.querySelector(`input[name="состояниезакрытогочата"][value="${м_Настройки.Получить('чСостояниеЗакрытогоЧата')}"]`).checked = true;
-		Узел('адресчата').selectedIndex = м_Настройки.Получить('лПолноценныйЧат') ? 0 : м_Настройки.Получить('лЗатемнитьЧат') ? 2 : 1;
-		Узел('масштабироватьизображение').checked = м_Настройки.Получить('лМасштабироватьИзображение');
-		Узел('разрешитьусилениегромкости').checked = м_Настройки.Получить('лРазрешитьУсилениеГромкости');
-		Узел('следоватьзарейдами').checked = м_Настройки.Получить('лСледоватьЗаРейдами');
-		Узел('анимацияинтерфейса').checked = м_Настройки.Получить('лАнимацияИнтерфейса');
-		Узел('менятьгромкостьколесом').value = м_Настройки.Получить('лМенятьГромкостьКолесом') ? м_Настройки.Получить('чШагИзмененияГромкостиКолесом') : '';
-		const лАвтоПоложение = м_Настройки.Получить('лАвтоПоложениеЧата');
-		Узел('автоположениечата').checked = лАвтоПоложение;
-		const сузСтороны = document.querySelectorAll('.положениечата input');
-		if (лАвтоПоложение) {
-			const чГоризонтальноеПоложение = м_Настройки.Получить('чГоризонтальноеПоложениеЧата');
-			const чВертикальноеПоложение = м_Настройки.Получить('чВертикальноеПоложениеЧата');
-			let узГоризонтальноеПоложение, узВертикальноеПоложение;
-			for (let узСторона of сузСтороны) {
-				const чСторона = Number.parseInt(узСторона.value, 10);
-				if (чГоризонтальноеПоложение === чСторона) {
-					узГоризонтальноеПоложение = узСторона;
-				}
-				if (чВертикальноеПоложение === чСторона) {
-					узВертикальноеПоложение = узСторона;
-				}
-				узСторона.name = чСторона === ПРАВАЯ_СТОРОНА || чСторона === ЛЕВАЯ_СТОРОНА ? 'горизонтальноеположениечата' : 'вертикальноеположениечата';
-			}
-			узГоризонтальноеПоложение.checked = узВертикальноеПоложение.checked = true;
-		} else {
-			const чПоложение = м_Настройки.Получить('чПоложениеПанелиЧата');
-			let узПоложение;
-			for (let узСторона of сузСтороны) {
-				if (чПоложение === Number.parseInt(узСторона.value, 10)) {
-					узПоложение = узСторона;
-				}
-				узСторона.name = 'положениечата';
-			}
-			узПоложение.checked = true;
-		}
-		if (_оНачалоВоспроизведения) {
-			_оНачалоВоспроизведения.Обновить();
-			_оРазмерБуфера.Обновить();
-			_оРастягиваниеБуфера.Обновить();
-			_оДлительностьПовтора.Обновить();
-			_оИнтервалАвтоскрытия.Обновить();
-		} else {
-			_оНачалоВоспроизведения = new ВводЧисла('чНачалоВоспроизведения', .5, 1, 'началовоспроизведения');
-			_оРазмерБуфера = new ВводЧисла('чРазмерБуфера', .5, 1, 'размербуфера');
-			_оРастягиваниеБуфера = new ВводЧисла('чРастягиваниеБуфера', .5, 1, 'растягиваниебуфера');
-			_оДлительностьПовтора = new ВводЧисла('чДлительностьПовтора2', 30, 0, 'длительностьповтора');
-			_оНачалоВоспроизведения.ПослеИзменения = _оРазмерБуфера.ПослеИзменения = _оРастягиваниеБуфера.ПослеИзменения = м_Статистика.ОчиститьИсторию;
-			_оИнтервалАвтоскрытия = new ВводЧисла('чИнтервалАвтоскрытия', .5, 1, 'интервалавтоскрытия');
-		}
-	}
-	function ОбработатьОткрытиеГлавногоМеню() {
-		const элПункт = Узел('адресзаписи');
-		const сАдрес = м_Twitch.ПолучитьАдресЗаписиДляТекущейПозиции();
-		if (сАдрес) {
-			элПункт.href = сАдрес;
-			м_Меню.задатьДоступностьПункта(элПункт, true);
-		} else {
-			элПункт.removeAttribute('href');
-			м_Меню.задатьДоступностьПункта(элПункт, false);
-		}
-	}
-	function ОбработатьПаузу(лПауза) {
-		ИзменитьКнопку('переключитьпаузу', лПауза);
-	}
-	function ОбработатьИзменениеПредустановкиБуферизации() {
-		ОбновитьОкноНастроек();
-		м_Статистика.ОчиститьИсторию();
-	}
-	function получитьСкоростьПовтора() {
-		const узСкорость = Узел('скорость');
-		if (узСкорость.options[0].text === '') {
-			for (const уз of узСкорость.options) {
-				уз.text = уз.defaultSelected ? '1x' : м_i18n.ФорматироватьЧисло(уз.value, 2);
+	const handleLanguageChange = wrapErrors(event => {
+		const languageCode = event.target.value;
+		settings.set('interfaceLanguage', languageCode);
+		settings.flushChanges();
+		window.location.reload();
+	});
+	function setupLanguageSelect() {
+		const selectElement = element('interface-language');
+		for (const optionElement of selectElement.options) {
+			if (optionElement.value !== 'auto') {
+				optionElement.textContent = i18n.getLanguageName(optionElement.value);
 			}
 		}
-		const чСкорость = Number.parseFloat(узСкорость.value);
-		Проверить(чСкорость > 0);
-		return чСкорость;
+		selectElement.value = settings.get('interfaceLanguage');
+		assert(selectElement.value);
+		selectElement.addEventListener('change', handleLanguageChange);
 	}
-	function задатьСкоростьПовтора(чКод) {
-		const узСкорость = Узел('скорость');
-		if (!Number.isSafeInteger(чКод)) {
-			Проверить(узСкорость.selectedIndex >= 0 && (чКод === -Infinity || чКод === Infinity));
-			чКод = узСкорость.selectedIndex + Math.sign(чКод);
+	function updateSettingsWindow() {
+		document.querySelector(`input[name="concurrent-loads"][value="${settings.get('concurrentLoadCount')}"]`).checked = true;
+		document.querySelector(`input[name="closed-chat-state-setting"][value="${settings.get('closedChatStateCode')}"]`).checked = true;
+		element('chat-url').selectedIndex = settings.get('isFullChat') ? 0 : settings.get('shouldDimChat') ? 2 : 1;
+		element('scale-image').checked = settings.get('shouldScaleImage');
+		element('allow-volume-boost').checked = settings.get('volumeBoostEnabled');
+		element('follow-raids').checked = settings.get('followRaids');
+		element('interface-animation').checked = settings.get('isUiAnimationEnabled');
+		element('change-volume-with-wheel').value = settings.get('shouldChangeVolumeWithWheel') ? settings.get('wheelVolumeStep') : '';
+		const isAutoPosition = settings.get('isChatAutoPosition');
+		element('auto-chat-position').checked = isAutoPosition;
+		const sideElements = document.querySelectorAll('.chat-position input');
+		if (isAutoPosition) {
+			const horizontalPosition = settings.get('chatHorizontalPosition');
+			const verticalPosition = settings.get('chatVerticalPosition');
+			let horizontalPositionElement, verticalPositionElement;
+			for (let sideElement of sideElements) {
+				const sideValue = Number.parseInt(sideElement.value, 10);
+				if (horizontalPosition === sideValue) {
+					horizontalPositionElement = sideElement;
+				}
+				if (verticalPosition === sideValue) {
+					verticalPositionElement = sideElement;
+				}
+				sideElement.name = sideValue === rightSide || sideValue === leftSide ? 'chat-horizontal-position-setting' : 'chat-vertical-position-setting';
+			}
+			horizontalPositionElement.checked = verticalPositionElement.checked = true;
+		} else {
+			const position = settings.get('chatPanelPosition');
+			let positionElement;
+			for (let sideElement of sideElements) {
+				if (position === Number.parseInt(sideElement.value, 10)) {
+					positionElement = sideElement;
+				}
+				sideElement.name = 'chat-position';
+			}
+			positionElement.checked = true;
 		}
-		if (чКод >= 0 && чКод < узСкорость.options.length) {
-			узСкорость.selectedIndex = чКод;
-			м_Проигрыватель.ЗадатьСкоростьПовтора(получитьСкоростьПовтора());
+		if (_playbackStartInfo) {
+			_playbackStartInfo.update();
+			_bufferSizeInfo.update();
+			_bufferStretchInfo.update();
+			_repeatDurationObj.update();
+			_autoHideIntervalObj.update();
+		} else {
+			_playbackStartInfo = new numberInput('playbackStartMs', .5, 1, 'playback-start');
+			_bufferSizeInfo = new numberInput('bufferSize', .5, 1, 'buffer-size');
+			_bufferStretchInfo = new numberInput('bufferStretchMs', .5, 1, 'buffer-stretching');
+			_repeatDurationObj = new numberInput('replayDuration2', 30, 0, 'replay-duration');
+			_playbackStartInfo.afterChange = _bufferSizeInfo.afterChange = _bufferStretchInfo.afterChange = stats.clearHistory;
+			_autoHideIntervalObj = new numberInput('autoHideInterval', .5, 1, 'auto-hide-interval');
 		}
 	}
-	const ОбработатьИзменениеСкоростиВоспроизведения = ДобавитьОбработчикИсключений(оСобытие => {
-		if (_чСостояние === СОСТОЯНИЕ_ПОВТОР) {
-			м_Проигрыватель.ЗадатьСкоростьПовтора(получитьСкоростьПовтора());
+	function handleMainMenuOpen() {
+		const itemElement = element('recording-url');
+		const address = Twitch.getRecordUrlForCurrentPosition();
+		if (address) {
+			itemElement.href = address;
+			menu.setItemAvailability(itemElement, true);
+		} else {
+			itemElement.removeAttribute('href');
+			menu.setItemAvailability(itemElement, false);
+		}
+	}
+	function handlePause(isPaused) {
+		updateButton('toggle-pause', isPaused);
+	}
+	function handleBufferingPresetChange() {
+		updateSettingsWindow();
+		stats.clearHistory();
+	}
+	function getReplaySpeed() {
+		const speedElement = element('speed');
+		if (speedElement.options[0].text === '') {
+			for (const elementRef of speedElement.options) {
+				elementRef.text = elementRef.defaultSelected ? '1x' : i18n.formatNumber(elementRef.value, 2);
+			}
+		}
+		const speedValue = Number.parseFloat(speedElement.value);
+		assert(speedValue > 0);
+		return speedValue;
+	}
+	function configureReplaySpeed(code) {
+		const speedElement = element('speed');
+		if (!Number.isSafeInteger(code)) {
+			assert(speedElement.selectedIndex >= 0 && (code === -Infinity || code === Infinity));
+			code = speedElement.selectedIndex + Math.sign(code);
+		}
+		if (code >= 0 && code < speedElement.options.length) {
+			speedElement.selectedIndex = code;
+			player.setReplaySpeed(getReplaySpeed());
+		}
+	}
+	const handlePlaybackSpeedChange = wrapErrors(event => {
+		if (_state === repeatState) {
+			player.setReplaySpeed(getReplaySpeed());
 		}
 	});
-	const ОбработатьИзменениеВариантаТрансляции = ДобавитьОбработчикИсключений(({target: {selectedIndex}}) => {
+	const handleStreamVariantChange = wrapErrors(({target: {selectedIndex}}) => {
 		if (selectedIndex !== -1) {
-			м_Журнал.Окак(`[Управление] Выбран вариант ${selectedIndex}`);
-			м_Список.ИзменитьВариантТрансляции(selectedIndex);
+			log.logOk(`[Controls] Variant selected ${selectedIndex}`);
+			listModule.setStreamVariant(selectedIndex);
 		}
 	});
-	const ОбработатьИзменениеГромкостиКолесом = ДобавитьОбработчикИсключений(оСобытие => {
-		if (оСобытие.target.value) {
-			м_Настройки.Изменить('лМенятьГромкостьКолесом', true);
-			м_Настройки.Изменить('чШагИзмененияГромкостиКолесом', Number(оСобытие.target.value));
+	const handleWheelVolumeChange = wrapErrors(event => {
+		if (event.target.value) {
+			settings.set('shouldChangeVolumeWithWheel', true);
+			settings.set('wheelVolumeStep', Number(event.target.value));
 		} else {
-			м_Настройки.Изменить('лМенятьГромкостьКолесом', false);
+			settings.set('shouldChangeVolumeWithWheel', false);
 		}
-		запуститьИзменениеГромкостиКолесом();
+		startWheelVolumeChange();
 	});
-	const ОбработатьИзменениеАдресаЧата = ДобавитьОбработчикИсключений(оСобытие => {
-		м_Журнал.Окак(`[Управление] Выбран адрес чата ${оСобытие.target.selectedIndex}`);
-		switch (оСобытие.target.selectedIndex) {
+	const handleChatAddressChange = wrapErrors(event => {
+		log.logOk(`[Controls] Chat address selected ${event.target.selectedIndex}`);
+		switch (event.target.selectedIndex) {
 		  case 0:
-			м_Настройки.Изменить('лПолноценныйЧат', true);
+			settings.set('isFullChat', true);
 			break;
 
 		  case 1:
-			м_Настройки.Изменить('лПолноценныйЧат', false);
-			м_Настройки.Изменить('лЗатемнитьЧат', false);
+			settings.set('isFullChat', false);
+			settings.set('shouldDimChat', false);
 			break;
 
 		  case 2:
-			м_Настройки.Изменить('лПолноценныйЧат', false);
-			м_Настройки.Изменить('лЗатемнитьЧат', true);
+			settings.set('isFullChat', false);
+			settings.set('shouldDimChat', true);
 			break;
 
 		  default:
-			Проверить(false);
+			assert(false);
 		}
-		м_Чат.ПрименитьАдрес();
+		chat.applyUrl();
 	});
-	const ОбработатьВыборФайлаДляИмпортаНастроек = ДобавитьОбработчикИсключений(оСобытие => {
-		if (оСобытие.target.files.length === 1) {
-			м_Настройки.Импорт(оСобытие.target.files[0]);
+	const handleSettingsImportFileSelect = wrapErrors(event => {
+		if (event.target.files.length === 1) {
+			settings.importSettings(event.target.files[0]);
 		}
 	});
-	function ОбновитьСписокВариантовТрансляции([моВарианты, оВыбранныйВариант]) {
-		const узСписок = Узел('варианттрансляции');
-		узСписок.length = 0;
-		if (моВарианты) {
-			for (const оВариант of моВарианты) {
-				let сНазвание = оВариант.сНазвание;
-				if (сНазвание === 'audio_only') {
-					сНазвание = Текст('J0144');
-				} else if (сНазвание.endsWith('(source)')) {
-					сНазвание = сНазвание.slice(0, -8) + Текст('J0139');
+	function updateStreamVariantList([options, selectedOption]) {
+		const listElement = element('stream-variant');
+		listElement.length = 0;
+		if (options) {
+			for (const option of options) {
+				let title = option.title;
+				if (title === 'audio_only') {
+					title = getMessageText('J0144');
+				} else if (title.endsWith('(source)')) {
+					title = title.slice(0, -8) + getMessageText('J0139');
 				}
-				узСписок.add(new Option(сНазвание, void 0, оВариант === оВыбранныйВариант, оВариант === оВыбранныйВариант));
+				listElement.add(new Option(title, void 0, option === selectedOption, option === selectedOption));
 			}
 		}
-		узСписок.disabled = узСписок.length < 2;
+		listElement.disabled = listElement.length < 2;
 	}
-	function обработатьНачалоРекламы() {
-		document.body.classList.add('реклама');
+	function handleAdStart() {
+		document.body.classList.add('ad');
 	}
-	function обработатьКонецРекламы() {
-		document.body.classList.remove('реклама');
+	function handleAdEnd() {
+		document.body.classList.remove('ad');
 	}
-	function обработатьПереполнениеБуфера() {
-		м_Уведомление.Показать('svg-cut', true);
+	function handleBufferOverflow() {
+		notification.show('svg-cut', true);
 	}
-	function Запустить() {
-		Проверить(_чСостояние === void 0);
-		Узел('названиетрансляции').href = м_Twitch.ПолучитьАдресКанала(true);
-		const узГромкость = Узел('громкость');
-		узГромкость.min = МИНИМАЛЬНАЯ_ГРОМКОСТЬ;
-		узГромкость.addEventListener('input', ОбработатьИзменениеГромкости);
-		ОбновитьГромкость();
-		ОбновитьОкноНастроек();
-		м_Настройки.НастроитьСпискиПредустановок();
-		м_Автоскрытие.Запустить();
-		м_Автоскрытие.Показать();
-		м_Новости.Запустить();
-		м_Чат.Восстановить();
-		м_События.ДобавитьОбработчик('окно-открыто-главноеменю', ОбработатьОткрытиеГлавногоМеню);
-		м_События.ДобавитьОбработчик('список-выбранварианттрансляции', ОбновитьСписокВариантовТрансляции);
-		м_События.ДобавитьОбработчик('список-началорекламы', обработатьНачалоРекламы);
-		м_События.ДобавитьОбработчик('список-конецрекламы', обработатьКонецРекламы);
-		м_События.ДобавитьОбработчик('проигрыватель-переполненбуфер', обработатьПереполнениеБуфера);
-		м_События.ДобавитьОбработчик('проигрыватель-пауза', ОбработатьПаузу);
-		м_События.ДобавитьОбработчик('настройки-измениласьпредустановка-буферизация', ОбработатьИзменениеПредустановкиБуферизации);
-		м_События.ДобавитьОбработчик('twitch-полученыметаданныеканала', ПоказатьМетаданныеКанала);
-		м_События.ДобавитьОбработчик('twitch-полученыметаданныезрителя', ПоказатьМетаданныеЗрителя);
-		м_События.ДобавитьОбработчик('twitch-полученыметаданныетрансляции', ПоказатьМетаданныеТрансляции);
-		document.documentElement.addEventListener('click', ОбработатьЛевыйЩелчок);
-		document.addEventListener('keydown', ОбработатьНажатиеИОтпусканиеКлавы);
-		document.addEventListener('keyup', ОбработатьНажатиеИОтпусканиеКлавы);
-		Узел('скорость').addEventListener('change', ОбработатьИзменениеСкоростиВоспроизведения);
-		Узел('варианттрансляции').addEventListener('change', ОбработатьИзменениеВариантаТрансляции);
-		Узел('менятьгромкостьколесом').addEventListener('change', ОбработатьИзменениеГромкостиКолесом);
-		Узел('адресчата').addEventListener('change', ОбработатьИзменениеАдресаЧата);
-		Узел('выборфайладляимпортанастроек').addEventListener('change', ОбработатьВыборФайлаДляИмпортаНастроек);
-		запуститьИзменениеГромкостиКолесом();
-		ИзменитьСостояние(СОСТОЯНИЕ_ЗАПУСК);
-		ПрименитьМасштабированиеИзображения();
-		ПрименитьАнимациюИнтерфейса();
-		м_Оформление.Запустить();
+	function start() {
+		assert(_state === void 0);
+		element('stream-title').href = Twitch.getChannelUrl(true);
+		const volumeElement = element('volume');
+		volumeElement.min = minVolume;
+		volumeElement.addEventListener('input', handleVolumeChange);
+		updateVolume();
+		updateSettingsWindow();
+		setupLanguageSelect();
+		settings.setupPresetLists();
+		autoHide.start();
+		autoHide.show();
+		newsModule.start();
+		chat.restore();
+		events.addHandler('window-open-main-menu', handleMainMenuOpen);
+		events.addHandler('stream-variant-selected', updateStreamVariantList);
+		events.addHandler('list-ad-start', handleAdStart);
+		events.addHandler('list-ad-end', handleAdEnd);
+		events.addHandler('player-buffer-overflow', handleBufferOverflow);
+		events.addHandler('player-pause', handlePause);
+		events.addHandler('settings-buffering-preset-changed', handleBufferingPresetChange);
+		events.addHandler('twitch-channel-metadata-received', showChannelMetadata);
+		events.addHandler('twitch-viewer-metadata-received', showViewerMetadata);
+		events.addHandler('twitch-stream-metadata-received', showStreamMetadata);
+		document.documentElement.addEventListener('click', handleLeftClick);
+		document.addEventListener('keydown', handleKeyPressAndRelease);
+		document.addEventListener('keyup', handleKeyPressAndRelease);
+		element('speed').addEventListener('change', handlePlaybackSpeedChange);
+		element('stream-variant').addEventListener('change', handleStreamVariantChange);
+		element('change-volume-with-wheel').addEventListener('change', handleWheelVolumeChange);
+		element('chat-url').addEventListener('change', handleChatAddressChange);
+		element('settings-import-file-picker').addEventListener('change', handleSettingsImportFileSelect);
+		startWheelVolumeChange();
+		setState(launchState);
+		applyImageScaling();
+		applyUiAnimation();
+		themeModule.start();
 	}
-	function ИзменитьСостояние(чНовоеСостояние) {
-		Проверить(Number.isInteger(чНовоеСостояние));
-		if (_чСостояние === чНовоеСостояние) {
+	function setState(newStateNumber) {
+		assert(Number.isInteger(newStateNumber));
+		if (_state === newStateNumber) {
 			return;
 		}
-		м_Журнал.Вот(`[Управление] Состояние трансляции изменилось с ${_чСостояние} на ${чНовоеСостояние}`);
-		_чСостояние = чНовоеСостояние;
-		document.body.setAttribute('data-состояние', чНовоеСостояние);
-		ИзменитьКнопку('переключитьтрансляцию', чНовоеСостояние === СОСТОЯНИЕ_ОСТАНОВКА || чНовоеСостояние === СОСТОЯНИЕ_ПОВТОР);
-		м_События.ПослатьСобытие('управление-изменилосьсостояние', чНовоеСостояние);
-		switch (чНовоеСостояние) {
-		  case СОСТОЯНИЕ_ЗАПУСК:
-			ПоказатьМетаданныеТрансляции({
-				сТипТрансляции: null,
-				сНазваниеТрансляции: НАЗВАНИЕ_ТРАНСЛЯЦИИ_НЕИЗВЕСТНО,
-				сНазваниеИгры: null,
-				сАдресИгры: null,
-				кЗрителей: null,
-				чДлительностьТрансляции: null
+		log.logInfo(`[Controls] Stream state changed from ${_state} to ${newStateNumber}`);
+		_state = newStateNumber;
+		document.body.setAttribute('data-state', newStateNumber);
+		updateButton('toggle-stream', newStateNumber === stoppedState || newStateNumber === repeatState);
+		events.sendEvent('control-state-changed', newStateNumber);
+		switch (newStateNumber) {
+		  case launchState:
+			showStreamMetadata({
+				streamType: null,
+				streamTitle: unknownStreamTitle,
+				gameTitle: null,
+				gameAddress: null,
+				viewerCount: null,
+				streamDuration: null
 			});
-			м_Twitch.ЗавершитьСборМетаданныхТрансляции(true);
+			Twitch.finishStreamMetadataCollection(true);
 			break;
 
-		  case СОСТОЯНИЕ_НАЧАЛО_ТРАНСЛЯЦИИ:
-			ПоказатьМетаданныеТрансляции({
-				сТипТрансляции: null,
-				сНазваниеТрансляции: НАЗВАНИЕ_ТРАНСЛЯЦИИ_НЕИЗВЕСТНО,
-				сНазваниеИгры: null,
-				сАдресИгры: null,
-				кЗрителей: null,
-				чДлительностьТрансляции: null
+		  case streamStartState:
+			showStreamMetadata({
+				streamType: null,
+				streamTitle: unknownStreamTitle,
+				gameTitle: null,
+				gameAddress: null,
+				viewerCount: null,
+				streamDuration: null
 			});
-			м_Twitch.НачатьСборМетаданныхТрансляции();
+			Twitch.startCollectingStreamMetadata();
 			break;
 
-		  case СОСТОЯНИЕ_ЗАВЕРШЕНИЕ_ТРАНСЛЯЦИИ:
-			ПоказатьМетаданныеТрансляции({
-				сТипТрансляции: 'завершена',
-				кЗрителей: null,
-				чДлительностьТрансляции: null
+		  case streamEndState:
+			showStreamMetadata({
+				streamType: 'completed',
+				viewerCount: null,
+				streamDuration: null
 			});
-			м_Twitch.ЗавершитьСборМетаданныхТрансляции(true);
-			Узел('статистика-задержкатрансляции').textContent = '';
+			Twitch.finishStreamMetadataCollection(true);
+			element('stats-stream-delay').textContent = '';
 			break;
 
-		  case СОСТОЯНИЕ_ЗАГРУЗКА:
-		  case СОСТОЯНИЕ_НАЧАЛО_ВОСПРОИЗВЕДЕНИЯ:
-		  case СОСТОЯНИЕ_ВОСПРОИЗВЕДЕНИЕ:
+		  case loadingState:
+		  case playbackStartState:
+		  case playbackState:
 			break;
 
-		  case СОСТОЯНИЕ_ОСТАНОВКА:
-		  case СОСТОЯНИЕ_ПОВТОР:
-			ПоказатьМетаданныеТрансляции({
-				кЗрителей: null
+		  case stoppedState:
+		  case repeatState:
+			showStreamMetadata({
+				viewerCount: null
 			});
-			м_Twitch.ЗавершитьСборМетаданныхТрансляции(false);
-			Узел('статистика-задержкатрансляции').textContent = '';
+			Twitch.finishStreamMetadataCollection(false);
+			element('stats-stream-delay').textContent = '';
 			break;
 
 		  default:
-			Проверить(false);
+			assert(false);
 		}
 	}
-	function ПолучитьСостояние() {
-		Проверить(_чСостояние !== void 0);
-		return _чСостояние;
+	function getState() {
+		assert(_state !== void 0);
+		return _state;
 	}
-	function ПоказатьМетаданныеКанала(оМетаданные) {
-		if (оМетаданные.сИмя !== void 0) {
-			ИзменитьЗаголовокДокумента(`${оМетаданные.сИмя} - Alternate Player for Twitch.tv`);
-			Узел('канал-имя').textContent = оМетаданные.сИмя;
+	function showChannelMetadata(metadata) {
+		if (metadata.name !== void 0) {
+			setDocumentTitle(`${metadata.name} - Alternate Player for Twitch.tv`);
+			element('channel-name').textContent = metadata.name;
 		}
-		if (оМетаданные.сАватар !== void 0) {
-			Проверить(оМетаданные.сАватар);
-			Узел('канал-аватар').src = оМетаданные.сАватар;
+		if (metadata.avatarUrl !== void 0) {
+			assert(metadata.avatarUrl);
+			element('channel-avatar').src = metadata.avatarUrl;
 		}
-		if (оМетаданные.сОписание !== void 0) {
-			Узел('канал-описание').textContent = оМетаданные.сОписание || '';
+		if (metadata.descriptionText !== void 0) {
+			element('channel-description').textContent = metadata.descriptionText || '';
 		}
-		if (оМетаданные.сКодЯзыка !== void 0) {
-			const уз = Узел('канал-язык');
-			if (оМетаданные.сКодЯзыка) {
-				уз.textContent = м_i18n.ПолучитьНазваниеЯзыка(оМетаданные.сКодЯзыка);
-				ПоказатьЭлемент(уз.parentNode, true);
+		if (metadata.languageCode !== void 0) {
+			const elementRef = element('channel-language');
+			if (metadata.languageCode) {
+				elementRef.textContent = i18n.getLanguageName(metadata.languageCode);
+				showElement(elementRef.parentNode, true);
 			} else {
-				ПоказатьЭлемент(уз.parentNode, false);
+				showElement(elementRef.parentNode, false);
 			}
 		}
-		if (оМетаданные.кПодписчиков !== void 0) {
-			const уз = Узел('канал-подписчиков');
-			if (Number.isFinite(оМетаданные.кПодписчиков)) {
-				уз.textContent = м_i18n.ФорматироватьЧисло(оМетаданные.кПодписчиков);
-				ПоказатьЭлемент(уз.parentNode, true);
+		if (metadata.subscriberCount !== void 0) {
+			const elementRef = element('channel-subscribers');
+			if (Number.isFinite(metadata.subscriberCount)) {
+				elementRef.textContent = i18n.formatNumber(metadata.subscriberCount);
+				showElement(elementRef.parentNode, true);
 			} else {
-				ПоказатьЭлемент(уз.parentNode, false);
+				showElement(elementRef.parentNode, false);
 			}
 		}
-		if (оМетаданные.чКаналСоздан !== void 0) {
-			const уз = Узел('канал-создан');
-			if (Number.isFinite(оМетаданные.чКаналСоздан)) {
-				уз.textContent = м_i18n.ФорматироватьДату(оМетаданные.чКаналСоздан);
-				ПоказатьЭлемент(уз.parentNode, true);
+		if (metadata.channelCreatedAt !== void 0) {
+			const elementRef = element('channel-created');
+			if (Number.isFinite(metadata.channelCreatedAt)) {
+				elementRef.textContent = i18n.formatDate(metadata.channelCreatedAt);
+				showElement(elementRef.parentNode, true);
 			} else {
-				ПоказатьЭлемент(уз.parentNode, false);
+				showElement(elementRef.parentNode, false);
 			}
 		}
-		if (оМетаданные.моКоманды !== void 0) {
-			ПоказатьМассивСсылок(оМетаданные.моКоманды, 'канал-команды');
+		if (metadata.commandsMap !== void 0) {
+			showLinksArray(metadata.commandsMap, 'channel-commands');
 		}
 	}
-	function ПоказатьМассивСсылок(моСсылки, пВставить) {
-		const узВставить = Узел(пВставить);
-		if (моСсылки.length === 0) {
-			ПоказатьЭлемент(узВставить.parentNode, false);
+	function showLinksArray(linksModule, insert) {
+		const insertElement = element(insert);
+		if (linksModule.length === 0) {
+			showElement(insertElement.parentNode, false);
 		} else {
-			const оФрагмент = document.createDocumentFragment();
-			for (let оСсылка, ы = 0; оСсылка = моСсылки[ы]; ++ы) {
-				if (ы !== 0) {
-					оФрагмент.appendChild(document.createTextNode(', '));
+			const fragment = document.createDocumentFragment();
+			for (let linkObject, yMarker = 0; linkObject = linksModule[yMarker]; ++yMarker) {
+				if (yMarker !== 0) {
+					fragment.appendChild(document.createTextNode(', '));
 				}
-				Проверить(ЭтоНепустаяСтрока(оСсылка.сАдрес) && ЭтоНепустаяСтрока(оСсылка.сИмя));
-				const узСсылка = document.createElement('a');
-				узСсылка.href = оСсылка.сАдрес;
-				узСсылка.rel = 'noopener noreferrer';
-				узСсылка.target = '_blank';
-				if (оСсылка.сОписание) {
-					узСсылка.className = 'канал-ссылка';
-					узСсылка.title = оСсылка.сОписание;
+				assert(isNonEmptyString(linkObject.address) && isNonEmptyString(linkObject.name));
+				const linkElement = document.createElement('a');
+				linkElement.href = linkObject.address;
+				linkElement.rel = 'noopener noreferrer';
+				linkElement.target = '_blank';
+				if (linkObject.descriptionText) {
+					linkElement.className = 'channel-link';
+					linkElement.title = linkObject.descriptionText;
 				}
-				узСсылка.textContent = оСсылка.сИмя;
-				оФрагмент.appendChild(узСсылка);
+				linkElement.textContent = linkObject.name;
+				fragment.appendChild(linkElement);
 			}
-			узВставить.textContent = '';
-			узВставить.appendChild(оФрагмент);
-			ПоказатьЭлемент(узВставить.parentNode, true);
+			insertElement.textContent = '';
+			insertElement.appendChild(fragment);
+			showElement(insertElement.parentNode, true);
 		}
 	}
-	function ПоказатьМетаданныеЗрителя(оМетаданные) {
-		if (оМетаданные.сИмя !== void 0) {
-			if (оМетаданные.сИмя !== '') {
-				Узел('зритель-имя').textContent = оМетаданные.сИмя;
+	function showViewerMetadata(metadata) {
+		if (metadata.name !== void 0) {
+			if (metadata.name !== '') {
+				element('viewer-name').textContent = metadata.name;
 			} else {
-				м_i18n.InsertAdjacentHtmlMessage('зритель-имя', 'content', 'F0590');
+				i18n.InsertAdjacentHtmlMessage('viewer-name', 'content', 'F0590');
 			}
 		}
-		if (оМетаданные.чПодписка !== void 0) {
-			const уз = Узел('зритель-подписка');
-			if (оМетаданные.чПодписка === ПОДПИСКА_ОБНОВЛЯЕТСЯ) {
-				уз.classList.add('обновляется');
+		if (metadata.subscriptionCount !== void 0) {
+			const elementRef = element('viewer-subscription');
+			if (metadata.subscriptionCount === SUBSCRIPTION_UPDATING) {
+				elementRef.classList.add('updating');
 			} else {
-				уз.classList.remove('обновляется');
-				уз.setAttribute('data-подписка', оМетаданные.чПодписка);
-				Узел('зритель-уведомлять').checked = оМетаданные.чПодписка === ПОДПИСКА_УВЕДОМЛЯТЬ;
+				elementRef.classList.remove('updating');
+				elementRef.setAttribute('data-subscription', metadata.subscriptionCount);
+				element('viewer-notify').checked = metadata.subscriptionCount === subscriptionNotify;
 			}
 		}
 	}
-	const _оТипыТрансляции = {
-		завершена: [ 'J0145', 'J0100', false ],
-		прямая: [ 'J0146', 'J0149', true ],
-		повтор: [ 'J0147', 'J0150', false ]
+	const _streamTypes = {
+		completed: [ 'J0145', 'J0100', false ],
+		live: [ 'J0146', 'J0149', true ],
+		replay: [ 'J0147', 'J0150', false ]
 	};
-	function ПоказатьМетаданныеТрансляции(оМетаданные) {
-		if (оМетаданные.сТипТрансляции !== void 0) {
-			const уз = Узел('типтрансляции');
-			if (typeof оМетаданные.сТипТрансляции == 'string') {
-				Проверить(_оТипыТрансляции.hasOwnProperty(оМетаданные.сТипТрансляции));
-				уз.textContent = Текст(_оТипыТрансляции[оМетаданные.сТипТрансляции][0]);
-				уз.parentElement.title = Текст(_оТипыТрансляции[оМетаданные.сТипТрансляции][1]);
-				уз.classList.toggle('прямаятрансляция', _оТипыТрансляции[оМетаданные.сТипТрансляции][2]);
-				ПоказатьЭлемент(уз.parentElement, true);
+	function showStreamMetadata(metadata) {
+		if (metadata.streamType !== void 0) {
+			const elementRef = element('stream-type');
+			if (typeof metadata.streamType == 'string') {
+				assert(_streamTypes.hasOwnProperty(metadata.streamType));
+				elementRef.textContent = getMessageText(_streamTypes[metadata.streamType][0]);
+				elementRef.parentElement.title = getMessageText(_streamTypes[metadata.streamType][1]);
+				elementRef.classList.toggle('live-stream', _streamTypes[metadata.streamType][2]);
+				showElement(elementRef.parentElement, true);
 			} else {
-				ПоказатьЭлемент(уз.parentElement, false);
+				showElement(elementRef.parentElement, false);
 			}
-			м_Медиазапрос.обновитьБыстро();
+			mediaQuery.refreshFast();
 		}
-		if (оМетаданные.сНазваниеТрансляции !== void 0) {
-			Проверить(оМетаданные.сНазваниеТрансляции !== null);
-			const уз = Узел('названиетрансляции');
-			уз.title = оМетаданные.сНазваниеТрансляции + Текст('J0101');
-			уз.textContent = оМетаданные.сНазваниеТрансляции;
-			м_Медиазапрос.обновитьБыстро();
+		if (metadata.streamTitle !== void 0) {
+			assert(metadata.streamTitle !== null);
+			const elementRef = element('stream-title');
+			elementRef.title = metadata.streamTitle + getMessageText('J0101');
+			elementRef.textContent = metadata.streamTitle;
+			mediaQuery.refreshFast();
 		}
-		if (оМетаданные.сНазваниеИгры !== void 0) {
-			const уз = Узел('категориятрансляции');
-			if (оМетаданные.сНазваниеИгры) {
-				уз.textContent = оМетаданные.сНазваниеИгры;
-				уз.title = уз.previousElementSibling.title = оМетаданные.сНазваниеИгры + Текст('J0102');
-				if (оМетаданные.сАдресИгры) {
-					уз.href = оМетаданные.сАдресИгры;
+		if (metadata.gameTitle !== void 0) {
+			const elementRef = element('stream-category');
+			if (metadata.gameTitle) {
+				elementRef.textContent = metadata.gameTitle;
+				elementRef.title = elementRef.previousElementSibling.title = metadata.gameTitle + getMessageText('J0102');
+				if (metadata.gameAddress) {
+					elementRef.href = metadata.gameAddress;
 				} else {
-					уз.removeAttribute('href');
+					elementRef.removeAttribute('href');
 				}
-				ПоказатьЭлемент(уз, true);
-				ПоказатьЭлемент(уз.previousElementSibling, true);
+				showElement(elementRef, true);
+				showElement(elementRef.previousElementSibling, true);
 			} else {
-				ПоказатьЭлемент(уз, false);
-				ПоказатьЭлемент(уз.previousElementSibling, false);
+				showElement(elementRef, false);
+				showElement(elementRef.previousElementSibling, false);
 			}
-			м_Медиазапрос.обновитьБыстро();
+			mediaQuery.refreshFast();
 		}
-		if (оМетаданные.кЗрителей !== void 0) {
-			const уз = Узел('количествозрителей');
-			if (Number.isFinite(оМетаданные.кЗрителей) && оМетаданные.кЗрителей >= 0) {
-				уз.textContent = м_i18n.ФорматироватьЧисло(оМетаданные.кЗрителей);
-				ПоказатьЭлемент(уз, true);
-				ПоказатьЭлемент(уз.previousElementSibling, true);
+		if (metadata.viewerCount !== void 0) {
+			const elementRef = element('viewer-count');
+			if (Number.isFinite(metadata.viewerCount) && metadata.viewerCount >= 0) {
+				elementRef.textContent = i18n.formatNumber(metadata.viewerCount);
+				showElement(elementRef, true);
+				showElement(elementRef.previousElementSibling, true);
 			} else {
-				ПоказатьЭлемент(уз, false);
-				ПоказатьЭлемент(уз.previousElementSibling, false);
+				showElement(elementRef, false);
+				showElement(elementRef.previousElementSibling, false);
 			}
-			м_Медиазапрос.обновитьБыстро();
+			mediaQuery.refreshFast();
 		}
-		if (оМетаданные.чДлительностьТрансляции !== void 0) {
-			Узел('позиция').textContent = Number.isFinite(оМетаданные.чДлительностьТрансляции) && оМетаданные.чДлительностьТрансляции >= 0 ? м_i18n.ПеревестиСекундыВСтроку(оМетаданные.чДлительностьТрансляции / 1e3, false) : '';
+		if (metadata.streamDuration !== void 0) {
+			element('position').textContent = Number.isFinite(metadata.streamDuration) && metadata.streamDuration >= 0 ? i18n.secondsToString(metadata.streamDuration / 1e3, false) : '';
 		}
 	}
 	return {
-		Запустить,
-		ПолучитьСостояние,
-		ИзменитьСостояние,
-		получитьСкоростьПовтора,
-		ОбновитьКоличествоДорожек,
-		ОстановитьПросмотрТрансляции
+		start,
+		getState,
+		setState,
+		getReplaySpeed,
+		updateTrackCount,
+		stopWatchingStream
 	};
 })();
 
-const м_Чат = (() => {
-	let _узЧат = null;
+const chat = (() => {
+	let _chatElement = null;
  //! <iframe>
-		function ПолучитьПоложениеПанели() {
-		switch (getComputedStyle(document.getElementById('проигрывательичат')).flexDirection) {
+		function getPanelPosition() {
+		switch (getComputedStyle(document.getElementById('player-and-chat')).flexDirection) {
 		  case 'column-reverse':
-			return ВЕРХНЯЯ_СТОРОНА;
+			return topSide;
 
 		  case 'row':
-			return ПРАВАЯ_СТОРОНА;
+			return rightSide;
 
 		  case 'column':
-			return НИЖНЯЯ_СТОРОНА;
+			return bottomSide;
 
 		  case 'row-reverse':
-			return ЛЕВАЯ_СТОРОНА;
+			return leftSide;
 
 		  default:
-			Проверить(false);
+			assert(false);
 		}
 	}
-	function ВставитьПанель() {
-		if (_узЧат) {
+	function insertPanel() {
+		if (_chatElement) {
 			return;
 		}
-		const сАдрес = м_Twitch.открытьЧат();
-		м_Журнал.Вот(`[Чат] Вставляю iframe ${сАдрес}`);
-		_узЧат = document.createElement('iframe');
-		_узЧат.src = сАдрес;
-		_узЧат.id = 'чат';
-		_узЧат.width = м_Настройки.Получить('чШиринаПанелиЧата');
-		_узЧат.height = м_Настройки.Получить('чВысотаПанелиЧата');
-		Узел('размерчата').insertAdjacentElement('afterend', _узЧат);
+		const address = Twitch.openChat();
+		log.logInfo(`[Chat] Inserting iframe ${address}`);
+		_chatElement = document.createElement('iframe');
+		_chatElement.src = address;
+		_chatElement.id = 'chat';
+		_chatElement.width = settings.get('chatPanelWidth');
+		_chatElement.height = settings.get('chatPanelHeight');
+		element('chat-size').insertAdjacentElement('afterend', _chatElement);
 	}
-	function УдалитьПанель() {
-		if (_узЧат) {
-			м_Журнал.Вот(`[Чат] Удаляю iframe ${_узЧат.src}`);
-			м_Twitch.закрытьЧат();
-			_узЧат.remove();
-			_узЧат = null;
+	function removePanel() {
+		if (_chatElement) {
+			log.logInfo(`[Chat] Removing iframe ${_chatElement.src}`);
+			Twitch.closeChat();
+			_chatElement.remove();
+			_chatElement = null;
 		}
 	}
-	function ПрименитьАдрес() {
-		if (_узЧат) {
-			м_Журнал.Окак('[Чат] Меняю адрес iframe');
-			УдалитьПанель();
-			ВставитьПанель();
+	function applyUrl() {
+		if (_chatElement) {
+			log.logOk('[Chat] Changing iframe URL');
+			removePanel();
+			insertPanel();
 		}
 	}
-	function ПрименитьСостояниеПанели() {
-		const чСостояние = м_Настройки.Получить('чСостояниеЧата');
-		м_Журнал.Окак(`[Чат] Новое состояние панели: ${чСостояние}`);
-		ОтменитьПеретаскиваниеПанели();
-		switch (чСостояние) {
-		  case ЧАТ_ВЫГРУЖЕН:
-			document.body.classList.add('скрытьчат');
-			УдалитьПанель();
+	function applyPanelState() {
+		const stateNumber = settings.get('chatState');
+		log.logOk(`[Chat] New panel state: ${stateNumber}`);
+		cancelPanelDrag();
+		switch (stateNumber) {
+		  case chatUnloaded:
+			document.body.classList.add('hide-chat');
+			removePanel();
 			break;
 
-		  case ЧАТ_СКРЫТ:
-			ВставитьПанель();
-			document.body.classList.add('скрытьчат');
+		  case chatHidden:
+			insertPanel();
+			document.body.classList.add('hide-chat');
 			break;
 
-		  case ЧАТ_ПАНЕЛЬ:
-			ВставитьПанель();
-			document.body.classList.remove('скрытьчат');
+		  case chatPanel:
+			insertPanel();
+			document.body.classList.remove('hide-chat');
 			break;
 
 		  default:
-			Проверить(false);
+			assert(false);
 		}
-		м_Медиазапрос.обновитьМедленно();
+		mediaQuery.updateSlowly();
 	}
-	function ПрименитьПоложениеПанели() {
-		ОтменитьПеретаскиваниеПанели();
-		const оКлассы = document.body.classList;
-		if (м_Настройки.Получить('лАвтоПоложениеЧата')) {
-			оКлассы.add('автоположениечата');
-			оКлассы.toggle('чатвверху', м_Настройки.Получить('чВертикальноеПоложениеЧата') === ВЕРХНЯЯ_СТОРОНА);
-			оКлассы.toggle('чатслева', м_Настройки.Получить('чГоризонтальноеПоложениеЧата') === ЛЕВАЯ_СТОРОНА);
+	function applyPanelPosition() {
+		cancelPanelDrag();
+		const classes = document.body.classList;
+		if (settings.get('isChatAutoPosition')) {
+			classes.add('auto-chat-position');
+			classes.toggle('chat-top', settings.get('chatVerticalPosition') === topSide);
+			classes.toggle('chat-left', settings.get('chatHorizontalPosition') === leftSide);
 		} else {
-			const чПоложение = м_Настройки.Получить('чПоложениеПанелиЧата');
-			оКлассы.remove('автоположениечата');
-			оКлассы.toggle('чатвверху', чПоложение === ВЕРХНЯЯ_СТОРОНА);
-			оКлассы.toggle('чатсправа', чПоложение === ПРАВАЯ_СТОРОНА);
-			оКлассы.toggle('чатвнизу', чПоложение === НИЖНЯЯ_СТОРОНА);
-			оКлассы.toggle('чатслева', чПоложение === ЛЕВАЯ_СТОРОНА);
+			const position = settings.get('chatPanelPosition');
+			classes.remove('auto-chat-position');
+			classes.toggle('chat-top', position === topSide);
+			classes.toggle('chat-right', position === rightSide);
+			classes.toggle('chat-bottom', position === bottomSide);
+			classes.toggle('chat-left', position === leftSide);
 		}
-		м_Медиазапрос.обновитьМедленно();
+		mediaQuery.updateSlowly();
 	}
-	function СохранитьИПрименитьСостояниеЗакрытойПанели(чНовоеСостояние) {
-		м_Настройки.Изменить('чСостояниеЗакрытогоЧата', чНовоеСостояние);
-		const чСостояние = м_Настройки.Получить('чСостояниеЧата');
-		if ((чСостояние === ЧАТ_ВЫГРУЖЕН || чСостояние === ЧАТ_СКРЫТ) && чСостояние !== чНовоеСостояние) {
-			м_Настройки.Изменить('чСостояниеЧата', чНовоеСостояние);
-			ПрименитьСостояниеПанели();
+	function saveAndApplyClosedPanelState(newStateNumber) {
+		settings.set('closedChatStateCode', newStateNumber);
+		const stateNumber = settings.get('chatState');
+		if ((stateNumber === chatUnloaded || stateNumber === chatHidden) && stateNumber !== newStateNumber) {
+			settings.set('chatState', newStateNumber);
+			applyPanelState();
 		}
 	}
-	function ПереключитьСостояниеПанели() {
-		const лПолноэкранныйРежим = м_ПолноэкранныйРежим.Включен();
-		switch (м_Настройки.Получить('чСостояниеЧата')) {
-		  case ЧАТ_ВЫГРУЖЕН:
-		  case ЧАТ_СКРЫТ:
-			м_Настройки.Изменить('чСостояниеЧата', ЧАТ_ПАНЕЛЬ, лПолноэкранныйРежим);
+	function togglePanelState() {
+		const isFullscreen = fullscreenMode.isEnabled2();
+		switch (settings.get('chatState')) {
+		  case chatUnloaded:
+		  case chatHidden:
+			settings.set('chatState', chatPanel, isFullscreen);
 			break;
 
-		  case ЧАТ_ПАНЕЛЬ:
-			м_Настройки.Изменить('чСостояниеЧата', лПолноэкранныйРежим ? ЧАТ_СКРЫТ : м_Настройки.Получить('чСостояниеЗакрытогоЧата'), лПолноэкранныйРежим);
+		  case chatPanel:
+			settings.set('chatState', isFullscreen ? chatHidden : settings.get('closedChatStateCode'), isFullscreen);
 			break;
 
 		  default:
-			Проверить(false);
+			assert(false);
 		}
-		ПрименитьСостояниеПанели();
+		applyPanelState();
 	}
-	function ПереключитьПоложениеПанели() {
-		if (м_Настройки.Получить('чСостояниеЧата') !== ЧАТ_ПАНЕЛЬ) {
+	function togglePanelPosition() {
+		if (settings.get('chatState') !== chatPanel) {
 			return;
 		}
-		let чПоложение;
-		if (м_Настройки.Получить('лАвтоПоложениеЧата')) {
-			м_Настройки.Изменить('лАвтоПоложениеЧата', false);
-			чПоложение = ПолучитьПоложениеПанели();
+		let position;
+		if (settings.get('isChatAutoPosition')) {
+			settings.set('isChatAutoPosition', false);
+			position = getPanelPosition();
 		} else {
-			чПоложение = м_Настройки.Получить('чПоложениеПанелиЧата');
+			position = settings.get('chatPanelPosition');
 		}
-		switch (чПоложение) {
-		  case ВЕРХНЯЯ_СТОРОНА:
-			м_Настройки.Изменить('чПоложениеПанелиЧата', ПРАВАЯ_СТОРОНА);
+		switch (position) {
+		  case topSide:
+			settings.set('chatPanelPosition', rightSide);
 			break;
 
-		  case ПРАВАЯ_СТОРОНА:
-			м_Настройки.Изменить('чПоложениеПанелиЧата', НИЖНЯЯ_СТОРОНА);
+		  case rightSide:
+			settings.set('chatPanelPosition', bottomSide);
 			break;
 
-		  case НИЖНЯЯ_СТОРОНА:
-			м_Настройки.Изменить('чПоложениеПанелиЧата', ЛЕВАЯ_СТОРОНА);
+		  case bottomSide:
+			settings.set('chatPanelPosition', leftSide);
 			break;
 
-		  case ЛЕВАЯ_СТОРОНА:
-			м_Настройки.Изменить('чПоложениеПанелиЧата', ВЕРХНЯЯ_СТОРОНА);
+		  case leftSide:
+			settings.set('chatPanelPosition', topSide);
 			break;
 
 		  default:
-			Проверить(false);
+			assert(false);
 		}
-		ПрименитьПоложениеПанели();
+		applyPanelPosition();
 	}
-	function ОбработатьПеретаскиваниеПанели(оПараметры) {
-		if (оПараметры.лОтмена) {
+	function handlePanelDrag(params) {
+		if (params.isCancelled2) {
 			return;
 		}
-		const чПоложение = ПолучитьПоложениеПанели();
-		if (оПараметры.чШаг !== 1 && оПараметры._чНачальноеПоложение !== чПоложение) {
-			м_Журнал.Ой(`[Чат] Положение перетаскиваемой панели изменилось с ${оПараметры._чНачальноеПоложение} на ${чПоложение}`);
-			ОтменитьПеретаскиваниеПанели();
+		const position = getPanelPosition();
+		if (params.step !== 1 && params._initialPosition !== position) {
+			log.logError(`[Chat] Dragged panel position changed from ${params._initialPosition} to ${position}`);
+			cancelPanelDrag();
 			return;
 		}
-		switch (оПараметры.чШаг) {
+		switch (params.step) {
 		  case 1:
-			оПараметры._чНачальноеПоложение = чПоложение;
-			if (чПоложение === ПРАВАЯ_СТОРОНА || чПоложение === ЛЕВАЯ_СТОРОНА) {
-				оПараметры._чНачальныйРазмер = Number.parseInt(getComputedStyle(_узЧат).width, 10);
+			params._initialPosition = position;
+			if (position === rightSide || position === leftSide) {
+				params._initialSize = Number.parseInt(getComputedStyle(_chatElement).width, 10);
 			} else {
-				оПараметры._чНачальныйРазмер = Number.parseInt(getComputedStyle(_узЧат).height, 10);
+				params._initialSize = Number.parseInt(getComputedStyle(_chatElement).height, 10);
 			}
 			break;
 
 		  case 2:
-			if (чПоложение === ПРАВАЯ_СТОРОНА || чПоложение === ЛЕВАЯ_СТОРОНА) {
-				if (оПараметры.лИзмениласьX) {
-					const чМаксРазмер = Number.parseInt(getComputedStyle(Узел('проигрывательичат')).width, 10) - Number.parseInt(getComputedStyle(Узел('проигрыватель')).minWidth, 10);
-					_узЧат.width = Math.max(Math.min(чПоложение === ЛЕВАЯ_СТОРОНА ? оПараметры._чНачальныйРазмер + оПараметры.чИзменениеX : оПараметры._чНачальныйРазмер - оПараметры.чИзменениеX, чМаксРазмер), 0);
-					м_Медиазапрос.обновитьМедленно();
+			if (position === rightSide || position === leftSide) {
+				if (params.hasXChanged) {
+					const maxSizeValue = Number.parseInt(getComputedStyle(element('player-and-chat')).width, 10) - Number.parseInt(getComputedStyle(element('player')).minWidth, 10);
+					_chatElement.width = Math.max(Math.min(position === leftSide ? params._initialSize + params.deltaX : params._initialSize - params.deltaX, maxSizeValue), 0);
+					mediaQuery.updateSlowly();
 				}
-			} else if (оПараметры.лИзмениласьY) {
-				const чМаксРазмер = Number.parseInt(getComputedStyle(Узел('проигрывательичат')).height, 10) - Number.parseInt(getComputedStyle(Узел('проигрыватель')).minHeight, 10);
-				_узЧат.height = Math.max(Math.min(чПоложение === ВЕРХНЯЯ_СТОРОНА ? оПараметры._чНачальныйРазмер + оПараметры.чИзменениеY : оПараметры._чНачальныйРазмер - оПараметры.чИзменениеY, чМаксРазмер), 0);
-				м_Медиазапрос.обновитьМедленно();
+			} else if (params.hasYChanged) {
+				const maxSizeValue = Number.parseInt(getComputedStyle(element('player-and-chat')).height, 10) - Number.parseInt(getComputedStyle(element('player')).minHeight, 10);
+				_chatElement.height = Math.max(Math.min(position === topSide ? params._initialSize + params.deltaY : params._initialSize - params.deltaY, maxSizeValue), 0);
+				mediaQuery.updateSlowly();
 			}
 			break;
 
 		  case 3:
-			if (чПоложение === ПРАВАЯ_СТОРОНА || чПоложение === ЛЕВАЯ_СТОРОНА) {
-				м_Настройки.Изменить('чШиринаПанелиЧата', Number.parseInt(getComputedStyle(_узЧат).width, 10));
+			if (position === rightSide || position === leftSide) {
+				settings.set('chatPanelWidth', Number.parseInt(getComputedStyle(_chatElement).width, 10));
 			} else {
-				м_Настройки.Изменить('чВысотаПанелиЧата', Number.parseInt(getComputedStyle(_узЧат).height, 10));
+				settings.set('chatPanelHeight', Number.parseInt(getComputedStyle(_chatElement).height, 10));
 			}
 			break;
 
 		  default:
-			Проверить(false);
+			assert(false);
 		}
 	}
-	function ОтменитьПеретаскиваниеПанели() {
-		м_Тащилка.ОтменитьПеретаскивание('размерчата');
+	function cancelPanelDrag() {
+		draggerModule.cancelDrag('chat-size');
 	}
-	ОбработатьИзменениеПолноэкранногоРежима.чСостояниеВОбычномРежиме = -1;
-	function ОбработатьИзменениеПолноэкранногоРежима(лВключен) {
-		if (лВключен) {
-			if (ОбработатьИзменениеПолноэкранногоРежима.чСостояниеВОбычномРежиме === -1) {
-				ОбработатьИзменениеПолноэкранногоРежима.чСостояниеВОбычномРежиме = м_Настройки.Получить('чСостояниеЧата');
-				if (ОбработатьИзменениеПолноэкранногоРежима.чСостояниеВОбычномРежиме === ЧАТ_ПАНЕЛЬ) {
-					м_Настройки.Изменить('чСостояниеЧата', ЧАТ_СКРЫТ, true);
-					ПрименитьСостояниеПанели();
+	handleFullscreenChange.normalModeState = -1;
+	function handleFullscreenChange(isEnabled) {
+		if (isEnabled) {
+			if (handleFullscreenChange.normalModeState === -1) {
+				handleFullscreenChange.normalModeState = settings.get('chatState');
+				if (handleFullscreenChange.normalModeState === chatPanel) {
+					settings.set('chatState', chatHidden, true);
+					applyPanelState();
 				}
 			}
-		} else if (ОбработатьИзменениеПолноэкранногоРежима.чСостояниеВОбычномРежиме !== -1) {
-			if (ОбработатьИзменениеПолноэкранногоРежима.чСостояниеВОбычномРежиме === ЧАТ_ПАНЕЛЬ) {
-				м_Настройки.Изменить('чСостояниеЧата', ЧАТ_ПАНЕЛЬ);
-				ПрименитьСостояниеПанели();
-			} else if (м_Настройки.Получить('чСостояниеЧата') === ЧАТ_СКРЫТ && м_Настройки.Получить('чСостояниеЗакрытогоЧата') === ЧАТ_ВЫГРУЖЕН) {
-				м_Настройки.Изменить('чСостояниеЧата', ЧАТ_ВЫГРУЖЕН);
-				ПрименитьСостояниеПанели();
+		} else if (handleFullscreenChange.normalModeState !== -1) {
+			if (handleFullscreenChange.normalModeState === chatPanel) {
+				settings.set('chatState', chatPanel);
+				applyPanelState();
+			} else if (settings.get('chatState') === chatHidden && settings.get('closedChatStateCode') === chatUnloaded) {
+				settings.set('chatState', chatUnloaded);
+				applyPanelState();
 			}
-			ОбработатьИзменениеПолноэкранногоРежима.чСостояниеВОбычномРежиме = -1;
+			handleFullscreenChange.normalModeState = -1;
 		}
 	}
-	function Восстановить() {
-		ПрименитьСостояниеПанели();
-		ПрименитьПоложениеПанели();
-		м_События.ДобавитьОбработчик('тащилка-перетаскивание-размерчата', ОбработатьПеретаскиваниеПанели);
-		м_События.ДобавитьОбработчик('полноэкранныйрежим-изменен', ОбработатьИзменениеПолноэкранногоРежима);
+	function restore() {
+		applyPanelState();
+		applyPanelPosition();
+		events.addHandler('drag-handle-drag-chat-size', handlePanelDrag);
+		events.addHandler('fullscreen-mode-changed', handleFullscreenChange);
 	}
 	return {
-		Восстановить,
-		ПрименитьПоложениеПанели,
-		ПрименитьАдрес,
-		СохранитьИПрименитьСостояниеЗакрытойПанели,
-		ПереключитьСостояниеПанели,
-		ПереключитьПоложениеПанели
+		restore,
+		applyPanelPosition,
+		applyUrl,
+		saveAndApplyClosedPanelState,
+		togglePanelState,
+		togglePanelPosition
 	};
 })();
 
-const м_Аудиоустройство = (() => {
-	const УСТРОЙСТВО_ПО_УМОЛЧАНИЮ = 'default';
-	const УСТРОЙСТВО_ДЛЯ_ОБЩЕНИЯ = 'communications';
+const audioDeviceModule = (() => {
+	const defaultDevice = 'default';
+	const COMMUNICATION_DEVICE = 'communications';
 	let _oMediaElement = null;
-	function обновитьСписокУстройствИВыбратьУстройство() {
-		const узСписокУстройств = Узел('аудиоустройства-список');
-		м_Журнал.Окак('[Аудиоустройства] Получаю список медиаустройств');
-		navigator.mediaDevices.enumerateDevices().then(моМедиаустройства => {
-			if (!Array.isArray(моМедиаустройства)) {
-				м_Журнал.Ой('[Аудиоустройства] Список аудиоустройств недоступен');
-				ПоказатьЭлемент('аудиоустройства', false);
+	function refreshDevicesAndSelect() {
+		const deviceListElement = element('audio-devices-list');
+		log.logOk('[AudioDevices] Getting media device list');
+		navigator.mediaDevices.enumerateDevices().then(mediaDevicesModule => {
+			if (!Array.isArray(mediaDevicesModule)) {
+				log.logError('[AudioDevices] Audio device list unavailable');
+				showElement('audio-devices', false);
 				return;
 			}
-			узСписокУстройств.length = 0;
-			м_Журнал.Вот(`[Аудиоустройства] Текущее устройство ${_oMediaElement.sinkId}`);
-			const сТекущееУстройство = _oMediaElement.sinkId === УСТРОЙСТВО_ПО_УМОЛЧАНИЮ ? '' : _oMediaElement.sinkId;
-			const сСохраненноеУстройство = м_Настройки.Получить('сИдАудиоустройства');
-			let кУстройств = 0, кНастоящихУстройств = 0;
-			let лЕстьУстройствоПоУмолчанию = false, лЕстьТекущееУстройство = сТекущееУстройство === '', лЕстьСохраненноеУстройство = сСохраненноеУстройство === '';
-			for (const оМедиаустройство of моМедиаустройства) {
-				м_Журнал.Вот(`[Аудиоустройства] Медиаустройство kind=${оМедиаустройство.kind} deviceId=${оМедиаустройство.deviceId} groupId=${оМедиаустройство.groupId} label=${оМедиаустройство.label}`);
-				if (оМедиаустройство.kind === 'audiooutput') {
-					кУстройств++;
-					if (оМедиаустройство.deviceId && оМедиаустройство.label) {
-						кНастоящихУстройств += оМедиаустройство.deviceId !== УСТРОЙСТВО_ПО_УМОЛЧАНИЮ && оМедиаустройство.deviceId !== УСТРОЙСТВО_ДЛЯ_ОБЩЕНИЯ;
-						лЕстьУстройствоПоУмолчанию = лЕстьУстройствоПоУмолчанию || оМедиаустройство.deviceId === УСТРОЙСТВО_ПО_УМОЛЧАНИЮ;
-						лЕстьТекущееУстройство = лЕстьТекущееУстройство || оМедиаустройство.deviceId === сТекущееУстройство;
-						лЕстьСохраненноеУстройство = лЕстьСохраненноеУстройство || оМедиаустройство.deviceId === сСохраненноеУстройство;
-						узСписокУстройств.add(new Option(оМедиаустройство.label, оМедиаустройство.deviceId === УСТРОЙСТВО_ПО_УМОЛЧАНИЮ ? '' : оМедиаустройство.deviceId));
+			deviceListElement.length = 0;
+			log.logInfo(`[AudioDevices] Current device ${_oMediaElement.sinkId}`);
+			const currentDeviceName = _oMediaElement.sinkId === defaultDevice ? '' : _oMediaElement.sinkId;
+			const savedDeviceName = settings.get('audioDeviceId');
+			let deviceCount = 0, actualDeviceCount = 0;
+			let hasDefaultDevice = false, hasCurrentDevice = currentDeviceName === '', hasSavedDevice = savedDeviceName === '';
+			for (const mediaDevice of mediaDevicesModule) {
+				log.logInfo(`[AudioDevices] Media device kind=${mediaDevice.kind} deviceId=${mediaDevice.deviceId} groupId=${mediaDevice.groupId} label=${mediaDevice.label}`);
+				if (mediaDevice.kind === 'audiooutput') {
+					deviceCount++;
+					if (mediaDevice.deviceId && mediaDevice.label) {
+						actualDeviceCount += mediaDevice.deviceId !== defaultDevice && mediaDevice.deviceId !== COMMUNICATION_DEVICE;
+						hasDefaultDevice = hasDefaultDevice || mediaDevice.deviceId === defaultDevice;
+						hasCurrentDevice = hasCurrentDevice || mediaDevice.deviceId === currentDeviceName;
+						hasSavedDevice = hasSavedDevice || mediaDevice.deviceId === savedDeviceName;
+						deviceListElement.add(new Option(mediaDevice.label, mediaDevice.deviceId === defaultDevice ? '' : mediaDevice.deviceId));
 					}
 				}
 			}
-			if (кУстройств !== 0 && узСписокУстройств.length === 0) {
-				if (получитьВерсиюДвижкаБраузера() <= 68 && chrome.extension.inIncognitoContext) {
-					ПоказатьЭлемент('аудиоустройства', false);
+			if (deviceCount !== 0 && deviceListElement.length === 0) {
+				if (getBrowserEngineVersion() <= 68 && chrome.extension.inIncognitoContext) {
+					showElement('audio-devices', false);
 				} else {
-					ПоказатьЭлемент('аудиоустройства-доступ', true);
-					ПоказатьЭлемент(узСписокУстройств, false);
-					ПоказатьЭлемент('аудиоустройства', true);
-					м_События.ДобавитьОбработчик('управление-левыйщелчок', обработатьЩелчокИПолучитьДоступКАудиоустройствам);
+					showElement('audio-devices-access', true);
+					showElement(deviceListElement, false);
+					showElement('audio-devices', true);
+					events.addHandler('control-left-click', handleClickAndRequestAudioDevicesAccess);
 				}
 			} else {
-				if (!лЕстьУстройствоПоУмолчанию && узСписокУстройств.length !== 0) {
-					узСписокУстройств.add(new Option('Default', ''), 0);
+				if (!hasDefaultDevice && deviceListElement.length !== 0) {
+					deviceListElement.add(new Option('Default', ''), 0);
 				}
-				узСписокУстройств.value = сТекущееУстройство;
-				узСписокУстройств.disabled = узСписокУстройств.length === 0;
-				ПоказатьЭлемент('аудиоустройства-доступ', false);
-				ПоказатьЭлемент(узСписокУстройств, true);
-				if (кНастоящихУстройств > 1) {
-					ПоказатьЭлемент('аудиоустройства', true);
-					узСписокУстройств.addEventListener('change', обработатьВыборУстройства);
+				deviceListElement.value = currentDeviceName;
+				deviceListElement.disabled = deviceListElement.length === 0;
+				showElement('audio-devices-access', false);
+				showElement(deviceListElement, true);
+				if (actualDeviceCount > 1) {
+					showElement('audio-devices', true);
+					deviceListElement.addEventListener('change', handleDeviceSelect);
 				}
-				let сВыбрать;
-				if (лЕстьСохраненноеУстройство && сСохраненноеУстройство !== сТекущееУстройство) {
-					сВыбрать = сСохраненноеУстройство;
-				} else if (!лЕстьТекущееУстройство && узСписокУстройств.length !== 0) {
-					сВыбрать = '';
+				let selectionName;
+				if (hasSavedDevice && savedDeviceName !== currentDeviceName) {
+					selectionName = savedDeviceName;
+				} else if (!hasCurrentDevice && deviceListElement.length !== 0) {
+					selectionName = '';
 				}
-				if (сВыбрать !== void 0) {
-					м_Журнал.Окак(`[Аудиоустройства] Выбираю устройство ${сВыбрать}`);
-					return _oMediaElement.setSinkId(сВыбрать).then(() => {
-						м_Журнал.Вот('[Аудиоустройства] Устройство выбрано');
-						м_УсилениеГромкости.ВыбратьУстройство(сВыбрать);
-						узСписокУстройств.value = сВыбрать;
-					}, пПричина => {
-						м_Журнал.Ой(`[Аудиоустройства] Не удалось выбрать устройство: ${пПричина}`);
+				if (selectionName !== void 0) {
+					log.logOk(`[AudioDevices] Selecting device ${selectionName}`);
+					return _oMediaElement.setSinkId(selectionName).then(() => {
+						log.logInfo('[AudioDevices] Device selected');
+						volumeBoostModule.selectDevice(selectionName);
+						deviceListElement.value = selectionName;
+					}, reasonValue => {
+						log.logError(`[AudioDevices] Failed to select device: ${reasonValue}`);
 					});
 				}
 			}
-		}, пПричина => {
-			м_Журнал.Ой(`[Аудиоустройства] Не удалось получить список медиаустройств: ${пПричина}`);
-			узСписокУстройств.length = 0;
-			узСписокУстройств.disabled = true;
-		}).catch(м_Отладка.ПойманоИсключение);
+		}, reasonValue => {
+			log.logError(`[AudioDevices] Failed to get media device list: ${reasonValue}`);
+			deviceListElement.length = 0;
+			deviceListElement.disabled = true;
+		}).catch(debug.exceptionCaught);
 	}
-	function обработатьЩелчокИПолучитьДоступКАудиоустройствам({сПозывной}) {
-		if (сПозывной !== 'аудиоустройства-доступ') {
+	function handleClickAndRequestAudioDevicesAccess({callSign}) {
+		if (callSign !== 'audio-devices-access') {
 			return;
 		}
-		м_Журнал.Окак('[Аудиоустройства] Запрашиваю разрешение contentSettings');
+		log.logOk('[AudioDevices] Requesting contentSettings permission');
 		chrome.permissions.request({
 			permissions: [ 'contentSettings' ]
-		}, ДобавитьОбработчикИсключений(лРазрешениеПолучено => {
-			if (лРазрешениеПолучено) {
-				м_Журнал.Окак('[Аудиоустройства] Получаю доступ к аудиоустройствам');
+		}, wrapErrors(isPermissionGranted => {
+			if (isPermissionGranted) {
+				log.logOk('[AudioDevices] Getting access to audio devices');
 				chrome.contentSettings.microphone.set({
 					primaryPattern: `*://${chrome.runtime.id}/*`,
 					setting: 'allow',
 					scope: chrome.extension.inIncognitoContext ? 'incognito_session_only' : 'regular'
-				}, ДобавитьОбработчикИсключений(() => {
+				}, wrapErrors(() => {
 					if (chrome.runtime.lastError) {
-						м_Журнал.Ой(`[Аудиоустройства] Доступ не получен: ${chrome.runtime.lastError.message}`);
-						м_Уведомление.ПоказатьЖопу();
+						log.logError(`[AudioDevices] Access not granted: ${chrome.runtime.lastError.message}`);
+						notification.showButt();
 					}
-					обновитьСписокУстройствИВыбратьУстройство();
+					refreshDevicesAndSelect();
 				}));
 			} else {
-				м_Журнал.Ой(`[Аудиоустройства] Разрешение не получено: ${chrome.runtime.lastError && chrome.runtime.lastError.message}`);
-				м_Уведомление.ПоказатьЖопу();
+				log.logError(`[AudioDevices] Permission not granted: ${chrome.runtime.lastError && chrome.runtime.lastError.message}`);
+				notification.showButt();
 			}
 		}));
 	}
-	const обработатьВыборУстройства = ДобавитьОбработчикИсключений(оСобытие => {
-		if (оСобытие.target.selectedIndex !== -1) {
-			const сВыбрать = оСобытие.target.value;
-			м_Журнал.Окак(`[Аудиоустройства] Выбираю устройство ${сВыбрать} вместо ${_oMediaElement.sinkId}`);
-			_oMediaElement.setSinkId(сВыбрать).then(() => {
-				м_Журнал.Вот('[Аудиоустройства] Устройство выбрано');
-				м_УсилениеГромкости.ВыбратьУстройство(сВыбрать);
-				м_Настройки.Изменить('сИдАудиоустройства', сВыбрать);
-			}, пПричина => {
-				м_Журнал.Ой(`[Аудиоустройства] Не удалось выбрать устройство: ${пПричина}`);
-				м_Уведомление.ПоказатьЖопу();
-				обновитьСписокУстройствИВыбратьУстройство();
-			}).catch(м_Отладка.ПойманоИсключение);
+	const handleDeviceSelect = wrapErrors(event => {
+		if (event.target.selectedIndex !== -1) {
+			const selectionName = event.target.value;
+			log.logOk(`[AudioDevices] Selecting device ${selectionName} instead of ${_oMediaElement.sinkId}`);
+			_oMediaElement.setSinkId(selectionName).then(() => {
+				log.logInfo('[AudioDevices] Device selected');
+				volumeBoostModule.selectDevice(selectionName);
+				settings.set('audioDeviceId', selectionName);
+			}, reasonValue => {
+				log.logError(`[AudioDevices] Failed to select device: ${reasonValue}`);
+				notification.showButt();
+				refreshDevicesAndSelect();
+			}).catch(debug.exceptionCaught);
 		}
 	});
-	function запустить(oMediaElement) {
+	function startInternal(oMediaElement) {
 		if (_oMediaElement) {
 			return;
 		}
 		_oMediaElement = oMediaElement;
 		if (!('setSinkId' in _oMediaElement)) {
-			м_Журнал.Ой('[Аудиоустройства] Браузер не поддерживает MediaElement.setSinkId');
+			log.logError('[AudioDevices] Browser does not support MediaElement.setSinkId');
 			return;
 		}
 		if (!('addEventListener' in navigator.mediaDevices)) {
-			м_Журнал.Ой('[Аудиоустройства] Браузер не поддерживает MediaDevices.ondevicechange');
+			log.logError('[AudioDevices] Browser does not support MediaDevices.ondevicechange');
 		} else {
-			navigator.mediaDevices.addEventListener('devicechange', ДобавитьОбработчикИсключений(обновитьСписокУстройствИВыбратьУстройство));
+			navigator.mediaDevices.addEventListener('devicechange', wrapErrors(refreshDevicesAndSelect));
 		}
-		обновитьСписокУстройствИВыбратьУстройство();
+		refreshDevicesAndSelect();
 	}
 	return {
-		запустить
+		startInternal
 	};
 })();
 
-const м_УсилениеГромкости = (() => {
+const volumeBoostModule = (() => {
 	let _oMediaElement = null;
 	let _oAudioContext = null;
-	let _oУсилитель = null;
-	function Возобновить() {
+	let _boostObject = null;
+	function resume() {
 		if (_oAudioContext && _oAudioContext.state === 'suspended') {
-			_oAudioContext.resume().catch(пПричина => м_Журнал.Ой(`[Усиление громкости] Не удалось возобновить звук: ${пПричина}`));
+			_oAudioContext.resume().catch(reasonValue => log.logError(`[VolumeBoost] Failed to resume audio: ${reasonValue}`));
 		}
 	}
-	function Создать() {
+	function create() {
 		if (_oAudioContext) {
 			return true;
 		}
 		try {
-			const оКонтекст = new AudioContext();
-			const оИсточник = оКонтекст.createMediaElementSource(_oMediaElement);
-			const оУсилитель = оКонтекст.createGain();
-			оИсточник.connect(оУсилитель);
-			оУсилитель.connect(оКонтекст.destination);
-			_oAudioContext = оКонтекст;
-			_oУсилитель = оУсилитель;
-			ВыбратьУстройство(_oMediaElement.sinkId);
-			м_Журнал.Вот('[Усиление громкости] Усиление звука включено');
+			const context = new AudioContext();
+			const source = context.createMediaElementSource(_oMediaElement);
+			const amplifier = context.createGain();
+			source.connect(amplifier);
+			amplifier.connect(context.destination);
+			_oAudioContext = context;
+			_boostObject = amplifier;
+			selectDevice(_oMediaElement.sinkId);
+			log.logInfo('[VolumeBoost] Audio boost enabled');
 			return true;
-		} catch (пИсключение) {
-			м_Журнал.Ой(`[Усиление громкости] Не удалось включить усиление: ${пИсключение}`);
+		} catch (exception) {
+			log.logError(`[VolumeBoost] Failed to enable boost: ${exception}`);
 			return false;
 		}
 	}
-	function Применить(оMediaElement) {
-		_oMediaElement = оMediaElement;
-		const чГромкость = ПолучитьГромкость();
-		const лПриглушить = м_Настройки.Получить('лПриглушить');
-		const лНужноУсиление = м_Настройки.Получить('лРазрешитьУсилениеГромкости') && чГромкость > МАКСИМАЛЬНАЯ_ГРОМКОСТЬ;
-		if (лНужноУсиление) {
-			Создать();
+	function apply(mediaElement) {
+		_oMediaElement = mediaElement;
+		const volume = getVolume();
+		const isMuted = settings.get('isMuted');
+		const shouldAmplify = settings.get('volumeBoostEnabled') && volume > maxVolume;
+		if (shouldAmplify) {
+			create();
 		}
-		if (_oУсилитель) {
-			// После подключения к Web Audio громкостью управляет усилитель.
-			оMediaElement.volume = 1;
-			оMediaElement.muted = false;
-			_oУсилитель.gain.value = лПриглушить ? 0 : чГромкость / МАКСИМАЛЬНАЯ_ГРОМКОСТЬ;
-			Возобновить();
+		if (_boostObject) {
+			// After connecting to Web Audio, gain is controlled by the amplifier.
+			mediaElement.volume = 1;
+			mediaElement.muted = false;
+			_boostObject.gain.value = isMuted ? 0 : volume / maxVolume;
+			resume();
 			return;
 		}
-		оMediaElement.volume = чГромкость / МАКСИМАЛЬНАЯ_ГРОМКОСТЬ;
-		оMediaElement.muted = лПриглушить;
+		mediaElement.volume = volume / maxVolume;
+		mediaElement.muted = isMuted;
 	}
-	function ВыбратьУстройство(сИд) {
-		if (!_oAudioContext || typeof сИд !== 'string' || typeof _oAudioContext.setSinkId !== 'function') {
+	function selectDevice(idString) {
+		if (!_oAudioContext || typeof idString !== 'string' || typeof _oAudioContext.setSinkId !== 'function') {
 			return;
 		}
-		_oAudioContext.setSinkId(сИд).catch(пПричина => м_Журнал.Ой(`[Усиление громкости] Не удалось выбрать устройство: ${пПричина}`));
+		_oAudioContext.setSinkId(idString).catch(reasonValue => log.logError(`[VolumeBoost] Failed to select device: ${reasonValue}`));
 	}
-	function запустить() {
-		for (let сСобытие of [ 'pointerdown', 'keydown' ]) {
-			document.addEventListener(сСобытие, Возобновить, {
+	function startInternal() {
+		for (let eventName of [ 'pointerdown', 'keydown' ]) {
+			document.addEventListener(eventName, resume, {
 				capture: true,
 				passive: true
 			});
 		}
 	}
 	return {
-		Применить,
-		Возобновить,
-		ВыбратьУстройство,
-		запустить
+		apply,
+		resume,
+		selectDevice,
+		startInternal
 	};
 })();
 
-const м_Проигрыватель = (() => {
-	const ИНТЕРВАЛ_УДАЛЕНИЯ_ВИДЕО = 10;
-	const ИСЧЕРПАНИЕ_БУФЕРА = 1 / 25 * 7;
-	const ПОВТОР_ДОСТУПЕН_ЕСЛИ_ПРОСМОТРЕНО = 1;
-	const ПРОВЕРИТЬ_ДОБАВЛЕНИЕ_СЕГМЕНТА = -1;
-	const ПРОВЕРИТЬ_НАЧАЛО_ВОСПРОИЗВЕДЕНИЯ = -2;
-	const ПРОВЕРИТЬ_ВОСПРОИЗВЕДЕНИЕ = -3;
-	const ПРОВЕРИТЬ_ОСТАНОВКА_ВОСПРОИЗВЕДЕНИЯ = -4;
-	const ВОСПРОИЗВЕДЕНИЕ_НЕВОЗМОЖНО = 0;
-	const ВОСПРОИЗВЕДЕНИЕ_ВОЗМОЖНО = 1;
-	const ВОСПРОИЗВЕДЕНИЕ_ВОЗМОЖНО_ПОСЛЕ_ПЕРЕМОТКИ = 2;
+const player = (() => {
+	const VIDEO_REMOVAL_INTERVAL = 10;
+	const bufferExhausted = 1 / 25 * 7;
+	const REPLAY_AVAILABLE_IF_WATCHED = 1;
+	const assertSegmentAdded = -1;
+	const assertPlaybackStarted = -2;
+	const assertPlayback = -3;
+	const ASSERT_PLAYBACK_STOP = -4;
+	const playbackImpossible = 0;
+	const playbackPossible = 1;
+	const playbackPossibleAfterSeek = 2;
 	let _oMediaElement;
 	let _oMediaSource;
 	let _oMediaSourceBuffer = null;
-	let _лЕстьВидеодорожка = false;
-	let _чВоспроизведениеНачиналось = 0;
-	let _лАсинхроннаяОперация = false;
-	let _сРазмерБуфера = 'чНачалоВоспроизведения';
-	let _лЖдатьЗаполненияБуфера = true;
-	let _чСмещениеТрансляции = NaN;
-	let _лНужнаПеремотка = false;
-	const _оПрямаяТрансляция = {
-		ОбработатьSourceOpen() {
-			Проверить(_oMediaElement.paused);
-			_чВоспроизведениеНачиналось = Math.max(_чВоспроизведениеНачиналось, 1);
-			ДобавитьСледующийСегмент();
+	let _hasVideoTrack = false;
+	let _playbackStarted = 0;
+	let _isAsyncOperation = false;
+	let _bufferSizeString = 'playbackStartMs';
+	let _shouldWaitForBufferFill = true;
+	let _streamOffsetMs = NaN;
+	let _needsSeek = false;
+	const _liveStream = {
+		handleSourceOpen() {
+			assert(_oMediaElement.paused);
+			_playbackStarted = Math.max(_playbackStarted, 1);
+			addNextSegment();
 		},
-		ОбработатьProgress() {
-			if (!_лАсинхроннаяОперация) {
-				НачатьВоспроизведение(ПроверитьПозициюВоспроизведения(ПРОВЕРИТЬ_ДОБАВЛЕНИЕ_СЕГМЕНТА));
+		handleProgress() {
+			if (!_isAsyncOperation) {
+				startPlayback(assertPlaybackPosition(assertSegmentAdded));
 			}
 		},
-		ОбработатьWaiting() {},
-		ОбработатьPlaying() {
-			if (м_Управление.ПолучитьСостояние() === СОСТОЯНИЕ_НАЧАЛО_ВОСПРОИЗВЕДЕНИЯ && !_oMediaElement.paused) {
-				м_Управление.ИзменитьСостояние(СОСТОЯНИЕ_ВОСПРОИЗВЕДЕНИЕ);
+		handleWaiting() {},
+		handlePlaying() {
+			if (control.getState() === playbackStartState && !_oMediaElement.paused) {
+				control.setState(playbackState);
 			}
 		},
-		ОбработатьSeeking: ЗАГЛУШКА,
-		ОбработатьSeeked: НачатьВоспроизведение,
-		ОбработатьEnded() {
-			ПерезагрузитьПроигрыватель(СОСТОЯНИЕ_ЗАГРУЗКА);
+		handleSeeking: placeholder,
+		handleSeeked: startPlayback,
+		handleEnded() {
+			reloadPlayer(loadingState);
 		},
-		ОбработатьTimeUpdate() {
+		handleTimeUpdate() {
 			if (!_oMediaElement.seeking && !_oMediaElement.paused && !_oMediaElement.ended) {
-				ПроверитьПозициюВоспроизведения(ПРОВЕРИТЬ_ВОСПРОИЗВЕДЕНИЕ);
+				assertPlaybackPosition(assertPlayback);
 			}
 		}
 	};
-	const _оПовтор = {
-		лПауза: true,
-		ОбработатьSourceOpen() {
-			Проверить(_oMediaElement.paused);
-			_чВоспроизведениеНачиналось = Math.max(_чВоспроизведениеНачиналось, 1);
+	const _repeat = {
+		isPaused: true,
+		handleSourceOpen() {
+			assert(_oMediaElement.paused);
+			_playbackStarted = Math.max(_playbackStarted, 1);
 		},
-		ОбработатьProgress: ЗАГЛУШКА,
-		ОбработатьWaiting: ЗАГЛУШКА,
-		ОбработатьPlaying: ЗАГЛУШКА,
-		ОбработатьSeeked: ЗАГЛУШКА,
-		ОбработатьSeeking() {
-			м_Шкала.ЗадатьПросмотрено(_oMediaElement.currentTime);
+		handleProgress: placeholder,
+		handleWaiting: placeholder,
+		handlePlaying: placeholder,
+		handleSeeked: placeholder,
+		handleSeeking() {
+			scale.setWatched(_oMediaElement.currentTime);
 		},
-		ОбработатьEnded() {
-			if (!this.лПауза) {
+		handleEnded() {
+			if (!this.isPaused) {
 				_oMediaElement.play();
 			}
 		},
-		ОбработатьTimeUpdate() {
-			if (!this.лПауза && !_oMediaElement.seeking) {
-				this.ПроверитьПозициюВоспроизведения(ПРОВЕРИТЬ_ВОСПРОИЗВЕДЕНИЕ);
+		handleTimeUpdate() {
+			if (!this.isPaused && !_oMediaElement.seeking) {
+				this.assertPlaybackPosition(assertPlayback);
 			}
-			м_Шкала.ЗадатьПросмотрено(_oMediaElement.currentTime);
+			scale.setWatched(_oMediaElement.currentTime);
 		},
-		ПроверитьПозициюВоспроизведения(чВремя) {
-			Проверить(Number.isFinite(чВремя));
-			Проверить(чВремя === ПРОВЕРИТЬ_НАЧАЛО_ВОСПРОИЗВЕДЕНИЯ || чВремя === ПРОВЕРИТЬ_ВОСПРОИЗВЕДЕНИЕ || чВремя >= 0);
-			const оБуфер = _oMediaElement.buffered;
-			const чПоследняяОбласть = оБуфер.length - 1;
-			const чТекущееВремя = _oMediaElement.currentTime + 1e-4;
-			let чПеремотатьДо = чВремя >= 0 ? чВремя : чТекущееВремя;
-			let сПричинаПеремотки = '';
-			for (let лНачатьСначала = false; ;) {
-				let чНужноДляВоспроизведения = чВремя === ПРОВЕРИТЬ_ВОСПРОИЗВЕДЕНИЕ ? ИСЧЕРПАНИЕ_БУФЕРА : МИН_РАЗМЕР_БУФЕРА;
-				for (let чОбласть = 0; чОбласть <= чПоследняяОбласть; ++чОбласть) {
-					if (чПеремотатьДо < оБуфер.start(чОбласть)) {
-						чНужноДляВоспроизведения = МИН_РАЗМЕР_БУФЕРА;
-						сПричинаПеремотки += 'Перепрыгиваю яму. ';
-						чПеремотатьДо = оБуфер.start(чОбласть);
+		assertPlaybackPosition(time) {
+			assert(Number.isFinite(time));
+			assert(time === assertPlaybackStarted || time === assertPlayback || time >= 0);
+			const buffer = _oMediaElement.buffered;
+			const lastArea = buffer.length - 1;
+			const currentTime = _oMediaElement.currentTime + 1e-4;
+			let seekToTime = time >= 0 ? time : currentTime;
+			let seekReason = '';
+			for (let shouldStartFromBeginning = false; ;) {
+				let requiredForPlaybackCount = time === assertPlayback ? bufferExhausted : minBufferSize;
+				for (let areaIndex = 0; areaIndex <= lastArea; ++areaIndex) {
+					if (seekToTime < buffer.start(areaIndex)) {
+						requiredForPlaybackCount = minBufferSize;
+						seekReason += 'Jumping over gap. ';
+						seekToTime = buffer.start(areaIndex);
 					}
-					if (оБуфер.end(чОбласть) - чПеремотатьДо >= чНужноДляВоспроизведения) {
+					if (buffer.end(areaIndex) - seekToTime >= requiredForPlaybackCount) {
 						break;
 					}
 				}
-				if (this.лПауза || чПеремотатьДо < м_Шкала.ПолучитьКонец()) {
+				if (this.isPaused || seekToTime < scale.getEnd()) {
 					break;
 				}
-				if (лНачатьСначала) {
-					ПоказатьСостояние('Ой', `Бесконечная перемотка Время=${чВремя}`);
+				if (shouldStartFromBeginning) {
+					showState('logError', `Infinite seek Time=${time}`);
 					return;
 				}
-				чПеремотатьДо = м_Шкала.ПолучитьНачало();
-				сПричинаПеремотки += 'Начинаю сначала. ';
-				лНачатьСначала = true;
+				seekToTime = scale.getStart();
+				seekReason += 'Starting over. ';
+				shouldStartFromBeginning = true;
 			}
-			if (чПеремотатьДо !== чТекущееВремя) {
-				ПоказатьСостояние('Окак', `${сПричинаПеремотки}Перематываю до ${чПеремотатьДо}`);
-				_oMediaElement.currentTime = чПеремотатьДо;
+			if (seekToTime !== currentTime) {
+				showState('logOk', `${seekReason}Seeking to ${seekToTime}`);
+				_oMediaElement.currentTime = seekToTime;
 			}
 		}
 	};
-	let _оПоведение = _оПрямаяТрансляция;
-	function ПоказатьСостояние(сВажность, сЗапись) {
-		const оБуфер = _oMediaSource.sourceBuffers.length !== 0 ? _oMediaSource.sourceBuffers[0] : null;
-		const сОбластиБуфера = ПеревестиОбластиВСтроку(оБуфер ? оБуфер.buffered : null);
-		const сОбласти = ПеревестиОбластиВСтроку(_oMediaElement.buffered);
-		const лОбластиРавны = сОбластиБуфера === сОбласти;
-		if (сВажность === 'Вот' && (оБуфер && оБуфер.buffered.length > 1 || _oMediaElement.buffered.length > 1)) {
-			сВажность = 'Окак';
+	let _behavior = _liveStream;
+	function showState(importanceName, record) {
+		const buffer = _oMediaSource.sourceBuffers.length !== 0 ? _oMediaSource.sourceBuffers[0] : null;
+		const bufferRangesString = convertRangesToString(buffer ? buffer.buffered : null);
+		const rangesString = convertRangesToString(_oMediaElement.buffered);
+		const isRangesEqual = bufferRangesString === rangesString;
+		if (importanceName === 'logInfo' && (buffer && buffer.buffered.length > 1 || _oMediaElement.buffered.length > 1)) {
+			importanceName = 'logOk';
 		}
-		if (_oMediaElement.error || !лОбластиРавны) {
-			сВажность = 'Ой';
+		if (_oMediaElement.error || !isRangesEqual) {
+			importanceName = 'logError';
 		}
-		м_Журнал[сВажность](`${сЗапись.charAt(0) === '[' ? '' : '[Проигрыватель] '}${сЗапись} •••` + (оБуфер && оБуфер.updating ? ' [U]' : '') + (_oMediaElement.paused ? ' [P]' : '') + (_oMediaElement.seeking ? ' [S]' : '') + (_oMediaElement.ended ? ' [E]' : '') + (_oMediaElement.error ? ` error=${_oMediaElement.error.code}` : '') + (_oMediaElement.src.startsWith('blob:') || _oMediaElement.src.startsWith('mediasource:') ? '' : ` src=${_oMediaElement.src}`) + (_oMediaSource.readyState === 'open' ? '' : ` MSE.readyState=${_oMediaSource.readyState}`) + (_oMediaSource.sourceBuffers.length === 1 ? '' : ` MSE.buffers=${_oMediaSource.sourceBuffers.length}`) + (_oMediaElement.networkState === HTMLMediaElement.NETWORK_LOADING ? '' : ` networkState=${_oMediaElement.networkState}`) + ` readyState=${_oMediaElement.readyState}` + ` currentTime=${_oMediaElement.currentTime}` + (лОбластиРавны ? ` buffered=${сОбласти}` : ` MSE.buffered=${сОбластиБуфера} buffered=${сОбласти}`) + (_oMediaElement.duration === Infinity ? '' : ` duration=${_oMediaElement.duration}`) + ` seekable=${ПеревестиОбластиВСтроку(_oMediaElement.seekable)}` + ` played=${ПеревестиОбластиВСтроку(_oMediaElement.played)}`);
+		log[importanceName](`${record.charAt(0) === '[' ? '' : '[Player] '}${record} •••` + (buffer && buffer.updating ? ' [U]' : '') + (_oMediaElement.paused ? ' [P]' : '') + (_oMediaElement.seeking ? ' [S]' : '') + (_oMediaElement.ended ? ' [E]' : '') + (_oMediaElement.error ? ` error=${_oMediaElement.error.code}` : '') + (_oMediaElement.src.startsWith('blob:') || _oMediaElement.src.startsWith('mediasource:') ? '' : ` src=${_oMediaElement.src}`) + (_oMediaSource.readyState === 'open' ? '' : ` MSE.readyState=${_oMediaSource.readyState}`) + (_oMediaSource.sourceBuffers.length === 1 ? '' : ` MSE.buffers=${_oMediaSource.sourceBuffers.length}`) + (_oMediaElement.networkState === HTMLMediaElement.NETWORK_LOADING ? '' : ` networkState=${_oMediaElement.networkState}`) + ` readyState=${_oMediaElement.readyState}` + ` currentTime=${_oMediaElement.currentTime}` + (isRangesEqual ? ` buffered=${rangesString}` : ` MSE.buffered=${bufferRangesString} buffered=${rangesString}`) + (_oMediaElement.duration === Infinity ? '' : ` duration=${_oMediaElement.duration}`) + ` seekable=${convertRangesToString(_oMediaElement.seekable)}` + ` played=${convertRangesToString(_oMediaElement.played)}`);
 	}
-	function ПеревестиОбластиВСтроку(оОбласти) {
-		let сРезультат = '';
-		if (оОбласти && оОбласти.length !== 0) {
-			let чОбласть = Math.max(оОбласти.length - 5, 0);
-			if (чОбласть !== 0) {
-				сРезультат = `[${чОбласть}]`;
+	function convertRangesToString(regions) {
+		let resultText = '';
+		if (regions && regions.length !== 0) {
+			let areaIndex = Math.max(regions.length - 5, 0);
+			if (areaIndex !== 0) {
+				resultText = `[${areaIndex}]`;
 			}
-			for (;чОбласть < оОбласти.length; ++чОбласть) {
-				if (чОбласть !== 0) {
-					сРезультат += `(${(оОбласти.start(чОбласть) - оОбласти.end(чОбласть - 1)).toFixed(3)})`;
+			for (;areaIndex < regions.length; ++areaIndex) {
+				if (areaIndex !== 0) {
+					resultText += `(${(regions.start(areaIndex) - regions.end(areaIndex - 1)).toFixed(3)})`;
 				}
-				сРезультат += `${оОбласти.start(чОбласть)}-${оОбласти.end(чОбласть)}`;
+				resultText += `${regions.start(areaIndex)}-${regions.end(areaIndex)}`;
 			}
 		}
-		return сРезультат;
+		return resultText;
 	}
-	function ПолучитьЗаполненностьБуфера(оБуфер = _oMediaElement.buffered) {
-		let чПросмотрено = 0;
-		let чНеПросмотрено = 0;
-		if (оБуфер.length !== 0) {
-			const чНачало = оБуфер.start(0);
-			const чКонец = оБуфер.end(оБуфер.length - 1);
-			const чТекущееВремя = Ограничить(_oMediaElement.currentTime, чНачало, чКонец);
-			чПросмотрено = чТекущееВремя - чНачало;
-			чНеПросмотрено = чКонец - чТекущееВремя;
+	function getBufferFill(buffer = _oMediaElement.buffered) {
+		let watchedCount = 0;
+		let unwatchedCount = 0;
+		if (buffer.length !== 0) {
+			const startTime = buffer.start(0);
+			const endTime = buffer.end(buffer.length - 1);
+			const currentTime = limit(_oMediaElement.currentTime, startTime, endTime);
+			watchedCount = currentTime - startTime;
+			unwatchedCount = endTime - currentTime;
 		}
 		return {
-			чПросмотрено,
-			чНеПросмотрено
+			watchedCount,
+			unwatchedCount
 		};
 	}
-	function ПолучитьКоличествоПропущенныхКадров() {
+	function getDroppedFrameCount() {
 		return _oMediaElement.getVideoPlaybackQuality ? _oMediaElement.getVideoPlaybackQuality() : {
 			totalVideoFrames: _oMediaElement.webkitDecodedFrameCount,
 			droppedVideoFrames: _oMediaElement.webkitDroppedFrameCount
 		};
 	}
-	function ПолучитьПозициюВоспроизведенияТрансляции(лДляКлипа) {
-		if (Number.isNaN(_чСмещениеТрансляции)) {
+	function getStreamPlaybackPosition(isForClip) {
+		if (Number.isNaN(_streamOffsetMs)) {
 			return -1;
 		}
-		СледитьЗаОшибками();
-		let чПозиция = _oMediaElement.currentTime;
-		if (лДляКлипа && м_Управление.ПолучитьСостояние() === СОСТОЯНИЕ_ПОВТОР) {
-			чПозиция = м_Шкала.ПолучитьКонец();
+		watchErrors();
+		let positionNumber = _oMediaElement.currentTime;
+		if (isForClip && control.getState() === repeatState) {
+			positionNumber = scale.getEnd();
 		}
-		if (!лДляКлипа && чПозиция === 0 && _oMediaSourceBuffer !== null) {
+		if (!isForClip && positionNumber === 0 && _oMediaSourceBuffer !== null) {
 			if (_oMediaSourceBuffer.buffered.length !== 0) {
-				чПозиция = _oMediaSourceBuffer.buffered.start(0);
+				positionNumber = _oMediaSourceBuffer.buffered.start(0);
 			}
 		}
-		return чПозиция === 0 ? -1 : Math.max(чПозиция + _чСмещениеТрансляции, 0);
+		return positionNumber === 0 ? -1 : Math.max(positionNumber + _streamOffsetMs, 0);
 	}
-	function РасчитатьСмещениеТрансляции(оСегмент) {
-		if (Number.isFinite(оСегмент.пДанные.чПозицияКодирования) && Number.isFinite(оСегмент.пДанные.чПозицияТрансляции)) {
-			const чСмещениеТрансляции = оСегмент.пДанные.чПозицияТрансляции - оСегмент.пДанные.чПозицияКодирования;
-			м_Журнал[Math.abs(чСмещениеТрансляции - _чСмещениеТрансляции) > 2 ? 'Ой' : 'Вот'](`[Проигрыватель] Смещение трансляции: ${м_Журнал.F1(чСмещениеТрансляции)}с`);
-			_чСмещениеТрансляции = чСмещениеТрансляции;
+	function calculateStreamOffset(segment) {
+		if (Number.isFinite(segment.dataValue.encodePositionMs) && Number.isFinite(segment.dataValue.streamPosition)) {
+			const streamOffset = segment.dataValue.streamPosition - segment.dataValue.encodePositionMs;
+			log[Math.abs(streamOffset - _streamOffsetMs) > 2 ? 'logError' : 'logInfo'](`[Player] Stream offset: ${log.F1(streamOffset)}s`);
+			_streamOffsetMs = streamOffset;
 		}
 	}
-	function ПоказатьЗадержкуТрансляции(оСегмент) {
-		if (м_Статистика.ОкноОткрыто() && Number.isFinite(оСегмент.пДанные.чПозицияКодирования) && Number.isFinite(оСегмент.пДанные.чВремяКодирования) && _oMediaElement.currentTime !== 0) {
-			const чПолучение = (performance.now() + г_чТочноеВремя - оСегмент.пДанные.чВремяКодирования) / 1e3;
-			const чВоспроизведение = оСегмент.пДанные.чПозицияКодирования - _oMediaElement.currentTime;
-			const сЗадержка = `${чПолучение.toFixed(1)} + ${чВоспроизведение.toFixed(1)} = ${(чПолучение + чВоспроизведение).toFixed(1)}`;
-			м_Журнал[чПолучение > 0 && чВоспроизведение > -.1 ? 'Вот' : 'Ой'](`[Проигрыватель] Задержка трансляции: ${сЗадержка}с`);
-			Узел('статистика-задержкатрансляции').textContent = сЗадержка;
+	function showStreamDelay(segment) {
+		if (stats.isWindowOpen() && Number.isFinite(segment.dataValue.encodePositionMs) && Number.isFinite(segment.dataValue.encodingTime) && _oMediaElement.currentTime !== 0) {
+			const receiveTime = (performance.now() + globalExactTimeMs - segment.dataValue.encodingTime) / 1e3;
+			const playbackTime = segment.dataValue.encodePositionMs - _oMediaElement.currentTime;
+			const delayString = `${receiveTime.toFixed(1)} + ${playbackTime.toFixed(1)} = ${(receiveTime + playbackTime).toFixed(1)}`;
+			log[receiveTime > 0 && playbackTime > -.1 ? 'logInfo' : 'logError'](`[Player] Stream delay: ${delayString}s`);
+			element('stats-stream-delay').textContent = delayString;
 		}
 	}
-	function ПрименитьГромкость() {
+	function applyVolume() {
 		if (_oMediaElement) {
-			м_УсилениеГромкости.Применить(_oMediaElement);
+			volumeBoostModule.apply(_oMediaElement);
 		}
 	}
-	function ПерезагрузитьИЖдатьЗаполненияБуфера(чНовоеСостояние) {
-		_лЖдатьЗаполненияБуфера = true;
-		ПерезагрузитьПроигрыватель(чНовоеСостояние);
+	function reloadAndWaitForBuffer(newStateNumber) {
+		_shouldWaitForBufferFill = true;
+		reloadPlayer(newStateNumber);
 	}
-	function ПерезагрузитьПроигрыватель(чНовоеСостояние) {
-		ПоказатьСостояние('Окак', 'Перезагрузка проигрывателя');
-		м_Управление.ИзменитьСостояние(чНовоеСостояние);
-		_оПоведение = _оПрямаяТрансляция;
+	function reloadPlayer(newStateNumber) {
+		showState('logOk', 'Reloading player');
+		control.setState(newStateNumber);
+		_behavior = _liveStream;
 		_oMediaSourceBuffer = null;
-		_лНужнаПеремотка = false;
-		СоздатьMediaSource();
-		подключитьMediaSourceКMediaElement();
+		_needsSeek = false;
+		createMediaSource();
+		connectMediaSourceToMediaElement();
 	}
-	function СледитьЗаОшибками() {
+	function watchErrors() {
 		if (_oMediaElement.error) {
-			м_Отладка.ЗавершитьРаботуИПоказатьСообщение('J0206');
+			debug.finishAndShowMessage('J0206');
 		}
 	}
-	const СледитьЗаСобытиямиMediaSource = ДобавитьОбработчикИсключений(оСобытие => {
-		СледитьЗаОшибками();
-		const сЗапись = `[MediaSource] ${оСобытие.type}`;
-		switch (оСобытие.type) {
+	const watchMediaSourceEvents = wrapErrors(event => {
+		watchErrors();
+		const record = `[MediaSource] ${event.type}`;
+		switch (event.type) {
 		  case 'sourceopen':
-			ПоказатьСостояние('Вот', сЗапись);
-			_оПоведение.ОбработатьSourceOpen();
+			showState('logInfo', record);
+			_behavior.handleSourceOpen();
 			break;
 
 		  case 'sourceended':
 		  case 'sourceclose':
-			ПоказатьСостояние('Вот', сЗапись);
+			showState('logInfo', record);
 			break;
 
 		  default:
-			м_Журнал.Вот(сЗапись);
+			log.logInfo(record);
 		}
 	});
-	const СледитьЗаСобытиямиMediaElement = ДобавитьОбработчикИсключений(оСобытие => {
-		СледитьЗаОшибками();
-		const сЗапись = `[MediaElement] ${оСобытие.type}`;
-		switch (оСобытие.type) {
+	const watchMediaElementEvents = wrapErrors(event => {
+		watchErrors();
+		const record = `[MediaElement] ${event.type}`;
+		switch (event.type) {
 		  case 'loadstart':
-			ПоказатьСостояние('Вот', `${сЗапись} src=${_oMediaElement.src} currentSrc=${_oMediaElement.currentSrc}`);
+			showState('logInfo', `${record} src=${_oMediaElement.src} currentSrc=${_oMediaElement.currentSrc}`);
 			break;
 
 		  case 'progress':
-			ПоказатьСостояние('Вот', сЗапись);
-			_оПоведение.ОбработатьProgress();
+			showState('logInfo', record);
+			_behavior.handleProgress();
 			break;
 
 		  case 'abort':
-			ПоказатьСостояние('Вот', сЗапись);
+			showState('logInfo', record);
 			break;
 
 		  case 'waiting':
-			ПоказатьСостояние('Окак', сЗапись);
-			_оПоведение.ОбработатьWaiting();
+			showState('logOk', record);
+			_behavior.handleWaiting();
 			break;
 
 		  case 'playing':
-			ПоказатьСостояние('Вот', сЗапись);
-			_оПоведение.ОбработатьPlaying();
+			showState('logInfo', record);
+			_behavior.handlePlaying();
 			break;
 
 		  case 'seeking':
-			ПоказатьСостояние('Вот', сЗапись);
-			_оПоведение.ОбработатьSeeking();
+			showState('logInfo', record);
+			_behavior.handleSeeking();
 			break;
 
 		  case 'seeked':
-			ПоказатьСостояние('Вот', сЗапись);
-			_оПоведение.ОбработатьSeeked();
+			showState('logInfo', record);
+			_behavior.handleSeeked();
 			break;
 
 		  case 'ended':
-			ПоказатьСостояние('Вот', сЗапись);
-			_оПоведение.ОбработатьEnded();
+			showState('logInfo', record);
+			_behavior.handleEnded();
 			break;
 
 		  case 'timeupdate':
-			м_Журнал.Вот(`${сЗапись} readyState=${_oMediaElement.readyState} currentTime=${_oMediaElement.currentTime} НеПросмотрено=${м_Журнал.F2(ПолучитьЗаполненностьБуфера().чНеПросмотрено)}`);
-			_оПоведение.ОбработатьTimeUpdate();
+			log.logInfo(`${record} readyState=${_oMediaElement.readyState} currentTime=${_oMediaElement.currentTime} Unwatched=${log.F2(getBufferFill().unwatchedCount)}`);
+			_behavior.handleTimeUpdate();
 			break;
 
 		  default:
-			м_Журнал.Вот(сЗапись);
+			log.logInfo(record);
 		}
 	});
-	function ПроверитьПозициюВоспроизведения(чИсточникПроверки, чБудетДобавлено = 0) {
-		const оБуфер = _oMediaElement.buffered;
-		const чПоследняяОбласть = оБуфер.length - 1;
-		if (чПоследняяОбласть === -1) {
+	function assertPlaybackPosition(checkSourceId, willBeAddedCount = 0) {
+		const buffer = _oMediaElement.buffered;
+		const lastArea = buffer.length - 1;
+		if (lastArea === -1) {
 			return false;
 		}
-		const чТекущееВремя = _oMediaElement.currentTime + 1e-4;
-		let чПеремотатьДо = Math.max(чТекущееВремя, оБуфер.start(0));
-		let сПричинаПеремотки = '';
-		const чНеПросмотрено = оБуфер.end(чПоследняяОбласть) - чПеремотатьДо;
-		if (чИсточникПроверки === ПРОВЕРИТЬ_ДОБАВЛЕНИЕ_СЕГМЕНТА) {
-			const чРазмерБуфера = м_Настройки.Получить('чМаксРазмерБуфера');
-			const чПереполнение = чРазмерБуфера + м_Настройки.Получить('чРастягиваниеБуфера');
-			if (чНеПросмотрено <= чПереполнение) {
+		const currentTime = _oMediaElement.currentTime + 1e-4;
+		let seekToTime = Math.max(currentTime, buffer.start(0));
+		let seekReason = '';
+		const unwatchedCount = buffer.end(lastArea) - seekToTime;
+		if (checkSourceId === assertSegmentAdded) {
+			const bufferSize = settings.get('maxBufferSizeSetting');
+			const overflowAmount = bufferSize + settings.get('bufferStretchMs');
+			if (unwatchedCount <= overflowAmount) {
 				return;
 			}
-			if (_чВоспроизведениеНачиналось === 2) {
-				м_События.ПослатьСобытие('проигрыватель-переполненбуфер', чНеПросмотрено - чРазмерБуфера);
+			if (_playbackStarted === 2) {
+				events.sendEvent('player-buffer-overflow', unwatchedCount - bufferSize);
 			}
-			сПричинаПеремотки += `Переполнен буфер проигрывателя ${чНеПросмотрено.toFixed(2)}с > ${чПереполнение}с. `;
-			чПеремотатьДо = оБуфер.end(чПоследняяОбласть) - чРазмерБуфера - .1;
+			seekReason += `Player buffer overflow ${unwatchedCount.toFixed(2)}s > ${overflowAmount}s. `;
+			seekToTime = buffer.end(lastArea) - bufferSize - .1;
 		}
-		if (чИсточникПроверки === ПРОВЕРИТЬ_НАЧАЛО_ВОСПРОИЗВЕДЕНИЯ && _чВоспроизведениеНачиналось !== 2) {
-			_чВоспроизведениеНачиналось = 2;
-			const чПереполнение = м_Настройки.Получить('чМаксРазмерБуфера') + м_Статистика.ПолучитьTargetDuration() / 2;
-			if (чНеПросмотрено > чПереполнение) {
-				сПричинаПеремотки += `Превышена задержка трансляции ${чНеПросмотрено.toFixed(2)}с > ${чПереполнение}с. `;
-				чПеремотатьДо = оБуфер.end(чПоследняяОбласть) - чПереполнение;
+		if (checkSourceId === assertPlaybackStarted && _playbackStarted !== 2) {
+			_playbackStarted = 2;
+			const overflowAmount = settings.get('maxBufferSizeSetting') + stats.getTargetDuration() / 2;
+			if (unwatchedCount > overflowAmount) {
+				seekReason += `Stream delay exceeded ${unwatchedCount.toFixed(2)}s > ${overflowAmount}s. `;
+				seekToTime = buffer.end(lastArea) - overflowAmount;
 			}
 		}
-		Проверить(ИСЧЕРПАНИЕ_БУФЕРА < МИН_РАЗМЕР_БУФЕРА);
-		let чНужноДляВоспроизведения = чИсточникПроверки === ПРОВЕРИТЬ_ВОСПРОИЗВЕДЕНИЕ ? ИСЧЕРПАНИЕ_БУФЕРА : чИсточникПроверки === ПРОВЕРИТЬ_ОСТАНОВКА_ВОСПРОИЗВЕДЕНИЯ ? Infinity : МИН_РАЗМЕР_БУФЕРА;
-		let лВоспроизведениеВозможно = _oMediaSource.readyState === 'ended';
-		let чДоКонцаОбласти;
-		for (let чОбласть = 0; чОбласть <= чПоследняяОбласть; ++чОбласть) {
-			if (чПеремотатьДо < оБуфер.start(чОбласть)) {
-				чНужноДляВоспроизведения = МИН_РАЗМЕР_БУФЕРА;
-				сПричинаПеремотки += 'Перепрыгиваю яму. ';
-				чПеремотатьДо = оБуфер.start(чОбласть);
+		assert(bufferExhausted < minBufferSize);
+		let requiredForPlaybackCount = checkSourceId === assertPlayback ? bufferExhausted : checkSourceId === ASSERT_PLAYBACK_STOP ? Infinity : minBufferSize;
+		let canPlay = _oMediaSource.readyState === 'ended';
+		let remainingInRegionMs;
+		for (let areaIndex = 0; areaIndex <= lastArea; ++areaIndex) {
+			if (seekToTime < buffer.start(areaIndex)) {
+				requiredForPlaybackCount = minBufferSize;
+				seekReason += 'Jumping over gap. ';
+				seekToTime = buffer.start(areaIndex);
 			}
-			чДоКонцаОбласти = оБуфер.end(чОбласть) - чПеремотатьДо;
-			if (чДоКонцаОбласти >= чНужноДляВоспроизведения) {
-				лВоспроизведениеВозможно = true;
+			remainingInRegionMs = buffer.end(areaIndex) - seekToTime;
+			if (remainingInRegionMs >= requiredForPlaybackCount) {
+				canPlay = true;
 				break;
 			}
 		}
-		if (!лВоспроизведениеВозможно && !_oMediaElement.paused) {
-			БуферИсчерпан(чДоКонцаОбласти, чНеПросмотрено, чБудетДобавлено);
+		if (!canPlay && !_oMediaElement.paused) {
+			bufferExhausted2(remainingInRegionMs, unwatchedCount, willBeAddedCount);
 		}
-		if ((лВоспроизведениеВозможно || чИсточникПроверки === ПРОВЕРИТЬ_ДОБАВЛЕНИЕ_СЕГМЕНТА) && (чПеремотатьДо !== чТекущееВремя || _лНужнаПеремотка)) {
-			if (чПеремотатьДо === чТекущееВремя) {
-				чПеремотатьДо = _oMediaElement.currentTime;
+		if ((canPlay || checkSourceId === assertSegmentAdded) && (seekToTime !== currentTime || _needsSeek)) {
+			if (seekToTime === currentTime) {
+				seekToTime = _oMediaElement.currentTime;
 			}
-			ПоказатьСостояние(сПричинаПеремотки ? 'Ой' : 'Окак', `${сПричинаПеремотки}Перематываю до ${чПеремотатьДо}`);
-			_лНужнаПеремотка = false;
-			_oMediaElement.currentTime = чПеремотатьДо;
-			return ВОСПРОИЗВЕДЕНИЕ_ВОЗМОЖНО_ПОСЛЕ_ПЕРЕМОТКИ;
+			showState(seekReason ? 'logError' : 'logOk', `${seekReason}Seeking to ${seekToTime}`);
+			_needsSeek = false;
+			_oMediaElement.currentTime = seekToTime;
+			return playbackPossibleAfterSeek;
 		}
-		return лВоспроизведениеВозможно ? ВОСПРОИЗВЕДЕНИЕ_ВОЗМОЖНО : ВОСПРОИЗВЕДЕНИЕ_НЕВОЗМОЖНО;
+		return canPlay ? playbackPossible : playbackImpossible;
 	}
-	function НачатьВоспроизведение(чПроверка) {
-		if (_oMediaElement.seeking || чПроверка === ВОСПРОИЗВЕДЕНИЕ_ВОЗМОЖНО_ПОСЛЕ_ПЕРЕМОТКИ || !_oMediaElement.paused || _oMediaElement.ended) {
+	function startPlayback(checkCount) {
+		if (_oMediaElement.seeking || checkCount === playbackPossibleAfterSeek || !_oMediaElement.paused || _oMediaElement.ended) {
 			return;
 		}
-		if (_лЖдатьЗаполненияБуфера && _oMediaSource.readyState !== 'ended') {
-			const {чНеПросмотрено} = ПолучитьЗаполненностьБуфера();
-			const чРазмерБуфера = м_Настройки.Получить(_сРазмерБуфера);
-			if (чНеПросмотрено < чРазмерБуфера) {
-				м_Журнал.Вот(`[Проигрыватель] В буфере не просмотрено ${м_Журнал.F3(чНеПросмотрено)}с < ${чРазмерБуфера}с`);
+		if (_shouldWaitForBufferFill && _oMediaSource.readyState !== 'ended') {
+			const {unwatchedCount} = getBufferFill();
+			const bufferSize = settings.get(_bufferSizeString);
+			if (unwatchedCount < bufferSize) {
+				log.logInfo(`[Player] Unwatched in buffer ${log.F3(unwatchedCount)}s < ${bufferSize}s`);
 				return;
 			}
-			м_Журнал.Окак(`[Проигрыватель] В буфере не просмотрено ${м_Журнал.F3(чНеПросмотрено)}с >= ${чРазмерБуфера}с`);
+			log.logOk(`[Player] Unwatched in buffer ${log.F3(unwatchedCount)}s >= ${bufferSize}s`);
 		} else {
-			м_Журнал.Окак('[Проигрыватель] Не нужно ждать заполнения буфера');
+			log.logOk('[Player] No need to wait for buffer fill');
 		}
-		switch (ПроверитьПозициюВоспроизведения(ПРОВЕРИТЬ_НАЧАЛО_ВОСПРОИЗВЕДЕНИЯ)) {
-		  case ВОСПРОИЗВЕДЕНИЕ_НЕВОЗМОЖНО:
-			ПоказатьСостояние('Ой', `Не найдена область >= ${МИН_РАЗМЕР_БУФЕРА}с для начала воспроизведения`);
-			_лЖдатьЗаполненияБуфера = true;
+		switch (assertPlaybackPosition(assertPlaybackStarted)) {
+		  case playbackImpossible:
+			showState('logError', `No region >= ${minBufferSize}s found for playback start`);
+			_shouldWaitForBufferFill = true;
 			break;
 
-		  case ВОСПРОИЗВЕДЕНИЕ_ВОЗМОЖНО:
-			ПоказатьСостояние('Окак', 'Начало воспроизведения');
-			_лЖдатьЗаполненияБуфера = true;
+		  case playbackPossible:
+			showState('logOk', 'Playback started');
+			_shouldWaitForBufferFill = true;
 			_oMediaElement.play();
-			м_Управление.ИзменитьСостояние(СОСТОЯНИЕ_НАЧАЛО_ВОСПРОИЗВЕДЕНИЯ);
+			control.setState(playbackStartState);
 		}
 	}
-	function ОстановитьВоспроизведение(чНовоеСостояние) {
-		if (чНовоеСостояние !== void 0) {
-			м_Управление.ИзменитьСостояние(чНовоеСостояние);
+	function stopPlayback(newStateNumber) {
+		if (newStateNumber !== void 0) {
+			control.setState(newStateNumber);
 		}
 		_oMediaElement.pause();
 	}
-	function БуферИсчерпан(чДоКонцаПоследнейОбласти, чНеПросмотрено, чБудетДобавлено) {
-		Проверить(_oMediaSource.readyState !== 'ended');
-		Проверить(чДоКонцаПоследнейОбласти < МИН_РАЗМЕР_БУФЕРА);
-		const лДосрочно = чНеПросмотрено > 1;
-		м_Статистика.ИсчерпанБуферПроигрывателя(лДосрочно);
-		_сРазмерБуфера = 'чМаксРазмерБуфера';
-		const чРазмерБуфера = м_Настройки.Получить(_сРазмерБуфера);
-		if (чДоКонцаПоследнейОбласти + чБудетДобавлено >= МИН_РАЗМЕР_БУФЕРА && чНеПросмотрено + чБудетДобавлено >= чРазмерБуфера) {
-			ПоказатьСостояние(лДосрочно ? 'Ой' : 'Окак', `Буфер исчерпан, остановка не нужна БудетДобавлено=${м_Журнал.F3(чБудетДобавлено)}с ДоКонцаПоследнейОбласти=${м_Журнал.F3(чДоКонцаПоследнейОбласти)}с НеПросмотрено=${м_Журнал.F3(чНеПросмотрено)}с РазмерБуфера=${чРазмерБуфера}с`);
+	function bufferExhausted2(lastRangeRemaining, unwatchedCount, willBeAddedCount) {
+		assert(_oMediaSource.readyState !== 'ended');
+		assert(lastRangeRemaining < minBufferSize);
+		const isEarly = unwatchedCount > 1;
+		stats.playerBufferExhausted(isEarly);
+		_bufferSizeString = 'maxBufferSizeSetting';
+		const bufferSize = settings.get(_bufferSizeString);
+		if (lastRangeRemaining + willBeAddedCount >= minBufferSize && unwatchedCount + willBeAddedCount >= bufferSize) {
+			showState(isEarly ? 'logError' : 'logOk', `Buffer exhausted, no stop needed WillBeAdded=${log.F3(willBeAddedCount)}s ToEndOfLastRegion=${log.F3(lastRangeRemaining)}s Unwatched=${log.F3(unwatchedCount)}s BufferSize=${bufferSize}s`);
 		} else {
-			ПоказатьСостояние(лДосрочно ? 'Ой' : 'Окак', `Приостанавливаю воспроизведение для заполнения буфера ДоКонцаПоследнейОбласти=${м_Журнал.F3(чДоКонцаПоследнейОбласти)}с НеПросмотрено=${м_Журнал.F3(чНеПросмотрено)}с РазмерБуфера=${чРазмерБуфера}с`);
-			_лНужнаПеремотка = true;
-			ОстановитьВоспроизведение(СОСТОЯНИЕ_ЗАГРУЗКА);
+			showState(isEarly ? 'logError' : 'logOk', `Pausing playback to fill buffer ToEndOfLastRegion=${log.F3(lastRangeRemaining)}s Unwatched=${log.F3(unwatchedCount)}s BufferSize=${bufferSize}s`);
+			_needsSeek = true;
+			stopPlayback(loadingState);
 		}
 	}
-	function ЗавершитьПоток(оСегмент) {
-		ПоказатьСостояние('Окак', `Сегмент ${оСегмент.чНомер} вызвал окончание потока`);
-		if (_oMediaElement.buffered.length === 0 || _oMediaElement.paused && ПолучитьЗаполненностьБуфера().чНеПросмотрено < ИСЧЕРПАНИЕ_БУФЕРА + .1) {
-			ПерезагрузитьИЖдатьЗаполненияБуфера(СОСТОЯНИЕ_ЗАГРУЗКА);
+	function terminateStream(segment) {
+		showState('logOk', `Segment ${segment.number} triggered stream end`);
+		if (_oMediaElement.buffered.length === 0 || _oMediaElement.paused && getBufferFill().unwatchedCount < bufferExhausted + .1) {
+			reloadAndWaitForBuffer(loadingState);
 		} else {
-			_лЖдатьЗаполненияБуфера = typeof оСегмент.пДанные == 'number' || !_oMediaElement.seeking && _oMediaElement.paused;
+			_shouldWaitForBufferFill = typeof segment.dataValue == 'number' || !_oMediaElement.seeking && _oMediaElement.paused;
 			_oMediaSource.endOfStream();
-			НачатьВоспроизведение();
+			startPlayback();
 		}
 	}
-	function УдалитьПросмотренноеВидео(оСегмент) {
-		const МАКС_ДЛИТЕЛЬНОСТЬ_ПОВТОРА_ЗВУКА = 640;
-		СледитьЗаОшибками();
-		let чДлительностьПовтора = м_Настройки.Получить('чДлительностьПовтора2');
-		if (чДлительностьПовтора === АВТОНАСТРОЙКА) {
-			if (_лЕстьВидеодорожка) {
-				return Promise.resolve(оСегмент);
+	function removeWatchedVideo(segment) {
+		const MAX_AUDIO_REPLAY_DURATION = 640;
+		watchErrors();
+		let replayDurationMs = settings.get('replayDuration2');
+		if (replayDurationMs === autoTune) {
+			if (_hasVideoTrack) {
+				return Promise.resolve(segment);
 			}
-			чДлительностьПовтора = МАКС_ДЛИТЕЛЬНОСТЬ_ПОВТОРА_ЗВУКА;
+			replayDurationMs = MAX_AUDIO_REPLAY_DURATION;
 		}
-		const {чПросмотрено} = ПолучитьЗаполненностьБуфера(_oMediaSourceBuffer.buffered);
-		if (чПросмотрено < чДлительностьПовтора + ИНТЕРВАЛ_УДАЛЕНИЯ_ВИДЕО) {
-			return Promise.resolve(оСегмент);
+		const {watchedCount} = getBufferFill(_oMediaSourceBuffer.buffered);
+		if (watchedCount < replayDurationMs + VIDEO_REMOVAL_INTERVAL) {
+			return Promise.resolve(segment);
 		}
-		const чУдалитьДо = _oMediaElement.currentTime - чДлительностьПовтора;
-		return new Promise((фВыполнить, фОтказаться) => {
-			ПоказатьСостояние('Вот', `Удаляю просмотренное видео Просмотрено=${м_Журнал.F3(чПросмотрено)}с УдалитьДо=${м_Журнал.F3(чУдалитьДо)}с`);
-			_oMediaSourceBuffer.addEventListener('updateend', Удалено);
-			let чПрошлоВремени = -performance.now();
-			_oMediaSourceBuffer.remove(0, чУдалитьДо);
-			function Удалено() {
+		const removeBefore = _oMediaElement.currentTime - replayDurationMs;
+		return new Promise((execute, reject) => {
+			showState('logInfo', `Removing watched video Watched=${log.F3(watchedCount)}s RemoveBefore=${log.F3(removeBefore)}s`);
+			_oMediaSourceBuffer.addEventListener('updateend', removed);
+			let elapsedTimeMs = -performance.now();
+			_oMediaSourceBuffer.remove(0, removeBefore);
+			function removed() {
 				try {
 					if (_oMediaSourceBuffer === null) {
-						фОтказаться(ОтменаОбещания.ПРИЧИНА);
+						reject(cancelPromise.reason);
 					} else {
-						чПрошлоВремени += performance.now();
-						_oMediaSourceBuffer.removeEventListener('updateend', Удалено);
-						const {чПросмотрено} = ПолучитьЗаполненностьБуфера(_oMediaSourceBuffer.buffered);
-						ПоказатьСостояние(чПрошлоВремени > 100 || чПросмотрено < МИН_РАЗМЕР_БУФЕРА ? 'Ой' : 'Вот', `Просмотренное видео удалено за ${м_Журнал.F0(чПрошлоВремени)}мс Просмотрено=${м_Журнал.F0(чПросмотрено)}с`);
-						фВыполнить(оСегмент);
+						elapsedTimeMs += performance.now();
+						_oMediaSourceBuffer.removeEventListener('updateend', removed);
+						const {watchedCount} = getBufferFill(_oMediaSourceBuffer.buffered);
+						showState(elapsedTimeMs > 100 || watchedCount < minBufferSize ? 'logError' : 'logInfo', `Watched video removed in ${log.F0(elapsedTimeMs)}ms Watched=${log.F0(watchedCount)}s`);
+						execute(segment);
 					}
-				} catch (пИсключение) {
-					фОтказаться(пИсключение);
+				} catch (exception) {
+					reject(exception);
 				}
 			}
 		});
 	}
-	function ДобавитьСегментИнициализации(оСегмент) {
-		return ДобавитьСегмент(оСегмент, оСегмент.пДанные.мбСегментИнициализации, 'сегмент инициализации');
+	function addInitializationSegment(segment) {
+		return addSegment(segment, segment.dataValue.isInitSegment, 'initialization segment');
 	}
-	function ДобавитьМедиасегмент(оСегмент) {
-		return ДобавитьСегмент(оСегмент, оСегмент.пДанные.мбМедиасегмент, 'медиасегмент');
+	function addMediaSegment(segment) {
+		return addSegment(segment, segment.dataValue.mediaSegmentData, 'media-segment');
 	}
-	function ДобавитьСегмент(оСегмент, мбДобавить, сДобавить) {
-		СледитьЗаОшибками();
-		return new Promise((фВыполнить, фОтказаться) => {
-			ПоказатьСостояние('Вот', `Добавляю ${сДобавить} ${оСегмент.чНомер}`);
-			_oMediaSourceBuffer.addEventListener('updateend', Добавлено);
-			let чПрошлоВремени = -performance.now();
-			_oMediaSourceBuffer.appendBuffer(мбДобавить);
-			function Добавлено() {
+	function addSegment(segment, maybeAdd, addString) {
+		watchErrors();
+		return new Promise((execute, reject) => {
+			showState('logInfo', `Adding ${addString} ${segment.number}`);
+			_oMediaSourceBuffer.addEventListener('updateend', added);
+			let elapsedTimeMs = -performance.now();
+			_oMediaSourceBuffer.appendBuffer(maybeAdd);
+			function added() {
 				try {
 					if (_oMediaSourceBuffer === null) {
-						фОтказаться(ОтменаОбещания.ПРИЧИНА);
+						reject(cancelPromise.reason);
 					} else {
-						чПрошлоВремени += performance.now();
-						_oMediaSourceBuffer.removeEventListener('updateend', Добавлено);
-						ПоказатьСостояние(чПрошлоВремени > 100 ? 'Ой' : 'Вот', `Добавлен ${сДобавить} ${оСегмент.чНомер} за ${м_Журнал.F0(чПрошлоВремени)}мс`);
-						фВыполнить(оСегмент);
+						elapsedTimeMs += performance.now();
+						_oMediaSourceBuffer.removeEventListener('updateend', added);
+						showState(elapsedTimeMs > 100 ? 'logError' : 'logInfo', `Added ${addString} ${segment.number} in ${log.F0(elapsedTimeMs)}ms`);
+						execute(segment);
 					}
-				} catch (пИсключение) {
-					фОтказаться(пИсключение);
+				} catch (exception) {
+					reject(exception);
 				}
 			}
 		});
 	}
-	function ПроверитьИсчерпаниеБуфера(оСегмент) {
+	function assertBufferExhaustion(segment) {
 		if (!_oMediaElement.seeking && !_oMediaElement.paused && !_oMediaElement.ended) {
-			ПроверитьПозициюВоспроизведения(ПРОВЕРИТЬ_ВОСПРОИЗВЕДЕНИЕ, оСегмент.чДлительность);
+			assertPlaybackPosition(assertPlayback, segment.duration);
 		}
 		if (_oMediaElement.played.length !== 0) {
-			м_Статистика.обновитьЗаполненностьБуфера(ПолучитьЗаполненностьБуфера().чНеПросмотрено);
+			stats.updateBufferFullness(getBufferFill().unwatchedCount);
 		}
-		return оСегмент;
+		return segment;
 	}
-	function СегментБылДобавлен(оСегмент) {
-		_лАсинхроннаяОперация = false;
-		г_моОчередь.Удалить(оСегмент);
-		РасчитатьСмещениеТрансляции(оСегмент);
-		if (!(г_моОчередь[0] && г_моОчередь[0].пДанные === СОСТОЯНИЕ_ПОВТОР)) {
-			const чПроверка = ПроверитьПозициюВоспроизведения(ПРОВЕРИТЬ_ДОБАВЛЕНИЕ_СЕГМЕНТА);
-			if (!(г_моОчередь[0] && г_моОчередь[0].чОбработка === ОБРАБОТКА_ПРЕОБРАЗОВАН)) {
-				НачатьВоспроизведение(чПроверка);
-				ПоказатьЗадержкуТрансляции(оСегмент);
+	function wasSegmentAdded(segment) {
+		_isAsyncOperation = false;
+		globalQueue.remove(segment);
+		calculateStreamOffset(segment);
+		if (!(globalQueue[0] && globalQueue[0].dataValue === repeatState)) {
+			const checkCount = assertPlaybackPosition(assertSegmentAdded);
+			if (!(globalQueue[0] && globalQueue[0].processingCount === processingTransformed)) {
+				startPlayback(checkCount);
+				showStreamDelay(segment);
 			}
 		}
-		ДобавитьСледующийСегмент();
+		addNextSegment();
 	}
-	const СегментНеБылДобавлен = ДобавитьОбработчикИсключений(пПричина => {
-		_лАсинхроннаяОперация = false;
-		if (пПричина === 'ДОБАВЛЕНИЕ СЕГМЕНТА ОТЛОЖЕНО') {
+	const wasSegmentNotAdded = wrapErrors(reasonValue => {
+		_isAsyncOperation = false;
+		if (reasonValue === 'SEGMENT_ADDITION_DEFERRED') {
 			return;
 		}
-		if (пПричина === ОтменаОбещания.ПРИЧИНА) {
-			м_Журнал.Вот('[Проигрыватель] Отменено добавление сегмента');
+		if (reasonValue === cancelPromise.reason) {
+			log.logInfo('[Player] Segment addition cancelled');
 		} else {
-			throw пПричина;
+			throw reasonValue;
 		}
 	});
-	function ПредотвратитьПереполнениеОчереди() {
-		const {чДлительность} = г_моОчередь.ПодсчитатьПреобразованныеСегменты();
-		if (чДлительность >= ПЕРЕПОЛНЕНИЕ_БУФЕРА) {
-			м_Журнал.Ой(`[Проигрыватель] MediaSource закрыт слишком долго ${чДлительность}с >= ${ПЕРЕПОЛНЕНИЕ_БУФЕРА}с`);
-			Проверить(м_Управление.ПолучитьСостояние() === СОСТОЯНИЕ_ЗАПУСК || м_Управление.ПолучитьСостояние() === СОСТОЯНИЕ_НАЧАЛО_ТРАНСЛЯЦИИ);
-			м_Управление.ОстановитьПросмотрТрансляции();
+	function preventQueueOverflow() {
+		const {duration} = globalQueue.countConvertedSegments();
+		if (duration >= bufferOverflow) {
+			log.logError(`[Player] MediaSource closed for too long ${duration}s >= ${bufferOverflow}s`);
+			assert(control.getState() === launchState || control.getState() === streamStartState);
+			control.stopWatchingStream();
 		}
 	}
-	function НайтиИОбработатьСменуВариантаТрансляции() {
-		for (let ы = г_моОчередь.length; --ы >= 0; ) {
-			if (г_моОчередь[ы].пДанные === СОСТОЯНИЕ_СМЕНА_ВАРИАНТА && г_моОчередь[ы].чОбработка === ОБРАБОТКА_ПРЕОБРАЗОВАН) {
-				г_моОчередь.ПоказатьСостояние();
+	function findAndHandleStreamVariantChange() {
+		for (let yMarker = globalQueue.length; --yMarker >= 0; ) {
+			if (globalQueue[yMarker].dataValue === variantChangeState && globalQueue[yMarker].processingCount === processingTransformed) {
+				globalQueue.showState();
 				do {
-					if (г_моОчередь[ы].пДанные === СОСТОЯНИЕ_СМЕНА_ВАРИАНТА || typeof г_моОчередь[ы].пДанные != 'number') {
-						г_моОчередь.Удалить(ы);
+					if (globalQueue[yMarker].dataValue === variantChangeState || typeof globalQueue[yMarker].dataValue != 'number') {
+						globalQueue.remove(yMarker);
 					}
-				} while (--ы >= 0);
-				г_моОчередь.ПоказатьСостояние();
-				ПерезагрузитьИЖдатьЗаполненияБуфера(СОСТОЯНИЕ_ЗАГРУЗКА);
+				} while (--yMarker >= 0);
+				globalQueue.showState();
+				reloadAndWaitForBuffer(loadingState);
 				break;
 			}
 		}
 	}
-	function ДобавитьСледующийСегмент() {
-		СледитьЗаОшибками();
-		НайтиИОбработатьСменуВариантаТрансляции();
-		const оСегмент = г_моОчередь[0];
-		if (!оСегмент || оСегмент.чОбработка !== ОБРАБОТКА_ПРЕОБРАЗОВАН) {
+	function addNextSegment() {
+		watchErrors();
+		findAndHandleStreamVariantChange();
+		const segment = globalQueue[0];
+		if (!segment || segment.processingCount !== processingTransformed) {
 			return;
 		}
-		Проверить(_оПоведение === _оПрямаяТрансляция);
-		if (оСегмент.пДанные === СОСТОЯНИЕ_НАЧАЛО_ТРАНСЛЯЦИИ) {
-			Проверить(_oMediaSource.sourceBuffers.length === 0);
-			_чСмещениеТрансляции = NaN;
-			м_Управление.ИзменитьСостояние(оСегмент.пДанные);
-			г_моОчередь.Удалить(0);
-			ДобавитьСледующийСегмент();
+		assert(_behavior === _liveStream);
+		if (segment.dataValue === streamStartState) {
+			assert(_oMediaSource.sourceBuffers.length === 0);
+			_streamOffsetMs = NaN;
+			control.setState(segment.dataValue);
+			globalQueue.remove(0);
+			addNextSegment();
 			return;
 		}
-		if (_лАсинхроннаяОперация) {
+		if (_isAsyncOperation) {
 			return;
 		}
-		if (оСегмент.пДанные === СОСТОЯНИЕ_ПОВТОР) {
-			Проверить(м_Управление.ПолучитьСостояние() !== СОСТОЯНИЕ_ОСТАНОВКА && м_Управление.ПолучитьСостояние() !== СОСТОЯНИЕ_ПОВТОР);
-			ЗапуститьПовтор();
-			г_моОчередь.Удалить(0);
-			ДобавитьСледующийСегмент();
+		if (segment.dataValue === repeatState) {
+			assert(control.getState() !== stoppedState && control.getState() !== repeatState);
+			startReplay();
+			globalQueue.remove(0);
+			addNextSegment();
 			return;
 		}
-		const сГотовность = _oMediaSource.readyState;
-		if (сГотовность !== 'open') {
-			м_Журнал.Вот(`[Проигрыватель] Добавление сегмента ${оСегмент.чНомер} отложено MediaSource.readyState=${сГотовность} MediaElement.src=${_oMediaElement.src}`);
-			if (сГотовность === 'closed' && _чВоспроизведениеНачиналось === 0) {
-				ПредотвратитьПереполнениеОчереди();
+		const readinessText = _oMediaSource.readyState;
+		if (readinessText !== 'open') {
+			log.logInfo(`[Player] Segment ${segment.number} addition deferred MediaSource.readyState=${readinessText} MediaElement.src=${_oMediaElement.src}`);
+			if (readinessText === 'closed' && _playbackStarted === 0) {
+				preventQueueOverflow();
 			}
 			return;
 		}
-		if (оСегмент.лРазрыв && _oMediaSource.sourceBuffers.length !== 0) {
-			ЗавершитьПоток(оСегмент);
+		if (segment.isGap && _oMediaSource.sourceBuffers.length !== 0) {
+			terminateStream(segment);
 			return;
 		}
-		if (оСегмент.пДанные === СОСТОЯНИЕ_ЗАВЕРШЕНИЕ_ТРАНСЛЯЦИИ) {
-			Проверить(оСегмент.лРазрыв && _oMediaSource.sourceBuffers.length === 0);
-			м_Управление.ИзменитьСостояние(оСегмент.пДанные);
-			г_моОчередь.Удалить(0);
-			ДобавитьСледующийСегмент();
+		if (segment.dataValue === streamEndState) {
+			assert(segment.isGap && _oMediaSource.sourceBuffers.length === 0);
+			control.setState(segment.dataValue);
+			globalQueue.remove(0);
+			addNextSegment();
 			return;
 		}
 		if (_oMediaSource.sourceBuffers.length === 0) {
-			ДобавитьБуферы(оСегмент);
-			м_Управление.ОбновитьКоличествоДорожек(оСегмент.пДанные.лЕстьВидео, оСегмент.пДанные.лЕстьЗвук);
+			addBuffers(segment);
+			control.updateTrackCount(segment.dataValue.hasVideo, segment.dataValue.hasAudio);
 		}
-		_лАсинхроннаяОперация = true;
-		let оОбещание = УдалитьПросмотренноеВидео(оСегмент).then(ПроверитьИсчерпаниеБуфера);
-		if (оСегмент.пДанные.мбСегментИнициализации) {
-			оОбещание = оОбещание.then(ДобавитьСегментИнициализации);
+		_isAsyncOperation = true;
+		let promise = removeWatchedVideo(segment).then(assertBufferExhaustion);
+		if (segment.dataValue.isInitSegment) {
+			promise = promise.then(addInitializationSegment);
 		}
-		оОбещание.then(ДобавитьМедиасегмент).then(СегментБылДобавлен).catch(СегментНеБылДобавлен);
+		promise.then(addMediaSegment).then(wasSegmentAdded).catch(wasSegmentNotAdded);
 	}
-	function ПеремотатьПовторДо(чПеремотатьДо) {
-		Проверить(м_Управление.ПолучитьСостояние() === СОСТОЯНИЕ_ПОВТОР);
-		_оПовтор.ПроверитьПозициюВоспроизведения(чПеремотатьДо);
+	function seekReplayBack(seekToTime) {
+		assert(control.getState() === repeatState);
+		_repeat.assertPlaybackPosition(seekToTime);
 	}
-	function ПеремотатьПовторНа(лКадры, чПеремотатьНа) {
-		Проверить(м_Управление.ПолучитьСостояние() === СОСТОЯНИЕ_ПОВТОР);
-		Проверить(Number.isFinite(чПеремотатьНа));
-		if (лКадры) {
-			чПеремотатьНа *= м_Статистика.ПолучитьДлительностьКадраВСекундах().чМинимальная;
+	function seekReplayForward(hasFrames, seekAmountMs) {
+		assert(control.getState() === repeatState);
+		assert(Number.isFinite(seekAmountMs));
+		if (hasFrames) {
+			seekAmountMs *= stats.getFrameDurationSeconds().min;
 		}
-		if (чПеремотатьНа !== 0) {
-			ПеремотатьПовторДо(Ограничить(_oMediaElement.currentTime + чПеремотатьНа, м_Шкала.ПолучитьНачало(), м_Шкала.ПолучитьКонец()));
+		if (seekAmountMs !== 0) {
+			seekReplayBack(limit(_oMediaElement.currentTime + seekAmountMs, scale.getStart(), scale.getEnd()));
 		}
 	}
-	function ПереключитьПаузу() {
-		Проверить(м_Управление.ПолучитьСостояние() === СОСТОЯНИЕ_ПОВТОР);
-		if (_оПовтор.лПауза = !_оПовтор.лПауза) {
-			м_Журнал.Окак('[Проигрыватель] Ставлю повтор на паузу');
+	function togglePause() {
+		assert(control.getState() === repeatState);
+		if (_repeat.isPaused = !_repeat.isPaused) {
+			log.logOk('[Player] Pausing replay');
 			_oMediaElement.pause();
 		} else {
-			м_Журнал.Окак('[Проигрыватель] Снимаю повтор с паузы');
-			_оПовтор.ПроверитьПозициюВоспроизведения(ПРОВЕРИТЬ_НАЧАЛО_ВОСПРОИЗВЕДЕНИЯ);
+			log.logOk('[Player] Resuming replay');
+			_repeat.assertPlaybackPosition(assertPlaybackStarted);
 			_oMediaElement.play();
 		}
-		м_События.ПослатьСобытие('проигрыватель-пауза', _оПовтор.лПауза);
+		events.sendEvent('player-pause', _repeat.isPaused);
 	}
-	function ЗадатьСкоростьПовтора(чСкорость) {
-		Проверить(чСкорость > 0);
-		Проверить(м_Управление.ПолучитьСостояние() === СОСТОЯНИЕ_ПОВТОР);
-		м_Журнал.Окак(`[Проигрыватель] Задана скорость ${чСкорость}`);
-		_oMediaElement.playbackRate = чСкорость;
+	function setReplaySpeed(speedValue) {
+		assert(speedValue > 0);
+		assert(control.getState() === repeatState);
+		log.logOk(`[Player] Speed set to ${speedValue}`);
+		_oMediaElement.playbackRate = speedValue;
 	}
-	function ЗапуститьПовтор() {
-		_оПовтор.лПауза = true;
-		_оПоведение = _оПовтор;
-		ОстановитьВоспроизведение();
+	function startReplay() {
+		_repeat.isPaused = true;
+		_behavior = _repeat;
+		stopPlayback();
 		if (_oMediaSource.sourceBuffers.length !== 0 && _oMediaSource.readyState === 'open') {
 			_oMediaSource.endOfStream();
 		}
-		if (_oMediaElement.played.length === 0 || ПолучитьЗаполненностьБуфера().чПросмотрено < ПОВТОР_ДОСТУПЕН_ЕСЛИ_ПРОСМОТРЕНО) {
-			ПоказатьСостояние('Окак', 'Повторять нечего');
-			м_Управление.ИзменитьСостояние(СОСТОЯНИЕ_ОСТАНОВКА);
+		if (_oMediaElement.played.length === 0 || getBufferFill().watchedCount < REPLAY_AVAILABLE_IF_WATCHED) {
+			showState('logOk', 'Nothing to replay');
+			control.setState(stoppedState);
 			return;
 		}
-		ПоказатьСостояние('Окак', 'Запуск повтора');
-		м_События.ПослатьСобытие('проигрыватель-пауза', _оПовтор.лПауза);
-		м_Шкала.ЗадатьНачалоИКонец(_oMediaElement.buffered.start(0), _oMediaElement.buffered.end(_oMediaElement.buffered.length - 1));
-		м_Шкала.ЗадатьПросмотрено(_oMediaElement.currentTime);
-		м_Управление.ИзменитьСостояние(СОСТОЯНИЕ_ПОВТОР);
-		ЗадатьСкоростьПовтора(м_Управление.получитьСкоростьПовтора());
+		showState('logOk', 'Starting replay');
+		events.sendEvent('player-pause', _repeat.isPaused);
+		scale.setStartAndEnd(_oMediaElement.buffered.start(0), _oMediaElement.buffered.end(_oMediaElement.buffered.length - 1));
+		scale.setWatched(_oMediaElement.currentTime);
+		control.setState(repeatState);
+		setReplaySpeed(control.getReplaySpeed());
 	}
-	function ДобавитьБуферы(оСегмент) {
-		м_Журнал.Окак(`[Проигрыватель] Добавляю буфер ${оСегмент.пДанные.сКодеки}`);
-		Проверить(оСегмент.лРазрыв && оСегмент.пДанные.сКодеки);
+	function addBuffers(segment) {
+		log.logOk(`[Player] Adding buffer ${segment.dataValue.codecString}`);
+		assert(segment.isGap && segment.dataValue.codecString);
 		try {
-			_oMediaSourceBuffer = _oMediaSource.addSourceBuffer(оСегмент.пДанные.сКодеки);
-		} catch (пИсключение) {
-			if (ЭтоОбъект(пИсключение) && пИсключение.name === 'NotSupportedError') {
-				м_Отладка.ЗавершитьРаботуИПоказатьСообщение('J0201');
+			_oMediaSourceBuffer = _oMediaSource.addSourceBuffer(segment.dataValue.codecString);
+		} catch (exception) {
+			if (isObject(exception) && exception.name === 'NotSupportedError') {
+				debug.finishAndShowMessage('J0201');
 			} else {
-				м_Отладка.ПойманоИсключение(пИсключение);
+				debug.exceptionCaught(exception);
 			}
 		}
-		_лЕстьВидеодорожка = оСегмент.пДанные.лЕстьВидео;
-		_oMediaSourceBuffer.addEventListener('updatestart', СледитьЗаСобытиямиMediaSource);
-		_oMediaSourceBuffer.addEventListener('update', СледитьЗаСобытиямиMediaSource);
-		_oMediaSourceBuffer.addEventListener('updateend', СледитьЗаСобытиямиMediaSource);
-		_oMediaSourceBuffer.addEventListener('abort', СледитьЗаСобытиямиMediaSource);
-		_oMediaSourceBuffer.addEventListener('error', СледитьЗаСобытиямиMediaSource);
+		_hasVideoTrack = segment.dataValue.hasVideo;
+		_oMediaSourceBuffer.addEventListener('updatestart', watchMediaSourceEvents);
+		_oMediaSourceBuffer.addEventListener('update', watchMediaSourceEvents);
+		_oMediaSourceBuffer.addEventListener('updateend', watchMediaSourceEvents);
+		_oMediaSourceBuffer.addEventListener('abort', watchMediaSourceEvents);
+		_oMediaSourceBuffer.addEventListener('error', watchMediaSourceEvents);
 	}
-	function подключитьMediaSourceКMediaElement() {
+	function connectMediaSourceToMediaElement() {
 		if (_oMediaElement.src) {
 			URL.revokeObjectURL(_oMediaElement.src);
 		}
 		_oMediaElement.src = URL.createObjectURL(_oMediaSource);
-		м_Аудиоустройство.запустить(_oMediaElement);
+		audioDeviceModule.startInternal(_oMediaElement);
 	}
-	function СоздатьMediaSource() {
+	function createMediaSource() {
 		try {
 			_oMediaSource = new MediaSource();
-		} catch (пИсключение) {
-			console.error(`MediaSource ${пИсключение}`);
-			м_Отладка.ЗавершитьРаботуИПоказатьСообщение('J0221');
+		} catch (exception) {
+			console.error(`MediaSource ${exception}`);
+			debug.finishAndShowMessage('J0221');
 		}
-		_oMediaSource.addEventListener('sourceopen', СледитьЗаСобытиямиMediaSource);
-		_oMediaSource.addEventListener('sourceended', СледитьЗаСобытиямиMediaSource);
-		_oMediaSource.addEventListener('sourceclose', СледитьЗаСобытиямиMediaSource);
-		_oMediaSource.sourceBuffers.addEventListener('addsourcebuffer', СледитьЗаСобытиямиMediaSource);
-		_oMediaSource.sourceBuffers.addEventListener('removesourcebuffer', СледитьЗаСобытиямиMediaSource);
+		_oMediaSource.addEventListener('sourceopen', watchMediaSourceEvents);
+		_oMediaSource.addEventListener('sourceended', watchMediaSourceEvents);
+		_oMediaSource.addEventListener('sourceclose', watchMediaSourceEvents);
+		_oMediaSource.sourceBuffers.addEventListener('addsourcebuffer', watchMediaSourceEvents);
+		_oMediaSource.sourceBuffers.addEventListener('removesourcebuffer', watchMediaSourceEvents);
 	}
-	function Запустить() {
-		Проверить(!_oMediaElement);
-		СоздатьMediaSource();
-		_oMediaElement = document.getElementById('глаз');
-		м_УсилениеГромкости.запустить();
-		ПрименитьГромкость();
-		м_КартинкаВКартинке.запустить(_oMediaElement);
-		for (let сСобытие of [ 'progress', 'error', 'playing', 'seeking', 'seeked', 'ended', 'timeupdate', 'waiting', 'loadstart', 'suspend', 'abort', 'emptied', 'stalled', 'loadedmetadata', 'loadeddata', 'canplay', 'canplaythrough', 'durationchange', 'play', 'pause', 'ratechange', 'resize' ]) {
-			_oMediaElement.addEventListener(сСобытие, СледитьЗаСобытиямиMediaElement);
+	function start() {
+		assert(!_oMediaElement);
+		createMediaSource();
+		_oMediaElement = document.getElementById('eye');
+		volumeBoostModule.startInternal();
+		applyVolume();
+		pictureInPictureModule.startInternal(_oMediaElement);
+		for (let eventName of [ 'progress', 'error', 'playing', 'seeking', 'seeked', 'ended', 'timeupdate', 'waiting', 'loadstart', 'suspend', 'abort', 'emptied', 'stalled', 'loadedmetadata', 'loadeddata', 'canplay', 'canplaythrough', 'durationchange', 'play', 'pause', 'ratechange', 'resize' ]) {
+			_oMediaElement.addEventListener(eventName, watchMediaElementEvents);
 		}
-		подключитьMediaSourceКMediaElement();
+		connectMediaSourceToMediaElement();
 		return true;
 	}
-	function Остановить() {
+	function stop() {
 		if (_oMediaElement) {
 			URL.revokeObjectURL(_oMediaElement.src);
 			_oMediaElement.removeAttribute('src');
@@ -4429,1414 +4459,1480 @@ const м_Проигрыватель = (() => {
 		}
 	}
 	return {
-		Запустить,
-		Остановить,
-		ПолучитьЗаполненностьБуфера,
-		ПолучитьКоличествоПропущенныхКадров,
-		ПолучитьПозициюВоспроизведенияТрансляции,
-		ПоказатьСостояние,
-		Перезагрузить: ПерезагрузитьИЖдатьЗаполненияБуфера,
-		ПрименитьГромкость,
-		ДобавитьСледующийСегмент,
-		ПеремотатьПовторДо,
-		ПеремотатьПовторНа,
-		ПереключитьПаузу,
-		ЗадатьСкоростьПовтора
+		start,
+		stop,
+		getBufferFill,
+		getDroppedFrameCount,
+		getStreamPlaybackPosition,
+		showState,
+		reload: reloadAndWaitForBuffer,
+		applyVolume,
+		addNextSegment,
+		seekReplayBack,
+		seekReplayForward,
+		togglePause,
+		setReplaySpeed
 	};
 })();
 
-const м_Список = (() => {
-	const ИНТЕРВАЛ_ОБНОВЛЕНИЯ_СПИСКА_С_РЕКЛАМОЙ = 2e3;
-	const МИН_ИНТЕРВАЛ_ОБНОВЛЕНИЯ_СПИСКОВ = 500;
-	class ОбновлениеСписков {
-		constructor(лБезРекламы) {
-			this._лБезРекламы = лБезРекламы;
-			this._оОтменаОбещания = null;
-			this.очистить();
+const listModule = (() => {
+	const adPlaylistUpdateInterval = 2e3;
+	const minListsUpdateInterval = 500;
+	class listsUpdate {
+		constructor(isAdFree) {
+			this._isAdFree = isAdFree;
+			this._promiseCancellation = null;
+			this.clearAll();
 		}
-		очистить() {
-			this.оСписокВариантов = null;
-			this.оСписокСегментов = null;
-			this.оВыбранныйВариант = null;
+		clearAll() {
+			this.optionList = null;
+			this.segmentList = null;
+			this.selectedOption = null;
 		}
-		запустить() {
-			Проверить(!this._оОтменаОбещания);
-			this._оОтменаОбещания = new ОтменаОбещания();
-			this._обновить(this._оОтменаОбещания, -Infinity);
+		startInternal() {
+			assert(!this._promiseCancellation);
+			this._promiseCancellation = new cancelPromise();
+			this._update(this._promiseCancellation, -Infinity);
 		}
-		остановить() {
-			if (this._оОтменаОбещания) {
-				м_Журнал.Вот(`[Список] Останавливаю обновление списков ${+this._лБезРекламы}`);
-				this._оОтменаОбещания.Отменить();
-				this._оОтменаОбещания = null;
+		stopInternal() {
+			if (this._promiseCancellation) {
+				log.logInfo(`[List] Stopping list updates ${+this._isAdFree}`);
+				this._promiseCancellation.cancel();
+				this._promiseCancellation = null;
 			}
 		}
-		сохранитьВариантТрансляции(оВариант) {
-			м_Настройки.Изменить('сНазваниеВарианта', оВариант.сИдентификатор);
-			м_Настройки.Изменить('чБитрейтВарианта', оВариант.чБитрейт);
+		saveStreamVariant(option) {
+			settings.set('variantName', option.identifier);
+			settings.set('variantBitrate', option.bitrateKbps);
 		}
-		выбратьВариантТрансляции(моВарианты) {
-			const сСохраненныйИд = м_Настройки.Получить('сНазваниеВарианта');
-			const чСохраненныйБитрейт = м_Настройки.Получить('чБитрейтВарианта');
-			let оВыбранныйВариант = моВарианты.find(({сИдентификатор}) => сИдентификатор === сСохраненныйИд);
-			if (!оВыбранныйВариант) {
-				if (сСохраненныйИд === 'chunked' || сСохраненныйИд === 'audio_only') {
-					оВыбранныйВариант = моВарианты[0];
+		selectStreamVariant(options) {
+			const savedId = settings.get('variantName');
+			const savedBitrate = settings.get('variantBitrate');
+			let selectedOption = options.find(({identifier}) => identifier === savedId);
+			if (!selectedOption) {
+				if (savedId === 'chunked' || savedId === 'audio_only') {
+					selectedOption = options[0];
 				} else {
-					оВыбранныйВариант = моВарианты.find(({сИдентификатор, чБитрейт}) => сИдентификатор !== 'audio_only' && чБитрейт <= чСохраненныйБитрейт);
-					if (!оВыбранныйВариант) {
-						оВыбранныйВариант = моВарианты.reduceRight((оРезультат, оВариант) => оРезультат.сИдентификатор === 'audio_only' ? оВариант : оРезультат);
+					selectedOption = options.find(({identifier, bitrateKbps}) => identifier !== 'audio_only' && bitrateKbps <= savedBitrate);
+					if (!selectedOption) {
+						selectedOption = options.reduceRight((result, option) => result.identifier === 'audio_only' ? option : result);
 					}
 				}
 			}
-			м_Журнал.Вот(`[Список] Для списка ${+this._лБезРекламы} выбран вариант трансляции ${оВыбранныйВариант.сИдентификатор}/${оВыбранныйВариант.чБитрейт}. Сохраненный ${сСохраненныйИд}/${чСохраненныйБитрейт}`);
-			return оВыбранныйВариант;
+			log.logInfo(`[List] For list ${+this._isAdFree}, selected stream variant ${selectedOption.identifier}/${selectedOption.bitrateKbps}. Saved ${savedId}/${savedBitrate}`);
+			return selectedOption;
 		}
-		_обновить(оОтменаОбещания, чЧерез) {
-			Проверить(ЭтоЧисло(чЧерез));
-			if (чЧерез >= МИН_ИНТЕРВАЛ_ОБНОВЛЕНИЯ_СПИСКОВ || чЧерез === -Infinity) {
-				м_Журнал.Вот(`[Список] Обновление списков ${+this._лБезРекламы} начнется через ${м_Журнал.F0(чЧерез)}мс`);
+		_update(promiseCancellation, delay) {
+			assert(thisNumber(delay));
+			if (delay >= minListsUpdateInterval || delay === -Infinity) {
+				log.logInfo(`[List] List updates ${+this._isAdFree} will start in ${log.F0(delay)}ms`);
 			} else {
-				м_Журнал.Ой(`[Список] Обновление списков ${+this._лБезРекламы} начнется через ${МИН_ИНТЕРВАЛ_ОБНОВЛЕНИЯ_СПИСКОВ}мс вместо ${м_Журнал.F0(чЧерез)}мс`);
-				чЧерез = МИН_ИНТЕРВАЛ_ОБНОВЛЕНИЯ_СПИСКОВ;
+				log.logError(`[List] List updates ${+this._isAdFree} will start in ${minListsUpdateInterval}ms instead of ${log.F0(delay)}ms`);
+				delay = minListsUpdateInterval;
 			}
-			let оОбещание = Ждать(оОтменаОбещания, чЧерез);
-			let {оСписокВариантов, оВыбранныйВариант} = this;
-			if (оСписокВариантов === null) {
-				let сАбсолютныйАдресСпискаВариантов;
-				оОбещание = оОбещание.then(() => м_Twitch.ПолучитьАбсолютныйАдресСпискаВариантов(оОтменаОбещания, false, this._лБезРекламы)).then(сРезультат => {
-					сАбсолютныйАдресСпискаВариантов = сРезультат;
-					return м_Загрузчик.ЗагрузитьТекст(оОтменаОбещания, сАбсолютныйАдресСпискаВариантов, ЗАГРУЖАТЬ_СПИСОК_ВАРИАНТОВ_НЕ_ДОЛЬШЕ, `список вариантов ${+this._лБезРекламы}`, false);
-				}).then(сРезультат => {
-					м_Отладка.СохранитьСписокВариантов(сРезультат);
-					оСписокВариантов = РазобратьСписок(true, сАбсолютныйАдресСпискаВариантов, сРезультат);
-					if (оСписокВариантов.моВарианты.length === 0) {
-						throw `Список вариантов пуст`;
+			let promise = wait(promiseCancellation, delay);
+			let {optionList, selectedOption} = this;
+			if (optionList === null) {
+				let absoluteVariantListUrl;
+				promise = promise.then(() => Twitch.getAbsoluteOptionListUrl(promiseCancellation, false, this._isAdFree)).then(resultText => {
+					absoluteVariantListUrl = resultText;
+					return loader.loadText(promiseCancellation, absoluteVariantListUrl, VARIANT_LIST_LOAD_TIMEOUT, `variant list ${+this._isAdFree}`, false);
+				}).then(resultText => {
+					debug.saveVariantList(resultText);
+					optionList = parseList(true, absoluteVariantListUrl, resultText);
+					if (optionList.options.length === 0) {
+						throw `Variant list is empty`;
 					}
 				});
 			}
-			let чНачалоОбновления;
-			оОбещание.then(() => {
-				if (оВыбранныйВариант === null) {
-					оВыбранныйВариант = this.выбратьВариантТрансляции(оСписокВариантов.моВарианты);
+			let updateStart;
+			promise.then(() => {
+				if (selectedOption === null) {
+					selectedOption = this.selectStreamVariant(optionList.options);
 				}
-				чНачалоОбновления = performance.now();
-				return м_Загрузчик.ЗагрузитьТекст(оОтменаОбещания, оВыбранныйВариант.сАбсолютныйАдресСпискаСегментов, ЗАГРУЖАТЬ_СПИСОК_СЕГМЕНТОВ_НЕ_ДОЛЬШЕ, `список сегментов ${+this._лБезРекламы}`, false);
-			}).then(сРезультат => {
-				м_Отладка.СохранитьСписокСегментов(сРезультат);
-				const оСписокСегментов = РазобратьСписок(false, оВыбранныйВариант.сАбсолютныйАдресСпискаСегментов, сРезультат);
-					if (оСписокСегментов.лFMP4) {
-						const сНовыеКодекиFMP4 = `video/mp4;codecs="${оВыбранныйВариант.сКодеки}"`;
-						if (!г_лFMP4 || г_сКодекиFMP4 !== сНовыеКодекиFMP4) {
-							г_лFMP4 = true;
-							г_сКодекиFMP4 = сНовыеКодекиFMP4;
-							г_лЕстьВидеоFMP4 = /avc1|avc3|hvc1|hev1|av01|vp09/i.test(оВыбранныйВариант.сКодеки);
-							г_лЕстьЗвукFMP4 = /mp4a|ac-3|ec-3|opus|flac/i.test(оВыбранныйВариант.сКодеки);
-							м_Журнал.Окак(`[Список] Обнаружен fMP4 поток Кодеки=${г_сКодекиFMP4}`);
+				updateStart = performance.now();
+				return loader.loadText(promiseCancellation, selectedOption.absoluteSegmentListUrl, SEGMENT_LIST_LOAD_TIMEOUT, `segment list ${+this._isAdFree}`, false);
+			}).then(resultText => {
+				debug.saveSegmentList(resultText);
+				const segmentList = parseList(false, selectedOption.absoluteSegmentListUrl, resultText);
+					if (segmentList.isFMP4) {
+						const newFmp4Codecs = `video/mp4;codecs="${selectedOption.codecString}"`;
+						if (!globalIsFmp4 || globalFmp4Codecs !== newFmp4Codecs) {
+							globalIsFmp4 = true;
+							globalFmp4Codecs = newFmp4Codecs;
+							globalFmp4HasVideo = /avc1|avc3|hvc1|hev1|av01|vp09/i.test(selectedOption.codecString);
+							globalFmp4HasAudio = /mp4a|ac-3|ec-3|opus|flac/i.test(selectedOption.codecString);
+							log.logOk(`[List] Detected fMP4 stream Codecs=${globalFmp4Codecs}`);
 						}
-						г_оИнициализацияFMP4 = оСписокСегментов.оИнициализация;
-						if (!г_бфИнициализацияFMP4) {
-							ЗагрузитьИнициализациюFMP4();
+						globalFmp4Initialization = segmentList.initialization;
+						if (!globalFmp4InitBuffer) {
+							loadFmp4Init();
 						}
 					}
-				let чИнтервалОбновления;
-				if (this._этоТухлыйСписокСегментов(оСписокВариантов, оСписокСегментов, оВыбранныйВариант)) {
-					м_Статистика.ДобавленыСегментыВОчередь(0, 0);
-					if (оСписокСегментов.лКонецСписка) {
+				let updateIntervalMs;
+				if (this._isStaleSegmentList(optionList, segmentList, selectedOption)) {
+					stats.segmentsQueued(0, 0);
+					if (segmentList.isEndOfList) {
 						throw 'КОНЕЦ_СПИСКА';
 					}
-					чИнтервалОбновления = ИНТЕРВАЛ_ОБНОВЛЕНИЯ_СПИСКА_С_РЕКЛАМОЙ;
+					updateIntervalMs = adPlaylistUpdateInterval;
 				} else {
-					const лУкороченныйИнтервал = чЧерез === -Infinity || this.оСписокВариантов === null;
-					this.оСписокВариантов = оСписокВариантов;
-					this.оСписокСегментов = оСписокСегментов;
-					this.оВыбранныйВариант = оВыбранныйВариант;
-					чИнтервалОбновления = this._обновленСписокСегментов(лУкороченныйИнтервал);
+					const isShortenedInterval = delay === -Infinity || this.optionList === null;
+					this.optionList = optionList;
+					this.segmentList = segmentList;
+					this.selectedOption = selectedOption;
+					updateIntervalMs = this._segmentListUpdated(isShortenedInterval);
 				}
-				this._обновить(оОтменаОбещания, чНачалоОбновления + чИнтервалОбновления - performance.now());
-				м_Загрузчик.ЗагрузитьСледующийСегмент();
-			}).catch(ДобавитьОбработчикИсключений(пПричина => {
-				if (typeof пПричина == 'string') {
-					this._списокНеОбновлен(оОтменаОбещания, пПричина);
-					м_Загрузчик.ЗагрузитьСледующийСегмент();
-				} else if (пПричина === ОтменаОбещания.ПРИЧИНА) {
-					м_Журнал.Вот(`[Список] Отменено обновление списков ${+this._лБезРекламы}`);
+				this._update(promiseCancellation, updateStart + updateIntervalMs - performance.now());
+				loader.loadNextSegment();
+			}).catch(wrapErrors(reasonValue => {
+				if (typeof reasonValue == 'string') {
+					this._listNotUpdated(promiseCancellation, reasonValue);
+					loader.loadNextSegment();
+				} else if (reasonValue === cancelPromise.reason) {
+					log.logInfo(`[List] List updates cancelled ${+this._isAdFree}`);
 				} else {
-					throw пПричина;
+					throw reasonValue;
 				}
 			}));
 		}
-		_этоТухлыйСписокСегментов(оСписокВариантов, оСписокСегментов, оВыбранныйВариант) {
-			const ПОРОГ_СМЕНЫ_СЕССИИ = 5;
-			Проверить(this.оСписокВариантов === null == (this.оСписокСегментов === null));
-			if (оСписокСегментов.моСегменты.length === 0) {
-				м_Журнал.Ой(`[Список] Список сегментов ${+this._лБезРекламы} пуст`);
+		_isStaleSegmentList(optionList, segmentList, selectedOption) {
+			const sessionSwitchThreshold = 5;
+			assert(this.optionList === null == (this.segmentList === null));
+			if (segmentList.segments.length === 0) {
+				log.logError(`[List] Segment list ${+this._isAdFree} is empty`);
 				return true;
 			}
-			if (this.оСписокСегментов === null) {
+			if (this.segmentList === null) {
 				return false;
 			}
-			Проверить(!(this.оСписокВариантов.сИдТрансляции !== оСписокВариантов.сИдТрансляции && this.оСписокВариантов.чИдСессии === оСписокВариантов.чИдСессии));
-			if (this.оСписокСегментов.nTargetDuration !== оСписокСегментов.nTargetDuration) {
-				м_Журнал.Ой(`[Список] В списке ${+this._лБезРекламы} изменился target duration ${this.оСписокСегментов.nTargetDuration} ==> ${оСписокСегментов.nTargetDuration}`);
+			assert(!(this.optionList.streamId !== optionList.streamId && this.optionList.sessionId === optionList.sessionId));
+			if (this.segmentList.nTargetDuration !== segmentList.nTargetDuration) {
+				log.logError(`[List] In list ${+this._isAdFree}, target duration changed ${this.segmentList.nTargetDuration} ==> ${segmentList.nTargetDuration}`);
 			}
-			if (this.оВыбранныйВариант !== null) {
-				const чРазница = оСписокСегментов.чПорядковыйНомер - this.оСписокСегментов.чПорядковыйНомер;
-				const чНачало = Math.max(-чРазница, 0);
-				const чКонец = Math.min(this.оСписокСегментов.моСегменты.length - чРазница, оСписокСегментов.моСегменты.length);
-				for (let чНовый = чНачало, чСтарый = чНачало + чРазница; чНовый < чКонец; чНовый++, чСтарый++) {
-					if (оСписокСегментов.моСегменты[чНовый].сАдрес !== this.оСписокСегментов.моСегменты[чСтарый].сАдрес) {
-						м_Журнал.Ой(`[Список] В списке ${+this._лБезРекламы} у сегмента ${оСписокСегментов.чПорядковыйНомер + чНовый} изменился адрес ${ОграничитьДлинуСтроки(this.оСписокСегментов.моСегменты[чСтарый].сАдрес, 100)} ==> ${ОграничитьДлинуСтроки(оСписокСегментов.моСегменты[чНовый].сАдрес, 100)}`);
-						оСписокСегментов.лХаос = true;
+			if (this.selectedOption !== null) {
+				const difference = segmentList.sequenceNumber - this.segmentList.sequenceNumber;
+				const startTime = Math.max(-difference, 0);
+				const endTime = Math.min(this.segmentList.segments.length - difference, segmentList.segments.length);
+				for (let newNumber = startTime, oldValue = startTime + difference; newNumber < endTime; newNumber++, oldValue++) {
+					if (segmentList.segments[newNumber].address !== this.segmentList.segments[oldValue].address) {
+						log.logError(`[List] In list ${+this._isAdFree}, segment ${segmentList.sequenceNumber + newNumber} address changed ${clampStringLength(this.segmentList.segments[oldValue].address, 100)} ==> ${clampStringLength(segmentList.segments[newNumber].address, 100)}`);
+						segmentList.isChaos = true;
 						break;
 					}
 				}
 			}
-			const чРазница = this.оСписокСегментов.чПорядковыйНомер + this.оСписокСегментов.моСегменты.length - оСписокСегментов.чПорядковыйНомер - оСписокСегментов.моСегменты.length;
-			if (чРазница > 0) {
-				if (this.оВыбранныйВариант === null && чРазница <= ПОРОГ_СМЕНЫ_СЕССИИ) {
-					м_Журнал.Ой(`[Список] При переключении варианта в списке ${+this._лБезРекламы} уменьшился порядковый номер ${this.оСписокСегментов.чПорядковыйНомер} + ${this.оСписокСегментов.моСегменты.length} ==> ${оСписокСегментов.чПорядковыйНомер} + ${оСписокСегментов.моСегменты.length}`);
+			const difference = this.segmentList.sequenceNumber + this.segmentList.segments.length - segmentList.sequenceNumber - segmentList.segments.length;
+			if (difference > 0) {
+				if (this.selectedOption === null && difference <= sessionSwitchThreshold) {
+					log.logError(`[List] When switching variant in list ${+this._isAdFree}, sequence number decreased ${this.segmentList.sequenceNumber} + ${this.segmentList.segments.length} ==> ${segmentList.sequenceNumber} + ${segmentList.segments.length}`);
 					return false;
 				}
-				if (оСписокСегментов.чПорядковыйНомер === 0 || чРазница > ПОРОГ_СМЕНЫ_СЕССИИ) {
-					м_Журнал.Ой(`[Список] Меняю ИдСессии: в списке ${+this._лБезРекламы} уменьшился порядковый номер ${this.оСписокСегментов.чПорядковыйНомер} + ${this.оСписокСегментов.моСегменты.length} ==> ${оСписокСегментов.чПорядковыйНомер} + ${оСписокСегментов.моСегменты.length}`);
-					оСписокВариантов.чИдСессии = _чИдСессии++;
+				if (segmentList.sequenceNumber === 0 || difference > sessionSwitchThreshold) {
+					log.logError(`[List] Changing session ID: in list ${+this._isAdFree}, sequence number decreased ${this.segmentList.sequenceNumber} + ${this.segmentList.segments.length} ==> ${segmentList.sequenceNumber} + ${segmentList.segments.length}`);
+					optionList.sessionId = _sessionId++;
 					return false;
 				}
-				м_Журнал.Ой(`[Список] Получен протухший список ${+this._лБезРекламы}: порядковый номер ${this.оСписокСегментов.чПорядковыйНомер} + ${this.оСписокСегментов.моСегменты.length} ==> ${оСписокСегментов.чПорядковыйНомер} + ${оСписокСегментов.моСегменты.length}`);
+				log.logError(`[List] Received stale list ${+this._isAdFree}: sequence number ${this.segmentList.sequenceNumber} + ${this.segmentList.segments.length} ==> ${segmentList.sequenceNumber} + ${segmentList.segments.length}`);
 				return true;
 			}
-			if (this.оСписокСегментов.чПорядковыйНомер > оСписокСегментов.чПорядковыйНомер) {
-				м_Журнал.Ой(`[Список] В списке ${+this._лБезРекламы} уменьшился порядковый номер ${this.оСписокСегментов.чПорядковыйНомер} ==> ${оСписокСегментов.чПорядковыйНомер}`);
+			if (this.segmentList.sequenceNumber > segmentList.sequenceNumber) {
+				log.logError(`[List] In list ${+this._isAdFree}, sequence number decreased ${this.segmentList.sequenceNumber} ==> ${segmentList.sequenceNumber}`);
 			}
 			return false;
 		}
 	}
-	class ОбновлениеСписковСРекламой extends ОбновлениеСписков {
+	class updateListsWithAds extends listsUpdate {
 		constructor() {
 			super(false);
 		}
-		_обновленСписокСегментов(лУкороченныйИнтервал) {
-			const лСписокЗаканчиваетсяРекламой = этотСписокЗаканчиваетсяРекламой(this.оСписокСегментов);
-			м_Twitch.отправитьДанныеСлеженияЗаРекламой(лСписокЗаканчиваетсяРекламой ? this.оСписокСегментов : null);
-			if (!_лИдетРеклама || !лСписокЗаканчиваетсяРекламой) {
-				лУкороченныйИнтервал = ДобавитьСегментыВОчередь(this.оСписокВариантов, this.оСписокСегментов, this.оВыбранныйВариант) || лУкороченныйИнтервал;
+		_segmentListUpdated(isShortenedInterval) {
+			const isListEndingWithAd = thisListEndsWithAd(this.segmentList);
+			Twitch.sendAdTrackingData(isListEndingWithAd ? this.segmentList : null);
+			if (!_isAdPlaying || !isListEndingWithAd) {
+				isShortenedInterval = enqueueSegments(this.optionList, this.segmentList, this.selectedOption) || isShortenedInterval;
 			}
-			if (this.оСписокСегментов.лКонецСписка) {
+			if (this.segmentList.isEndOfList) {
 				throw 'КОНЕЦ_СПИСКА';
 			}
-			задатьСостояниеРекламы(лСписокЗаканчиваетсяРекламой);
-			return лСписокЗаканчиваетсяРекламой ? ИНТЕРВАЛ_ОБНОВЛЕНИЯ_СПИСКА_С_РЕКЛАМОЙ : получитьИнтервалОбновленияСпискаСегментов(this.оСписокСегментов, лУкороченныйИнтервал);
+			setAdState(isListEndingWithAd);
+			return isListEndingWithAd ? adPlaylistUpdateInterval : getSegmentListUpdateInterval(this.segmentList, isShortenedInterval);
 		}
-		_списокНеОбновлен(оОтменаОбещания, сПричина) {
-			if (сПричина === 'ОТКАЗАНО_В_ДОСТУПЕ') {
-				м_Управление.ОстановитьПросмотрТрансляции();
-				м_Уведомление.ПоказатьЖопу();
+		_listNotUpdated(promiseCancellation, reasonText) {
+			if (reasonText === 'ОТКАЗАНО_В_ДОСТУПЕ') {
+				control.stopWatchingStream();
+				notification.showButt();
 			} else {
-				м_Журнал[сПричина === 'КОНЕЦ_СПИСКА' ? 'Окак' : 'Ой'](`[Список] Трансляция завершена. ${сПричина}`);
-				ЗавершитьТрансляцию();
-				this._обновить(оОтменаОбещания, получитьИнтервалОбновленияСпискаВариантов());
+				log[reasonText === 'КОНЕЦ_СПИСКА' ? 'logOk' : 'logError'](`[List] Stream ended. ${reasonText}`);
+				endStream();
+				this._update(promiseCancellation, getVariantListUpdateInterval());
 			}
 		}
 	}
-	class ОбновлениеСписковБезРекламы extends ОбновлениеСписков {
+	class updateListsWithoutAds extends listsUpdate {
 		constructor() {
 			super(true);
 		}
-		остановить() {
-			super.остановить();
-			this.очистить();
+		stopInternal() {
+			super.stopInternal();
+			this.clearAll();
 		}
-		_обновленСписокСегментов(лУкороченныйИнтервал) {
-			if (этотСписокЗаканчиваетсяРекламой(this.оСписокСегментов)) {
-				throw 'Найдена реклама';
+		_segmentListUpdated(isShortenedInterval) {
+			if (thisListEndsWithAd(this.segmentList)) {
+				throw 'Ad found';
 			}
-			лУкороченныйИнтервал = ДобавитьСегментыВОчередь(this.оСписокВариантов, this.оСписокСегментов, this.оВыбранныйВариант) || лУкороченныйИнтервал;
-			if (this.оСписокСегментов.лКонецСписка) {
+			isShortenedInterval = enqueueSegments(this.optionList, this.segmentList, this.selectedOption) || isShortenedInterval;
+			if (this.segmentList.isEndOfList) {
 				throw 'КОНЕЦ_СПИСКА';
 			}
-			return получитьИнтервалОбновленияСпискаСегментов(this.оСписокСегментов, лУкороченныйИнтервал);
+			return getSegmentListUpdateInterval(this.segmentList, isShortenedInterval);
 		}
-		_списокНеОбновлен(оОтменаОбещания, сПричина) {
-			м_Журнал.Ой(`[Список] Список 1 не обновлен. ${сПричина}`);
-			this.остановить();
+		_listNotUpdated(promiseCancellation, reasonText) {
+			log.logError(`[List] List 1 not updated. ${reasonText}`);
+			this.stopInternal();
 		}
 	}
-	const _оСпискиСРекламой = new ОбновлениеСписковСРекламой();
-	const _оСпискиБезРекламы = new ОбновлениеСписковБезРекламы();
-	let _чСостояние = СОСТОЯНИЕ_ОСТАНОВКА;
-	let _лИдетРеклама = false;
-	let _чИнтервалОбновленияСпискаВариантов = -1;
-	let _чИдСессии = 1;
-	function РазобратьСписок(лЭтоСписокВариантов, сАбсолютныйАдресСписка, сРазбираемыйСписок) {
-		const МАКС_ПОДДЕРЖИВАЕМАЯ_ВЕРСИЯ_HLS = 7;
-		if (сРазбираемыйСписок.includes('shelblock.proxy')) {
-			м_Отладка.ЗавершитьРаботуИПоказатьСообщение('J0220');
+	const _listsWithAds = new updateListsWithAds();
+	const _adFreeListsObj = new updateListsWithoutAds();
+	let _state = stoppedState;
+	let _isAdPlaying = false;
+	let _optionListUpdateInterval = -1;
+	let _sessionId = 1;
+	function parseList(isOptionList, absoluteListUrl, parsedList) {
+		const MAX_SUPPORTED_HLS_VERSION = 7;
+		if (parsedList.includes('shelblock.proxy')) {
+			debug.finishAndShowMessage('J0220');
 		}
-		if (!сРазбираемыйСписок.startsWith('#EXTM3U')) {
-			throw `Вместо списка загружена какая-то фигня длиною ${сРазбираемыйСписок.length}\n${сРазбираемыйСписок}`;
+		if (!parsedList.startsWith('#EXTM3U')) {
+			throw `Loaded something that is not a list, length ${parsedList.length}\n${parsedList}`;
 		}
-		let чВерсия = 1;
-		let mapRenditionGroups, моВарианты, оНовыйВариант, сИдТрансляции, сАдресСлеженияЗаПросмотром;
-		let nTargetDuration, чПорядковыйНомер, лКонецСписка, кРекламныхСегментов, сТипРекламы, кРоликов, чНомерРолика, чПродолжительностьРолика, сТокенРекламы, сИдРолика1, сИдРолика2, сИдРолика3, сИдРолика4, сИдРолика5, сИдРолика6, чНомерКвартеля, моСегменты, оНовыйСегмент, оИнициализация;
-		let лРазрыв, чВремя;
-		if (лЭтоСписокВариантов) {
+		let versionNumber = 1;
+		let mapRenditionGroups, options, newOption, streamId, watchTrackingUrl;
+		let nTargetDuration, sequenceNumber, isEndOfList, adSegmentCount, adType, clipCount, clipNumber, clipDuration, adToken, clipId1, clipId2, clipId3, clipId4, clipId5, clipId6, quarterNumber, segments, newSegment, initialization;
+		let isGap, time;
+		if (isOptionList) {
 			mapRenditionGroups = new Map();
-			моВарианты = [];
-			оНовыйВариант = null;
-			сИдТрансляции = '';
-			сАдресСлеженияЗаПросмотром = '';
+			options = [];
+			newOption = null;
+			streamId = '';
+			watchTrackingUrl = '';
 		} else {
 			nTargetDuration = -1;
-			чПорядковыйНомер = 0;
-			лКонецСписка = false;
-			кРекламныхСегментов = 0;
-			сТипРекламы = '';
-			моСегменты = [];
-			оНовыйСегмент = null;
-			оИнициализация = null;
-			лРазрыв = false;
-			чВремя = NaN;
+			sequenceNumber = 0;
+			isEndOfList = false;
+			adSegmentCount = 0;
+			adType = '';
+			segments = [];
+			newSegment = null;
+			initialization = null;
+			isGap = false;
+			time = NaN;
 		}
-		const рвТегИлиАдрес = /^#EXT([^:\r\n]+)(?::(.*))?$|^[^#\r\n].*$/gm;
-		рвТегИлиАдрес.lastIndex = 7;
-		for (let мсТегИлиАдрес; мсТегИлиАдрес = рвТегИлиАдрес.exec(сРазбираемыйСписок); ) {
-			const [сАдрес, сНазваниеТега = '', сЗначениеТега = ''] = мсТегИлиАдрес;
+		const tagOrUrl = /^#EXT([^:\r\n]+)(?::(.*))?$|^[^#\r\n].*$/gm;
+		tagOrUrl.lastIndex = 7;
+		for (let tagOrUrlList; tagOrUrlList = tagOrUrl.exec(parsedList); ) {
+			const [address, tagName = '', tagValue = ''] = tagOrUrlList;
 			try {
-				switch (сНазваниеТега) {
+				switch (tagName) {
 				  case '':
-					if (лЭтоСписокВариантов) {
-						Проверить(оНовыйВариант !== null);
-						оНовыйВариант.сАбсолютныйАдресСпискаСегментов = ResolveRelativeUrl(сАдрес, сАбсолютныйАдресСписка);
-						моВарианты.push(оНовыйВариант);
-						оНовыйВариант = null;
+					if (isOptionList) {
+						assert(newOption !== null);
+						newOption.absoluteSegmentListUrl = ResolveRelativeUrl(address, absoluteListUrl);
+						options.push(newOption);
+						newOption = null;
 					} else {
-						браковать(оНовыйСегмент !== null);
-						оНовыйСегмент.сАдрес = ResolveRelativeUrl(сАдрес, сАбсолютныйАдресСписка);
-						оНовыйСегмент.лРазрыв = лРазрыв;
-						моСегменты.push(оНовыйСегмент);
-						лРазрыв = false;
-						кРекламныхСегментов += Boolean(оНовыйСегмент.лРеклама);
-						оНовыйСегмент = null;
+						reject2(newSegment !== null);
+						newSegment.address = ResolveRelativeUrl(address, absoluteListUrl);
+						newSegment.isGap = isGap;
+						segments.push(newSegment);
+						isGap = false;
+						adSegmentCount += Boolean(newSegment.isAd);
+						newSegment = null;
 					}
 					break;
 
 				  case 'INF':
 					{
-						Проверить(!лЭтоСписокВариантов);
-						Проверить(nTargetDuration !== -1);
-						Проверить(оНовыйСегмент === null);
-						оНовыйСегмент = Object.create(null);
-						const {чДлительность, сИмяСегмента} = разобратьEXTINF(сЗначениеТега);
-						оНовыйСегмент.чДлительность = чДлительность;
-						оНовыйСегмент.лРеклама = м_Twitch.этоРекламныйСегмент(сИмяСегмента);
-						if (оНовыйСегмент.лРеклама) {
-							чВремя = NaN;
+						assert(!isOptionList);
+						assert(nTargetDuration !== -1);
+						assert(newSegment === null);
+						newSegment = Object.create(null);
+						const {duration, segmentName} = parseEXTINF(tagValue);
+						newSegment.duration = duration;
+						newSegment.isAd = Twitch.isAdSegment(segmentName);
+						if (newSegment.isAd) {
+							time = NaN;
 						}
-						оНовыйСегмент.чВремя = чВремя;
-						чВремя++;
-						if (оНовыйСегмент.чДлительность < 0) {
-							м_Журнал.Ой(`[Список] У сегмента ${чПорядковыйНомер + моСегменты.length} отрицательная длительность ${сЗначениеТега}`);
-							оНовыйСегмент.чДлительность = 0;
+						newSegment.time = time;
+						time++;
+						if (newSegment.duration < 0) {
+							log.logError(`[List] Segment ${sequenceNumber + segments.length} has negative duration ${tagValue}`);
+							newSegment.duration = 0;
 						}
-						if (Math.round(оНовыйСегмент.чДлительность) > nTargetDuration) {
-							м_Журнал.Ой(`[Список] Длительность сегмента ${чПорядковыйНомер + моСегменты.length} больше target duration на ${оНовыйСегмент.чДлительность - nTargetDuration}с`);
-							if (оНовыйСегмент.чДлительность > nTargetDuration * 3) {
-								оНовыйСегмент.чДлительность = 0;
+						if (Math.round(newSegment.duration) > nTargetDuration) {
+							log.logError(`[List] Segment ${sequenceNumber + segments.length} duration exceeds target duration by ${newSegment.duration - nTargetDuration}s`);
+							if (newSegment.duration > nTargetDuration * 3) {
+								newSegment.duration = 0;
 							}
 						}
 						break;
 					}
 
 				  case '-X-DISCONTINUITY':
-					Проверить(!лЭтоСписокВариантов);
-					Проверить(!сЗначениеТега);
-					лРазрыв = true;
+					assert(!isOptionList);
+					assert(!tagValue);
+					isGap = true;
 					break;
 
 				  case '-X-PROGRAM-DATE-TIME':
-					Проверить(!лЭтоСписокВариантов);
+					assert(!isOptionList);
 					break;
 
 				  case '-X-KEY':
-					Проверить(!лЭтоСписокВариантов);
-					м_Отладка.ЗавершитьРаботуИПоказатьСообщение('J0219', 'J0731', м_Twitch.ПолучитьАдресКанала(true));
+					assert(!isOptionList);
+					debug.finishAndShowMessage('J0219', 'J0731', Twitch.getChannelUrl(true));
 					break;
 
 				  case '-X-MAP':
 					{
-						Проверить(!лЭтоСписокВариантов);
-						const амАтрибутыКарты = РазобратьСписокАтрибутов(сЗначениеТега);
-						Проверить(!амАтрибутыКарты.has('BYTERANGE'));
-						const сАдресИнициализации = амАтрибутыКарты.get('URI');
-						Проверить(ЭтоНепустаяСтрока(сАдресИнициализации));
-						оИнициализация = {
-							сАдрес: ResolveRelativeUrl(сАдресИнициализации, сАбсолютныйАдресСписка)
+						assert(!isOptionList);
+						const mapAttributes = parseAttributeList(tagValue);
+						assert(!mapAttributes.has('BYTERANGE'));
+						const initUrl = mapAttributes.get('URI');
+						assert(isNonEmptyString(initUrl));
+						initialization = {
+							address: ResolveRelativeUrl(initUrl, absoluteListUrl)
 						};
 						break;
 					}
 
 				  case '-X-BYTERANGE':
 				  case '-X-GAP':
-					Проверить(false);
+					assert(false);
 					break;
 
 				  case '-X-TARGETDURATION':
-					Проверить(!лЭтоСписокВариантов);
-					Проверить(nTargetDuration === -1);
-					nTargetDuration = РазобратьЦелоеПоложительноеЧисло(сЗначениеТега);
-					Проверить(nTargetDuration > 0 && nTargetDuration < 60);
+					assert(!isOptionList);
+					assert(nTargetDuration === -1);
+					nTargetDuration = parsePositiveInteger(tagValue);
+					assert(nTargetDuration > 0 && nTargetDuration < 60);
 					break;
 
 				  case '-X-MEDIA-SEQUENCE':
-					Проверить(!лЭтоСписокВариантов);
-					Проверить(чПорядковыйНомер === 0);
-					чПорядковыйНомер = РазобратьЦелоеПоложительноеЧисло(сЗначениеТега);
+					assert(!isOptionList);
+					assert(sequenceNumber === 0);
+					sequenceNumber = parsePositiveInteger(tagValue);
 					break;
 
 				  case '-X-ENDLIST':
-					Проверить(!лЭтоСписокВариантов);
-					Проверить(!сЗначениеТега);
-					лКонецСписка = true;
+					assert(!isOptionList);
+					assert(!tagValue);
+					isEndOfList = true;
 					break;
 
 				  case '-X-DISCONTINUITY-SEQUENCE':
-					Проверить(!лЭтоСписокВариантов);
+					assert(!isOptionList);
 					break;
 
 				  case '-X-PLAYLIST-TYPE':
 				  case '-X-I-FRAMES-ONLY':
-					Проверить(false);
+					assert(false);
 					break;
 
 				  case '-X-TWITCH-LIVE-SEQUENCE':
-					Проверить(!лЭтоСписокВариантов);
-					чВремя = РазобратьЦелоеПоложительноеЧисло(сЗначениеТега);
+					assert(!isOptionList);
+					time = parsePositiveInteger(tagValue);
 					break;
 
 				  case '-X-DATERANGE':
 					{
-						Проверить(!лЭтоСписокВариантов);
-						const амАтрибуты = РазобратьСписокАтрибутов(сЗначениеТега);
+						assert(!isOptionList);
+						const attributes = parseAttributeList(tagValue);
 						try {
-							switch (амАтрибуты.get('CLASS')) {
+							switch (attributes.get('CLASS')) {
 							  case 'twitch-stitched-ad':
-								сТипРекламы = амАтрибуты.get('X-TV-TWITCH-AD-ROLL-TYPE');
-								кРоликов = РазобратьЦелоеПоложительноеЧисло(амАтрибуты.get('X-TV-TWITCH-AD-POD-LENGTH'));
-								чНомерРолика = РазобратьЦелоеПоложительноеЧисло(амАтрибуты.get('X-TV-TWITCH-AD-POD-POSITION'));
-								чПродолжительностьРолика = РазобратьПоложительноеЧисло(амАтрибуты.get('DURATION') || '0');
-								сТокенРекламы = амАтрибуты.get('X-TV-TWITCH-AD-RADS-TOKEN') || '';
-								сИдРолика1 = амАтрибуты.get('X-TV-TWITCH-AD-ADVERTISER-ID') || '';
-								сИдРолика2 = амАтрибуты.get('X-TV-TWITCH-AD-CREATIVE-ID') || '';
-								сИдРолика3 = амАтрибуты.get('X-TV-TWITCH-AD-LINE-ITEM-ID') || '';
-								сИдРолика4 = амАтрибуты.get('X-TV-TWITCH-AD-ORDER-ID') || '';
-								сИдРолика5 = амАтрибуты.get('X-TV-TWITCH-AD-AD-SESSION-ID') || '';
-								сИдРолика6 = амАтрибуты.get('X-TV-TWITCH-AD-AD-FORMAT') || '';
-								Проверить(сТипРекламы);
+								adType = attributes.get('X-TV-TWITCH-AD-ROLL-TYPE');
+								clipCount = parsePositiveInteger(attributes.get('X-TV-TWITCH-AD-POD-LENGTH'));
+								clipNumber = parsePositiveInteger(attributes.get('X-TV-TWITCH-AD-POD-POSITION'));
+								clipDuration = parsePositiveNumber(attributes.get('DURATION') || '0');
+								adToken = attributes.get('X-TV-TWITCH-AD-RADS-TOKEN') || '';
+								clipId1 = attributes.get('X-TV-TWITCH-AD-ADVERTISER-ID') || '';
+								clipId2 = attributes.get('X-TV-TWITCH-AD-CREATIVE-ID') || '';
+								clipId3 = attributes.get('X-TV-TWITCH-AD-LINE-ITEM-ID') || '';
+								clipId4 = attributes.get('X-TV-TWITCH-AD-ORDER-ID') || '';
+								clipId5 = attributes.get('X-TV-TWITCH-AD-AD-SESSION-ID') || '';
+								clipId6 = attributes.get('X-TV-TWITCH-AD-AD-FORMAT') || '';
+								assert(adType);
 							}
-						} catch (пИсключение) {
-							сТипРекламы = '';
-							м_Журнал.Ой(`[Список] Ошибка разбора рекламы: ${сЗначениеТега}`);
+						} catch (exception) {
+							adType = '';
+							log.logError(`[List] Ad parsing error: ${tagValue}`);
 						}
 						break;
 					}
 
 				  case '-X-MEDIA':
 					{
-						Проверить(лЭтоСписокВариантов);
-						const амАтрибуты = РазобратьСписокАтрибутов(сЗначениеТега);
-						const сТип = амАтрибуты.get('TYPE');
-						Проверить(сТип);
-						Проверить(сТип !== 'VIDEO' && сТип !== 'AUDIO' || !амАтрибуты.has('URI'));
-						if (сТип === 'VIDEO') {
-							const сГруппа = амАтрибуты.get('GROUP-ID');
-							const сИмя = амАтрибуты.get('NAME');
-							Проверить(сГруппа && сИмя);
-							Проверить(!mapRenditionGroups.has(сГруппа));
-							mapRenditionGroups.set(сГруппа, сИмя);
+						assert(isOptionList);
+						const attributes = parseAttributeList(tagValue);
+						const typeName = attributes.get('TYPE');
+						assert(typeName);
+						assert(typeName !== 'VIDEO' && typeName !== 'AUDIO' || !attributes.has('URI'));
+						if (typeName === 'VIDEO') {
+							const groupName = attributes.get('GROUP-ID');
+							const name = attributes.get('NAME');
+							assert(groupName && name);
+							assert(!mapRenditionGroups.has(groupName));
+							mapRenditionGroups.set(groupName, name);
 						} else {
-							м_Журнал.Ой(`[Список] Найден #EXT-X-MEDIA TYPE=${сТип}`);
+							log.logError(`[List] Found #EXT-X-MEDIA TYPE=${typeName}`);
 						}
 						break;
 					}
 
 				  case '-X-STREAM-INF':
 					{
-						Проверить(лЭтоСписокВариантов);
-						Проверить(оНовыйВариант === null);
-						оНовыйВариант = Object.create(null);
-						const амАтрибуты = РазобратьСписокАтрибутов(сЗначениеТега);
-						оНовыйВариант.чБитрейт = РазобратьЦелоеПоложительноеЧисло(амАтрибуты.get('BANDWIDTH'));
-						Проверить(!амАтрибуты.has('AUDIO') && !амАтрибуты.has('SUBTITLES') && !амАтрибуты.has('CLOSED-CAPTIONS'));
-						оНовыйВариант.сИдентификатор = амАтрибуты.get('VIDEO') || '';
-						оНовыйВариант.сКодеки = амАтрибуты.get('CODECS') || '';
+						assert(isOptionList);
+						assert(newOption === null);
+						newOption = Object.create(null);
+						const attributes = parseAttributeList(tagValue);
+						newOption.bitrateKbps = parsePositiveInteger(attributes.get('BANDWIDTH'));
+						assert(!attributes.has('AUDIO') && !attributes.has('SUBTITLES') && !attributes.has('CLOSED-CAPTIONS'));
+						newOption.identifier = attributes.get('VIDEO') || '';
+						newOption.codecString = attributes.get('CODECS') || '';
 						break;
 					}
 
 				  case '-X-I-FRAME-STREAM-INF':
 				  case '-X-SESSION-DATA':
 				  case '-X-SESSION-KEY':
-					Проверить(лЭтоСписокВариантов);
+					assert(isOptionList);
 					break;
 
 				  case '-X-TWITCH-INFO':
 					{
-						Проверить(лЭтоСписокВариантов);
-						const амАтрибуты = РазобратьСписокАтрибутов(сЗначениеТега);
-						const чСекунды = РазобратьПоложительноеЧисло(амАтрибуты.get('SERVER-TIME'));
-						Проверить(чСекунды > 1531267200 && чСекунды < 1846886400);
-						const чМиллисекунды = чСекунды * 1e3 + 50;
-						г_чТочноеВремя = чМиллисекунды - performance.now();
-						const чРассинхронизацияВремени = чМиллисекунды - Date.now();
-						сИдТрансляции = амАтрибуты.get('BROADCAST-ID');
-						Проверить(сИдТрансляции);
+						assert(isOptionList);
+						const attributes = parseAttributeList(tagValue);
+						const seconds = parsePositiveNumber(attributes.get('SERVER-TIME'));
+						assert(seconds > 1531267200 && seconds < 1846886400);
+						const milliseconds = seconds * 1e3 + 50;
+						globalExactTimeMs = milliseconds - performance.now();
+						const timeDesync = milliseconds - Date.now();
+						streamId = attributes.get('BROADCAST-ID');
+						assert(streamId);
 						try {
-							const сАдрес = atob(амАтрибуты.get('C'));
-							Проверить(сАдрес.startsWith('https://'));
-							сАдресСлеженияЗаПросмотром = сАдрес;
-						} catch (пИсключение) {
-							м_Журнал.Ой(`[Список] Не удалось разобрать адрес слежения за просмотром: ${пИсключение}`);
+							const address = atob(attributes.get('C'));
+							assert(address.startsWith('https://'));
+							watchTrackingUrl = address;
+						} catch (exception) {
+							log.logError(`[List] Failed to parse view-tracking URL: ${exception}`);
 						}
-						м_Журнал[Math.abs(чРассинхронизацияВремени) > 5e3 ? 'Ой' : 'Окак'](`[Список] РассинхронизацияВремени=${чРассинхронизацияВремени}мс ИдТрансляции=${сИдТрансляции}`);
+						log[Math.abs(timeDesync) > 5e3 ? 'logError' : 'logOk'](`[List] TimeDesync=${timeDesync}ms StreamId=${streamId}`);
 						break;
 					}
 
 				  case '-X-VERSION':
-					Проверить(чВерсия === 1);
-					чВерсия = РазобратьЦелоеПоложительноеЧисло(сЗначениеТега);
-					Проверить(чВерсия >= 2 && чВерсия <= МАКС_ПОДДЕРЖИВАЕМАЯ_ВЕРСИЯ_HLS);
+					assert(versionNumber === 1);
+					versionNumber = parsePositiveInteger(tagValue);
+					assert(versionNumber >= 2 && versionNumber <= MAX_SUPPORTED_HLS_VERSION);
 					break;
 
 				  case '-X-START':
-					м_Журнал.Ой(`[Список] Найден #EXT-X-START=${сЗначениеТега}`);
+					log.logError(`[List] Found #EXT-X-START=${tagValue}`);
 					break;
 
 				  case 'M3U':
 				  case '-X-DEFINE':
-					Проверить(false);
+					assert(false);
 				}
-			} catch (пИсключение) {
-				if (пИсключение instanceof Error && пИсключение.message === 'БРАКОВАТЬ') {
-					throw `Ошибка разбора строки списка:\n${ПеревестиИсключениеВСтроку(пИсключение)}\n${сАдрес}`;
+			} catch (exception) {
+				if (exception instanceof Error && exception.message === 'БРАКОВАТЬ') {
+					throw `List line parsing error:\n${convertExceptionToString(exception)}\n${address}`;
 				}
 			}
 		}
-		if (лЭтоСписокВариантов) {
-			Проверить(оНовыйВариант === null);
-			for (let оВариант of моВарианты) {
-				if (оВариант.сИдентификатор) {
-					Проверить(mapRenditionGroups.has(оВариант.сИдентификатор));
-					оВариант.сНазвание = mapRenditionGroups.get(оВариант.сИдентификатор);
+		if (isOptionList) {
+			assert(newOption === null);
+			for (let option of options) {
+				if (option.identifier) {
+					assert(mapRenditionGroups.has(option.identifier));
+					option.title = mapRenditionGroups.get(option.identifier);
 				} else {
-					оВариант.сИдентификатор = `CoolCmd${оВариант.чБитрейт}`;
-					оВариант.сНазвание = `${м_i18n.ФорматироватьЧисло(оВариант.чБитрейт / 1e6, 1)} ${Текст('J0114')}`;
+					option.identifier = `CoolCmd${option.bitrateKbps}`;
+					option.title = `${i18n.formatNumber(option.bitrateKbps / 1e6, 1)} ${getMessageText('J0114')}`;
 				}
 			}
-			м_Журнал.Вот(`[Список] Количество вариантов в списке: ${моВарианты.length}`);
-			return м_Twitch.сортироватьСписокВариантов({
-				сИдТрансляции,
-				чИдСессии: _чИдСессии++,
-				сАдресСлеженияЗаПросмотром,
-				моВарианты
+			log.logInfo(`[List] Variant count in list: ${options.length}`);
+			return Twitch.sortVariantList({
+				streamId,
+				sessionId: _sessionId++,
+				watchTrackingUrl,
+				options
 			});
 		} else {
-			Проверить(оНовыйСегмент === null);
-			Проверить(nTargetDuration !== -1);
-			const оСписокСегментов = {
+			assert(newSegment === null);
+			assert(nTargetDuration !== -1);
+			const segmentList = {
 				nTargetDuration,
-				чПорядковыйНомер,
-				лКонецСписка,
-				лХаос: false,
-				кРекламныхСегментов,
-				сТипРекламы,
-				кРоликов,
-				чНомерРолика,
-				чПродолжительностьРолика,
-				сТокенРекламы,
-				сИдРолика1,
-				сИдРолика2,
-				сИдРолика3,
-				сИдРолика4,
-				сИдРолика5,
-				сИдРолика6,
-				моСегменты,
-				оИнициализация,
-				лFMP4: оИнициализация !== null
+				sequenceNumber,
+				isEndOfList,
+				isChaos: false,
+				adSegmentCount,
+				adType,
+				clipCount,
+				clipNumber,
+				clipDuration,
+				adToken,
+				clipId1,
+				clipId2,
+				clipId3,
+				clipId4,
+				clipId5,
+				clipId6,
+				segments,
+				initialization,
+				isFMP4: initialization !== null
 			};
-			м_Журнал.Вот(`[Список] Разобран список сегментов TargetDuration=${nTargetDuration} ПорядковыйНомер=${чПорядковыйНомер} КонецСписка=${лКонецСписка} КоличествоСегментов=${моСегменты.length} РекламныхСегментов=${кРекламныхСегментов}`);
-			if (сТипРекламы) {
-				м_Журнал.Окак(`[Список] Найдена реклама ТипРекламы=${сТипРекламы} ТокенРекламы=${сТокенРекламы.slice(-10)} Роликов=${кРоликов} НомерРолика=${чНомерРолика} ПродолжительностьРолика=${чПродолжительностьРолика} НомерКвартеля=${чНомерКвартеля} ЗаканчиваетсяРекламой=${этотСписокЗаканчиваетсяРекламой(оСписокСегментов)}`);
+			log.logInfo(`[List] Parsed segment list TargetDuration=${nTargetDuration} SequenceNumber=${sequenceNumber} EndOfList=${isEndOfList} SegmentCount=${segments.length} AdSegments=${adSegmentCount}`);
+			if (adType) {
+				log.logOk(`[List] Ad found AdType=${adType} AdToken=${adToken.slice(-10)} Clips=${clipCount} ClipNumber=${clipNumber} ClipDuration=${clipDuration} QuarterNumber=${quarterNumber} EndsWithAd=${thisListEndsWithAd(segmentList)}`);
 			}
-			м_Статистика.РазобранСписокСегментов(оСписокСегментов);
-			return оСписокСегментов;
+			stats.segmentListParsed(segmentList);
+			return segmentList;
 		}
 	}
-	function браковать(пУсловие) {
-		if (!пУсловие) {
+	function reject2(conditionValue) {
+		if (!conditionValue) {
 			throw new Error('БРАКОВАТЬ');
 		}
 	}
-	function РазобратьСписокАтрибутов(сИсходныйТекст) {
-		const амАтрибуты = new Map();
-		const рвАтрибут = /([A-Z0-9-]+)=(?:"([^"]*)"|([^",]+))(?:,|$)/g;
-		while (рвАтрибут.lastIndex !== сИсходныйТекст.length) {
-			const {lastIndex} = рвАтрибут;
-			const мсАтрибут = рвАтрибут.exec(сИсходныйТекст);
-			Проверить(мсАтрибут.index === lastIndex);
-			Проверить(!амАтрибуты.has(мсАтрибут[1]));
-			амАтрибуты.set(мсАтрибут[1], мсАтрибут[3] || мсАтрибут[2]);
+	function parseAttributeList(sourceText) {
+		const attributes = new Map();
+		const attribute = /([A-Z0-9-]+)=(?:"([^"]*)"|([^",]+))(?:,|$)/g;
+		while (attribute.lastIndex !== sourceText.length) {
+			const {lastIndex} = attribute;
+			const attributeString = attribute.exec(sourceText);
+			assert(attributeString.index === lastIndex);
+			assert(!attributes.has(attributeString[1]));
+			attributes.set(attributeString[1], attributeString[3] || attributeString[2]);
 		}
-		return амАтрибуты;
+		return attributes;
 	}
-	function РазобратьЦелоеПоложительноеЧисло(сИсходныйТекст) {
-		const чРезультат = parseFloat(сИсходныйТекст);
-		Проверить(Number.isSafeInteger(чРезультат) && чРезультат >= 0);
-		return чРезультат;
+	function parsePositiveInteger(sourceText) {
+		const resultNumber = parseFloat(sourceText);
+		assert(Number.isSafeInteger(resultNumber) && resultNumber >= 0);
+		return resultNumber;
 	}
-	function РазобратьПоложительноеЧисло(сИсходныйТекст) {
-		const чРезультат = parseFloat(сИсходныйТекст);
-		Проверить(Number.isFinite(чРезультат) && чРезультат >= 0);
-		return чРезультат;
+	function parsePositiveNumber(sourceText) {
+		const resultNumber = parseFloat(sourceText);
+		assert(Number.isFinite(resultNumber) && resultNumber >= 0);
+		return resultNumber;
 	}
-	function РазобратьЛюбоеЧисло(сИсходныйТекст) {
-		const чРезультат = parseFloat(сИсходныйТекст);
-		Проверить(Number.isFinite(чРезультат));
-		return чРезультат;
+	function parseAnyNumber(sourceText) {
+		const resultNumber = parseFloat(sourceText);
+		assert(Number.isFinite(resultNumber));
+		return resultNumber;
 	}
-	function разобратьEXTINF(сИсходныйТекст) {
-		let чЗапятая = сИсходныйТекст.indexOf(',');
-		if (чЗапятая === -1) {
-			чЗапятая = сИсходныйТекст.length;
+	function parseEXTINF(sourceText) {
+		let commaPosition = sourceText.indexOf(',');
+		if (commaPosition === -1) {
+			commaPosition = sourceText.length;
 		}
 		return {
-			чДлительность: РазобратьЛюбоеЧисло(сИсходныйТекст.slice(0, чЗапятая)),
-			сИмяСегмента: сИсходныйТекст.slice(чЗапятая + 1)
+			duration: parseAnyNumber(sourceText.slice(0, commaPosition)),
+			segmentName: sourceText.slice(commaPosition + 1)
 		};
 	}
-	function этотСписокЗаканчиваетсяРекламой(оСписок) {
-		return оСписок !== null && оСписок.моСегменты.length !== 0 && оСписок.моСегменты[оСписок.моСегменты.length - 1].лРеклама;
+	function thisListEndsWithAd(list) {
+		return list !== null && list.segments.length !== 0 && list.segments[list.segments.length - 1].isAd;
 	}
-	function задатьСостояниеРекламы(лИдетРеклама) {
-		if (_лИдетРеклама !== лИдетРеклама) {
-			_лИдетРеклама = лИдетРеклама;
-			if (лИдетРеклама) {
-				_оСпискиБезРекламы.запустить();
-				м_События.ПослатьСобытие('список-началорекламы');
+	function setAdState(isAdPlaying) {
+		if (_isAdPlaying !== isAdPlaying) {
+			_isAdPlaying = isAdPlaying;
+			if (isAdPlaying) {
+				_adFreeListsObj.startInternal();
+				events.sendEvent('list-ad-start');
 			} else {
-				_оСпискиБезРекламы.остановить();
-				м_События.ПослатьСобытие('список-конецрекламы');
+				_adFreeListsObj.stopInternal();
+				events.sendEvent('list-ad-end');
 			}
 		}
-		if (!лИдетРеклама) {
-			м_Twitch.отправитьДанныеСлеженияЗаРекламой(null);
+		if (!isAdPlaying) {
+			Twitch.sendAdTrackingData(null);
 		}
 	}
-	let _сДобавленныйИдТрансляции;
-	let _чДобавленныйИдСессии;
-	let _сДобавленныйИдВарианта;
-	let _чДобавленныйПорядковыйНомер;
-	let _чДобавленноеВремя;
-	let _лДобавитьРазрыв;
-	function очиститьСтатистикуДобавления() {
-		_сДобавленныйИдТрансляции = '';
-		_чДобавленныйИдСессии = NaN;
-		_сДобавленныйИдВарианта = '';
-		_чДобавленныйПорядковыйНомер = -1;
-		_чДобавленноеВремя = -1;
-		_лДобавитьРазрыв = false;
+	let _addedStreamId;
+	let _addedSessionId;
+	let _addedVariantId;
+	let _addedSequenceNumber;
+	let _addedTimeMs;
+	let _shouldAddGap;
+	function clearAddStats() {
+		_addedStreamId = '';
+		_addedSessionId = NaN;
+		_addedVariantId = '';
+		_addedSequenceNumber = -1;
+		_addedTimeMs = -1;
+		_shouldAddGap = false;
 	}
-	очиститьСтатистикуДобавления();
-	function ДобавитьСегментыВОчередь(оНовыеВарианты, оНовыеСегменты, оВыбранныйВариант) {
-		Проверить(!(_сДобавленныйИдТрансляции !== оНовыеВарианты.сИдТрансляции && _чДобавленныйИдСессии === оНовыеВарианты.чИдСессии));
-		if (оНовыеСегменты.лХаос) {
-			_лДобавитьРазрыв = true;
-			м_Статистика.ДобавленыСегментыВОчередь(0, 0);
+	clearAddStats();
+	function enqueueSegments(newOptions, newSegments, selectedOption) {
+		assert(!(_addedStreamId !== newOptions.streamId && _addedSessionId === newOptions.sessionId));
+		if (newSegments.isChaos) {
+			_shouldAddGap = true;
+			stats.segmentsQueued(0, 0);
 			return false;
 		}
-		let кСегментовДобавлено = 0;
-		let кСекундДобавлено = 0;
-		let чИндексДобавляемогоСегмента = оНовыеСегменты.моСегменты.length;
-		let кДобавитьСегментов = _сДобавленныйИдТрансляции !== оНовыеВарианты.сИдТрансляции ? 1 : 3;
-		let чДобавитьСекунд = м_Настройки.Получить('чРазмерБуфера');
-		while (--чИндексДобавляемогоСегмента > 0) {
-			if (!оНовыеСегменты.моСегменты[чИндексДобавляемогоСегмента].лРеклама && оНовыеСегменты.моСегменты[чИндексДобавляемогоСегмента].чДлительность !== 0) {
-				кДобавитьСегментов--;
-				чДобавитьСекунд -= оНовыеСегменты.моСегменты[чИндексДобавляемогоСегмента].чДлительность;
-				if (кДобавитьСегментов <= 0 && чДобавитьСекунд <= 0) {
+		let segmentsAddedCount = 0;
+		let secondsAddedCount = 0;
+		let addedSegmentIndex = newSegments.segments.length;
+		let segmentsToAddCount = _addedStreamId !== newOptions.streamId ? 1 : 3;
+		let secondsToAdd = settings.get('bufferSize');
+		while (--addedSegmentIndex > 0) {
+			if (!newSegments.segments[addedSegmentIndex].isAd && newSegments.segments[addedSegmentIndex].duration !== 0) {
+				segmentsToAddCount--;
+				secondsToAdd -= newSegments.segments[addedSegmentIndex].duration;
+				if (segmentsToAddCount <= 0 && secondsToAdd <= 0) {
 					break;
 				}
 			}
 		}
-		if (_сДобавленныйИдТрансляции !== оНовыеВарианты.сИдТрансляции) {
-			м_Журнал.Окак(`[Список] Изменился ИдТрансляции ${_сДобавленныйИдТрансляции} ==> ${оНовыеВарианты.сИдТрансляции}`);
-			_чДобавленноеВремя = -1;
-			_лДобавитьРазрыв = true;
-			for (let оДобавляемыйСегмент; оДобавляемыйСегмент = оНовыеСегменты.моСегменты[чИндексДобавляемогоСегмента]; чИндексДобавляемогоСегмента++) {
-				добавитьСегментВОчередь(оДобавляемыйСегмент, оНовыеСегменты.чПорядковыйНомер + чИндексДобавляемогоСегмента);
+		if (_addedStreamId !== newOptions.streamId) {
+			log.logOk(`[List] Stream ID changed ${_addedStreamId} ==> ${newOptions.streamId}`);
+			_addedTimeMs = -1;
+			_shouldAddGap = true;
+			for (let addedSegment; addedSegment = newSegments.segments[addedSegmentIndex]; addedSegmentIndex++) {
+				enqueueSegment(addedSegment, newSegments.sequenceNumber + addedSegmentIndex);
 			}
-		} else if (_чДобавленныйИдСессии !== оНовыеВарианты.чИдСессии) {
-			м_Журнал.Окак(`[Список] Изменился ИдСессии ${_чДобавленныйИдСессии} ==> ${оНовыеВарианты.чИдСессии}`);
-			_лДобавитьРазрыв = true;
-			for (let оДобавляемыйСегмент; оДобавляемыйСегмент = оНовыеСегменты.моСегменты[чИндексДобавляемогоСегмента]; чИндексДобавляемогоСегмента++) {
-				if (оДобавляемыйСегмент.чВремя > _чДобавленноеВремя) {
-					добавитьСегментВОчередь(оДобавляемыйСегмент, оНовыеСегменты.чПорядковыйНомер + чИндексДобавляемогоСегмента);
+		} else if (_addedSessionId !== newOptions.sessionId) {
+			log.logOk(`[List] Session ID changed ${_addedSessionId} ==> ${newOptions.sessionId}`);
+			_shouldAddGap = true;
+			for (let addedSegment; addedSegment = newSegments.segments[addedSegmentIndex]; addedSegmentIndex++) {
+				if (addedSegment.time > _addedTimeMs) {
+					enqueueSegment(addedSegment, newSegments.sequenceNumber + addedSegmentIndex);
 				}
 			}
 		} else {
-			if (_сДобавленныйИдВарианта !== оВыбранныйВариант.сИдентификатор) {
-				м_Журнал.Окак(`[Список] Изменился ИдВарианта ${_сДобавленныйИдВарианта} ==> ${оВыбранныйВариант.сИдентификатор}`);
-				_лДобавитьРазрыв = true;
+			if (_addedVariantId !== selectedOption.identifier) {
+				log.logOk(`[List] Variant ID changed ${_addedVariantId} ==> ${selectedOption.identifier}`);
+				_shouldAddGap = true;
 			}
-			for (let оДобавляемыйСегмент; оДобавляемыйСегмент = оНовыеСегменты.моСегменты[чИндексДобавляемогоСегмента]; чИндексДобавляемогоСегмента++) {
-				if (оНовыеСегменты.чПорядковыйНомер + чИндексДобавляемогоСегмента > _чДобавленныйПорядковыйНомер) {
-					добавитьСегментВОчередь(оДобавляемыйСегмент, оНовыеСегменты.чПорядковыйНомер + чИндексДобавляемогоСегмента);
+			for (let addedSegment; addedSegment = newSegments.segments[addedSegmentIndex]; addedSegmentIndex++) {
+				if (newSegments.sequenceNumber + addedSegmentIndex > _addedSequenceNumber) {
+					enqueueSegment(addedSegment, newSegments.sequenceNumber + addedSegmentIndex);
 				}
 			}
 		}
-		м_Статистика.ДобавленыСегментыВОчередь(кСегментовДобавлено, кСекундДобавлено);
-		return кСегментовДобавлено === 0;
-		function добавитьСегментВОчередь(оСегмент, чПорядковыйНомер) {
-			начатьТрансляцию();
-			if (оСегмент.лРеклама) {
-				м_Журнал.Вот(`[Список] Не добавляю рекламу ПорядковыйНомер=${чПорядковыйНомер}`);
+		stats.segmentsQueued(segmentsAddedCount, secondsAddedCount);
+		return segmentsAddedCount === 0;
+		function enqueueSegment(segment, sequenceNumber) {
+			startStream();
+			if (segment.isAd) {
+				log.logInfo(`[List] Not adding ad SequenceNumber=${sequenceNumber}`);
 				return;
 			}
-			if (оСегмент.чДлительность === 0) {
-				м_Журнал.Ой(`[Список] Не добавляю сегмент ПорядковыйНомер=${чПорядковыйНомер} Время=${оСегмент.чВремя} Длительность=0`);
+			if (segment.duration === 0) {
+				log.logError(`[List] Not adding segment SequenceNumber=${sequenceNumber} Time=${segment.time} Duration=0`);
 				return;
 			}
-			if (_чДобавленныйИдСессии === оНовыеВарианты.чИдСессии && _чДобавленныйПорядковыйНомер + 1 < чПорядковыйНомер) {
-				м_Журнал.Ой(`[Список] Пропущены сегменты с ${_чДобавленныйПорядковыйНомер + 1} по ${чПорядковыйНомер - 1}`);
-				м_Статистика.пропущеныСегменты(чПорядковыйНомер - _чДобавленныйПорядковыйНомер - 1);
-				_лДобавитьРазрыв = true;
+			if (_addedSessionId === newOptions.sessionId && _addedSequenceNumber + 1 < sequenceNumber) {
+				log.logError(`[List] Skipped segments from ${_addedSequenceNumber + 1} to ${sequenceNumber - 1}`);
+				stats.segmentsSkipped(sequenceNumber - _addedSequenceNumber - 1);
+				_shouldAddGap = true;
 			}
-			const оДобавлено = г_моОчередь.Добавить(new Сегмент(ОБРАБОТКА_ЖДЕТ_ЗАГРУЗКИ, оСегмент.сАдрес, оСегмент.чДлительность, оСегмент.лРазрыв || _лДобавитьРазрыв));
-			м_Журнал[оДобавлено.лРазрыв ? 'Окак' : 'Вот'](`[Список] Добавлен сегмент ${оДобавлено.чНомер} ПорядковыйНомер=${чПорядковыйНомер} Время=${оСегмент.чВремя} Длительность=${оДобавлено.чДлительность} Разрыв=${оДобавлено.лРазрыв}`);
-			кСегментовДобавлено++;
-			кСекундДобавлено += оДобавлено.чДлительность;
-			_сДобавленныйИдТрансляции = оНовыеВарианты.сИдТрансляции;
-			_чДобавленныйИдСессии = оНовыеВарианты.чИдСессии;
-			_сДобавленныйИдВарианта = оВыбранныйВариант.сИдентификатор;
-			_чДобавленныйПорядковыйНомер = чПорядковыйНомер;
-			if (!Number.isNaN(оСегмент.чВремя)) {
-				_чДобавленноеВремя = оСегмент.чВремя;
+			const addedObj = globalQueue.add(new segmentItem(processingAwaitingLoad, segment.address, segment.duration, segment.isGap || _shouldAddGap));
+			log[addedObj.isGap ? 'logOk' : 'logInfo'](`[List] Segment added ${addedObj.number} SequenceNumber=${sequenceNumber} Time=${segment.time} Duration=${addedObj.duration} Gap=${addedObj.isGap}`);
+			segmentsAddedCount++;
+			secondsAddedCount += addedObj.duration;
+			_addedStreamId = newOptions.streamId;
+			_addedSessionId = newOptions.sessionId;
+			_addedVariantId = selectedOption.identifier;
+			_addedSequenceNumber = sequenceNumber;
+			if (!Number.isNaN(segment.time)) {
+				_addedTimeMs = segment.time;
 			}
-			_лДобавитьРазрыв = false;
+			_shouldAddGap = false;
 		}
 	}
-	function получитьИнтервалОбновленияСпискаСегментов(оСписокСегментов, лУкороченныйИнтервал) {
-		let кСегментов = 0, чДлительностьСписка = 0;
-		let чСредняяДлительностьСегмента, чМинДлительностьСегмента = Infinity, чМаксДлительностьСегмента = -Infinity;
-		for (const {лРеклама, чДлительность} of оСписокСегментов.моСегменты) {
-			if (!лРеклама && чДлительность > 0) {
-				кСегментов++;
-				чДлительностьСписка += чДлительность;
-				чМинДлительностьСегмента = Math.min(чМинДлительностьСегмента, чДлительность);
-				чМаксДлительностьСегмента = Math.max(чМаксДлительностьСегмента, чДлительность);
+	function getSegmentListUpdateInterval(segmentList, isShortenedInterval) {
+		let segmentCount = 0, listDurationMs = 0;
+		let averageSegmentDurationMs, minSegmentDuration = Infinity, maxSegmentDuration = -Infinity;
+		for (const {isAd, duration} of segmentList.segments) {
+			if (!isAd && duration > 0) {
+				segmentCount++;
+				listDurationMs += duration;
+				minSegmentDuration = Math.min(minSegmentDuration, duration);
+				maxSegmentDuration = Math.max(maxSegmentDuration, duration);
 			}
 		}
-		if (кСегментов !== 0) {
-			чСредняяДлительностьСегмента = чДлительностьСписка / кСегментов;
-			м_Журнал.Вот(`[Список] ДлительностьСегментов=${м_Журнал.F2(чМинДлительностьСегмента)}<${м_Журнал.F2(чСредняяДлительностьСегмента)}<${м_Журнал.F2(чМаксДлительностьСегмента)} ДлительностьСписка=${м_Журнал.F1(чДлительностьСписка)} НеЗагружать=${оСписокСегментов.моСегменты.length - кСегментов}`);
+		if (segmentCount !== 0) {
+			averageSegmentDurationMs = listDurationMs / segmentCount;
+			log.logInfo(`[List] SegmentDurations=${log.F2(minSegmentDuration)}<${log.F2(averageSegmentDurationMs)}<${log.F2(maxSegmentDuration)} ListDuration=${log.F1(listDurationMs)} NotToLoad=${segmentList.segments.length - segmentCount}`);
 		} else {
-			чСредняяДлительностьСегмента = чМинДлительностьСегмента = чМаксДлительностьСегмента = Math.max(оСписокСегментов.nTargetDuration / 3, 1);
-			м_Журнал.Ой(`[Список] Предполагаемая длительность сегментов ${м_Журнал.F1(чСредняяДлительностьСегмента)}`);
+			averageSegmentDurationMs = minSegmentDuration = maxSegmentDuration = Math.max(segmentList.nTargetDuration / 3, 1);
+			log.logError(`[List] Estimated segment duration ${log.F1(averageSegmentDurationMs)}`);
 		}
-		return лУкороченныйИнтервал ? чСредняяДлительностьСегмента / 2 * 1e3 : чСредняяДлительностьСегмента * 1e3 - 16;
+		return isShortenedInterval ? averageSegmentDurationMs / 2 * 1e3 : averageSegmentDurationMs * 1e3 - 16;
 	}
-	function получитьИнтервалОбновленияСпискаВариантов() {
-		Проверить(_чСостояние === СОСТОЯНИЕ_ЗАВЕРШЕНИЕ_ТРАНСЛЯЦИИ);
-		if (_чИнтервалОбновленияСпискаВариантов === -1) {
-			_чИнтервалОбновленияСпискаВариантов = 1e3;
+	function getVariantListUpdateInterval() {
+		assert(_state === streamEndState);
+		if (_optionListUpdateInterval === -1) {
+			_optionListUpdateInterval = 1e3;
 		} else {
-			_чИнтервалОбновленияСпискаВариантов = Math.min(_чИнтервалОбновленияСпискаВариантов + 1e3, 3e4);
+			_optionListUpdateInterval = Math.min(_optionListUpdateInterval + 1e3, 3e4);
 		}
-		return _чИнтервалОбновленияСпискаВариантов;
+		return _optionListUpdateInterval;
 	}
-	function начатьТрансляцию() {
-		if (_чСостояние !== СОСТОЯНИЕ_НАЧАЛО_ТРАНСЛЯЦИИ) {
-			_чСостояние = СОСТОЯНИЕ_НАЧАЛО_ТРАНСЛЯЦИИ;
-			г_моОчередь.Добавить(new Сегмент(ОБРАБОТКА_ЗАГРУЖЕН, СОСТОЯНИЕ_НАЧАЛО_ТРАНСЛЯЦИИ));
-			м_События.ПослатьСобытие('список-выбранварианттрансляции', [ _оСпискиСРекламой.оСписокВариантов.моВарианты, _оСпискиСРекламой.оВыбранныйВариант ]);
+	function startStream() {
+		if (_state !== streamStartState) {
+			_state = streamStartState;
+			globalQueue.add(new segmentItem(processingLoaded, streamStartState));
+			events.sendEvent('stream-variant-selected', [ _listsWithAds.optionList.options, _listsWithAds.selectedOption ]);
 		}
 	}
-	function ЗавершитьТрансляцию() {
-		if (_чСостояние !== СОСТОЯНИЕ_ЗАВЕРШЕНИЕ_ТРАНСЛЯЦИИ) {
-			_чСостояние = СОСТОЯНИЕ_ЗАВЕРШЕНИЕ_ТРАНСЛЯЦИИ;
-			_чИнтервалОбновленияСпискаВариантов = -1;
-			г_моОчередь.Добавить(new Сегмент(ОБРАБОТКА_ЗАГРУЖЕН, СОСТОЯНИЕ_ЗАВЕРШЕНИЕ_ТРАНСЛЯЦИИ));
-			м_События.ПослатьСобытие('список-выбранварианттрансляции', [ null, null ]);
+	function endStream() {
+		if (_state !== streamEndState) {
+			_state = streamEndState;
+			_optionListUpdateInterval = -1;
+			globalQueue.add(new segmentItem(processingLoaded, streamEndState));
+			events.sendEvent('stream-variant-selected', [ null, null ]);
 		}
-		_оСпискиСРекламой.очистить();
-		задатьСостояниеРекламы(false);
+		_listsWithAds.clearAll();
+		setAdState(false);
 	}
-	function ИзменитьВариантТрансляции(чВыбранныйВариант) {
-		if (_оСпискиСРекламой.оСписокВариантов !== null) {
-			_оСпискиСРекламой.сохранитьВариантТрансляции(_оСпискиСРекламой.оСписокВариантов.моВарианты[чВыбранныйВариант]);
-			_оСпискиСРекламой.оВыбранныйВариант = null;
-			if (_чСостояние === СОСТОЯНИЕ_НАЧАЛО_ТРАНСЛЯЦИИ) {
-				_оСпискиСРекламой.остановить();
-				_оСпискиСРекламой.запустить();
-				if (!_лИдетРеклама) {
-					очиститьСтатистикуДобавления();
-					г_моОчередь.Добавить(new Сегмент(ОБРАБОТКА_ЗАГРУЖЕН, СОСТОЯНИЕ_СМЕНА_ВАРИАНТА));
-					м_Загрузчик.ЗагрузитьСледующийСегмент();
+	function setStreamVariant(selectedVariant) {
+		if (_listsWithAds.optionList !== null) {
+			_listsWithAds.saveStreamVariant(_listsWithAds.optionList.options[selectedVariant]);
+			_listsWithAds.selectedOption = null;
+			if (_state === streamStartState) {
+				_listsWithAds.stopInternal();
+				_listsWithAds.startInternal();
+				if (!_isAdPlaying) {
+					clearAddStats();
+					globalQueue.add(new segmentItem(processingLoaded, variantChangeState));
+					loader.loadNextSegment();
 				}
 			}
 		}
 	}
-	function Остановить() {
-		_чСостояние = СОСТОЯНИЕ_ОСТАНОВКА;
-		_оСпискиСРекламой.остановить();
-		очиститьСтатистикуДобавления();
-		задатьСостояниеРекламы(false);
+	function stop() {
+		_state = stoppedState;
+		_listsWithAds.stopInternal();
+		clearAddStats();
+		setAdState(false);
 	}
-	function Запустить() {
-		Проверить(_чСостояние === СОСТОЯНИЕ_ОСТАНОВКА);
-		_оСпискиСРекламой.запустить();
+	function start() {
+		assert(_state === stoppedState);
+		_listsWithAds.startInternal();
 	}
 	return {
-		Запустить,
-		Остановить,
-		ИзменитьВариантТрансляции
+		start,
+		stop,
+		setStreamVariant
 	};
 })();
 
-const м_Преобразователь = (() => {
-	let _оРабочийПоток = null;
-	let _чПоследнийЗагруженный = -1;
-	function ПреобразоватьСледующийСегмент() {
-		let чУдалить, кУдалить = 0;
-		for (let оСегмент, чСегмент = 0; оСегмент = г_моОчередь[чСегмент]; ++чСегмент) {
-			if (оСегмент.чОбработка > ОБРАБОТКА_ЗАГРУЖЕН) {
+const converterModule = (() => {
+	let _worker = null;
+	let _lastLoadedNumber = -1;
+	function convertNextSegment() {
+		let removeNumber, deleteCount = 0;
+		for (let segment, segmentIndex = 0; segment = globalQueue[segmentIndex]; ++segmentIndex) {
+			if (segment.processingCount > processingLoaded) {
 				continue;
 			}
-			if (оСегмент.чОбработка < ОБРАБОТКА_ЗАГРУЖЕН) {
+			if (segment.processingCount < processingLoaded) {
 				break;
 			}
-			if (_чПоследнийЗагруженный !== -1 && _чПоследнийЗагруженный + 1 !== оСегмент.чНомер) {
-				м_Журнал.Ой(`[Преобразование] Не загружены сегменты между ${_чПоследнийЗагруженный} и ${оСегмент.чНомер}`);
-				оСегмент.лРазрыв = true;
+			if (_lastLoadedNumber !== -1 && _lastLoadedNumber + 1 !== segment.number) {
+				log.logError(`[Conversion] Segments not loaded between ${_lastLoadedNumber} and ${segment.number}`);
+				segment.isGap = true;
 			}
-			_чПоследнийЗагруженный = оСегмент.чНомер;
-			if (typeof оСегмент.пДанные == 'number' && _оРабочийПоток === null) {
-				м_Журнал.Вот(`[Преобразование] Пропускаю сегмент ${оСегмент.чНомер} Состояние=${оСегмент.пДанные}`);
-				оСегмент.чОбработка = ОБРАБОТКА_ПРЕОБРАЗОВАН;
-				if (оСегмент.пДанные === СОСТОЯНИЕ_НАЧАЛО_ТРАНСЛЯЦИИ && !г_лFMP4) {
-					СоздатьРабочийПоток();
+			_lastLoadedNumber = segment.number;
+			if (typeof segment.dataValue == 'number' && _worker === null) {
+				log.logInfo(`[Conversion] Skipping segment ${segment.number} State=${segment.dataValue}`);
+				segment.processingCount = processingTransformed;
+				if (segment.dataValue === streamStartState && !globalIsFmp4) {
+					createWorker();
 				}
-			} else if (г_лFMP4 && typeof оСегмент.пДанные != 'number') {
-				if (оСегмент.лРазрыв && (!г_бфИнициализацияFMP4 || (г_оИнициализацияFMP4 && г_сАдресЗагруженнойИнициализацииFMP4 !== г_оИнициализацияFMP4.сАдрес))) {
-					м_Журнал.Вот(`[Преобразование] Жду сегмент инициализации fMP4 для сегмента ${оСегмент.чНомер}`);
-					ЗагрузитьИнициализациюFMP4();
+			} else if (globalIsFmp4 && typeof segment.dataValue != 'number') {
+				if (segment.isGap && (!globalFmp4InitBuffer || (globalFmp4Initialization && globalFmp4LoadedInitUrl !== globalFmp4Initialization.address))) {
+					log.logInfo(`[Conversion] Waiting for fMP4 initialization segment for segment ${segment.number}`);
+					loadFmp4Init();
 					break;
 				}
-				м_Журнал.Вот(`[Преобразование] fMP4 сегмент ${оСегмент.чНомер} без преобразования`);
-				const пДанные = {
-					мбМедиасегмент: оСегмент.пДанные,
-					лЕстьВидео: г_лЕстьВидеоFMP4,
-					лЕстьЗвук: г_лЕстьЗвукFMP4
+				log.logInfo(`[Conversion] fMP4 segment ${segment.number} without conversion`);
+				const dataValue = {
+					mediaSegmentData: segment.dataValue,
+					hasVideo: globalFmp4HasVideo,
+					hasAudio: globalFmp4HasAudio
 				};
-				if (оСегмент.лРазрыв) {
-					пДанные.мбСегментИнициализации = г_бфИнициализацияFMP4;
-					пДанные.сКодеки = г_сКодекиFMP4;
+				if (segment.isGap) {
+					dataValue.isInitSegment = globalFmp4InitBuffer;
+					dataValue.codecString = globalFmp4Codecs;
 				}
-				оСегмент.пДанные = пДанные;
-				оСегмент.чОбработка = ОБРАБОТКА_ПРЕОБРАЗОВАН;
+				segment.dataValue = dataValue;
+				segment.processingCount = processingTransformed;
 			} else {
-				if (typeof оСегмент.пДанные == 'number') {
-					м_Журнал.Вот(`[Преобразование] Отсылаю сегмент ${оСегмент.чНомер} Состояние=${оСегмент.пДанные}`);
-					_оРабочийПоток.postMessage(оСегмент);
+				if (typeof segment.dataValue == 'number') {
+					log.logInfo(`[Conversion] Sending segment ${segment.number} State=${segment.dataValue}`);
+					_worker.postMessage(toWorkerSegment(segment));
 				} else {
-					м_Отладка.СохранитьТранспортныйПоток(оСегмент);
-					м_Статистика.ПолученИсходныйСегмент();
-					м_Журнал.Вот(`[Преобразование] Отсылаю сегмент ${оСегмент.чНомер}`);
-					_оРабочийПоток.postMessage(оСегмент, [ оСегмент.пДанные ]);
+					debug.saveTransportStream(segment);
+					stats.originalSegmentReceived();
+					log.logInfo(`[Conversion] Sending segment ${segment.number}`);
+					_worker.postMessage(toWorkerSegment(segment), [ segment.dataValue ]);
 				}
-				if (++кУдалить == 1) {
-					чУдалить = чСегмент;
+				if (++deleteCount == 1) {
+					removeNumber = segmentIndex;
 				}
 			}
 		}
-		if (кУдалить !== 0) {
-			г_моОчередь.Удалить(чУдалить, кУдалить);
+		if (deleteCount !== 0) {
+			globalQueue.remove(removeNumber, deleteCount);
 		}
-		м_Проигрыватель.ДобавитьСледующийСегмент();
+		player.addNextSegment();
 	}
-	const ОбработатьОкончаниеПреобразования = ДобавитьОбработчикИсключений(оСобытие => {
-		const мДанные = оСобытие.data;
-		Проверить(Array.isArray(мДанные));
-		switch (мДанные[0]) {
+	const workerSegmentFields = [
+		[ 'dataValue', 'пДанные' ],
+		[ 'isGap', 'лРазрыв' ],
+		[ 'number', 'чНомер' ],
+		[ 'duration', 'чДлительность' ]
+	];
+	const workerDataFieldNames = new Map([
+		[ 'чПреобразованЗа', 'conversionTime' ],
+		[ 'лЗабраковано', 'isRejected' ],
+		[ 'лПотериВидео', 'hasVideoLoss' ],
+		[ 'лПотериЗвука', 'hasAudioLoss' ],
+		[ 'чМинДлительностьВидеоСемпла', 'minVideoSampleDuration' ],
+		[ 'чМаксДлительностьВидеоСемпла', 'maxVideoSampleDurationMs' ],
+		[ 'чСредняяДлительностьВидеоСемпла', 'avgVideoSampleDuration' ],
+		[ 'чБитрейтЗвука', 'audioBitrate' ],
+		[ 'чПозицияКодирования', 'encodePositionMs' ],
+		[ 'чПозицияТрансляции', 'streamPosition' ],
+		[ 'чВремяКодирования', 'encodingTime' ],
+		[ 'мбМедиасегмент', 'mediaSegmentData' ],
+		[ 'лЕстьВидео', 'hasVideo' ],
+		[ 'лЕстьЗвук', 'hasAudio' ],
+		[ 'мбСегментИнициализации', 'isInitSegment' ],
+		[ 'сКодеки', 'codecString' ],
+		[ 'чЧастотаКадров', 'frameRate' ],
+		[ 'чДиапазон', 'range' ],
+		[ 'лЧересстрочное', 'isInterlaced' ]
+	]);
+	const legacyWorkerLogSeverityNames = new Map([
+		[ 'Вот', 'logInfo' ],
+		[ 'Окак', 'logOk' ],
+		[ 'Ой', 'logError' ]
+	]);
+	function toWorkerSegment(segment) {
+		const workerSegment = {};
+		for (const [ playerName, workerName ] of workerSegmentFields) {
+			workerSegment[workerName] = segment[playerName];
+		}
+		return workerSegment;
+	}
+	function fromWorkerSegment(workerSegment) {
+		const segment = {};
+		for (const [ playerName, workerName ] of workerSegmentFields) {
+			segment[playerName] = workerSegment[workerName];
+		}
+		return segment;
+	}
+	function fromWorkerData(workerData) {
+		if (!isObject(workerData)) {
+			return workerData;
+		}
+		const data = {};
+		for (const [ workerName, value ] of Object.entries(workerData)) {
+			const mapped = workerDataFieldNames.get(workerName);
+			data[mapped === undefined ? workerName : mapped] = value;
+		}
+		return data;
+	}
+	function getWorkerLogSeverityName(importance) {
+		const mapped = legacyWorkerLogSeverityNames.get(importance);
+		const name = mapped === undefined ? importance : mapped;
+		assert(name === 'logInfo' || name === 'logOk' || name === 'logError');
+		return name;
+	}
+	const handleConversionEnd = wrapErrors(event => {
+		const dataModule = event.data;
+		assert(Array.isArray(dataModule));
+		switch (dataModule[0]) {
 		  case 1:
-			Проверить(мДанные.length === 2 && ЭтоОбъект(мДанные[1]));
-			const оСегмент = new Сегмент(ОБРАБОТКА_ПРЕОБРАЗОВАН, мДанные[1].пДанные, мДанные[1].чДлительность, мДанные[1].лРазрыв, мДанные[1].чНомер);
-			м_Журнал.Вот(`[Преобразование] Получен сегмент ${оСегмент.чНомер} ПреобразованЗа=${м_Журнал.F0(оСегмент.пДанные.чПреобразованЗа)}мс`);
-			if (typeof оСегмент.пДанные != 'number') {
-				м_Статистика.ПолученПреобразованныйСегмент(оСегмент);
-				if (!оСегмент.пДанные.hasOwnProperty('мбМедиасегмент')) {
+			assert(dataModule.length === 2 && isObject(dataModule[1]));
+			const workerSegment = fromWorkerSegment(dataModule[1]);
+			const dataValue = fromWorkerData(workerSegment.dataValue);
+			const segment = new segmentItem(processingTransformed, dataValue, workerSegment.duration, workerSegment.isGap, workerSegment.number);
+			log.logInfo(`[Conversion] Segment received ${segment.number} ConvertedIn=${log.F0(segment.dataValue.conversionTime)}ms`);
+			if (typeof segment.dataValue != 'number') {
+				stats.convertedSegmentReceived(segment);
+				if (!segment.dataValue.hasOwnProperty('mediaSegmentData')) {
 					return;
 				}
-				м_Отладка.СохранитьПреобразованныйСегмент(оСегмент);
+				debug.saveConvertedSegment(segment);
 			}
-			г_моОчередь.Добавить(оСегмент);
-			м_Проигрыватель.ДобавитьСледующийСегмент();
+			globalQueue.add(segment);
+			player.addNextSegment();
 			return;
 
 		  case 2:
-			const мсВажность = мДанные[1], мсЗаписи = мДанные[2];
-			Проверить(мДанные.length === 3 && Array.isArray(мсВажность) && Array.isArray(мсЗаписи) && мсВажность.length === мсЗаписи.length);
-			for (let ы = 0; ы < мсВажность.length; ++ы) {
-				Проверить((мсВажность[ы] === 'Вот' || мсВажность[ы] === 'Окак' || мсВажность[ы] === 'Ой') && typeof мсЗаписи[ы] == 'string');
-				м_Журнал[мсВажность[ы]](мсЗаписи[ы]);
+			const importance = dataModule[1], recordsString = dataModule[2];
+			assert(dataModule.length === 3 && Array.isArray(importance) && Array.isArray(recordsString) && importance.length === recordsString.length);
+			for (let yMarker = 0; yMarker < importance.length; ++yMarker) {
+				const severityName = getWorkerLogSeverityName(importance[yMarker]);
+				assert(typeof recordsString[yMarker] == 'string');
+				log[severityName](recordsString[yMarker]);
 			}
 			return;
 
 		  case 3:
-			Проверить(мДанные.length === 3 && typeof мДанные[1] == 'string' && typeof мДанные[2] == 'object');
-			м_Отладка.ЗавершитьРаботуИОтправитьОтчет(мДанные[1], мДанные[2]);
+			assert(dataModule.length === 3 && typeof dataModule[1] == 'string' && typeof dataModule[2] == 'object');
+			debug.finishAndSendReport(dataModule[1], dataModule[2]);
 			return;
 
 		  case 4:
-			Проверить(мДанные.length === 2 && typeof мДанные[1] == 'string');
-			м_Отладка.ЗавершитьРаботуИПоказатьСообщение(мДанные[1]);
+			assert(dataModule.length === 2 && typeof dataModule[1] == 'string');
+			debug.finishAndShowMessage(dataModule[1]);
 			return;
 
 		  case 5:
-			Проверить(мДанные.length === 2 && мДанные[1].byteLength);
-			м_Помойка.Выбросить(мДанные[1]);
+			assert(dataModule.length === 2 && dataModule[1].byteLength);
+			trashModule.discard(dataModule[1]);
 			return;
 
 		  default:
-			Проверить(false);
+			assert(false);
 		}
 	});
-	function ОбработатьОшибкуПреобразования(оСобытие) {
-		м_Отладка.ЗавершитьРаботуИОтправитьОтчет(`Произошло событие ${оСобытие.type} в рабочем потоке в строке ${оСобытие.lineno}. ${оСобытие.message}`);
+	function handleConversionError(event) {
+		debug.finishAndSendReport(`Event ${event.type} occurred in worker at line ${event.lineno}. ${event.message}`);
 	}
-	function СоздатьРабочийПоток() {
-		м_Журнал.Вот('[Преобразование] Создаю рабочий поток');
-		_оРабочийПоток = new Worker('/worker.js');
-		_оРабочийПоток.addEventListener('message', ОбработатьОкончаниеПреобразования);
-		_оРабочийПоток.addEventListener('error', ОбработатьОшибкуПреобразования);
-		_оРабочийПоток.addEventListener('messageerror', ОбработатьОшибкуПреобразования);
+	function createWorker() {
+		log.logInfo('[Conversion] Creating worker');
+		_worker = new Worker('/worker.js');
+		_worker.addEventListener('message', handleConversionEnd);
+		_worker.addEventListener('error', handleConversionError);
+		_worker.addEventListener('messageerror', handleConversionError);
 	}
-	function Остановить() {
-		_чПоследнийЗагруженный = -1;
-		г_лFMP4 = false;
-		г_сКодекиFMP4 = '';
-		г_оИнициализацияFMP4 = null;
-		г_бфИнициализацияFMP4 = null;
-		г_сАдресЗагруженнойИнициализацииFMP4 = '';
-		г_оОтменаЗагрузкиИнициализацииFMP4 = null;
-		г_лЕстьВидеоFMP4 = false;
-		г_лЕстьЗвукFMP4 = false;
-		if (_оРабочийПоток) {
-			м_Журнал.Вот('[Преобразование] Убиваю рабочий поток');
-			_оРабочийПоток.terminate();
-			_оРабочийПоток = null;
+	function stop() {
+		_lastLoadedNumber = -1;
+		globalIsFmp4 = false;
+		globalFmp4Codecs = '';
+		globalFmp4Initialization = null;
+		globalFmp4InitBuffer = null;
+		globalFmp4LoadedInitUrl = '';
+		globalFmp4InitLoadCancellation = null;
+		globalFmp4HasVideo = false;
+		globalFmp4HasAudio = false;
+		if (_worker) {
+			log.logInfo('[Conversion] Terminating worker');
+			_worker.terminate();
+			_worker = null;
 		}
 	}
 	return {
-		Остановить,
-		ПреобразоватьСледующийСегмент
+		stop,
+		convertNextSegment
 	};
 })();
 
-const м_Загрузчик = (() => {
-	const МАКС_КОЛИЧЕСТВО_ПОПЫТОК = 2;
-	function ЗагрузитьТекст(оОтменаОбещания, сАдрес, чНеДольше, сНазвание, лЖурнал, оЗаголовки = null, сМетод = 'GET') {
-		return Загрузить(оОтменаОбещания, сМетод, сАдрес, чНеДольше, оЗаголовки, null, сНазвание, лЖурнал, 'text');
+const loader = (() => {
+	const MAX_ATTEMPTS = 2;
+	function loadText(promiseCancellation, address, maxDuration, title, isLogging, headers = null, method = 'GET') {
+		return load(promiseCancellation, method, address, maxDuration, headers, null, title, isLogging, 'text');
 	}
-	function ЗагрузитьJson(оОтменаОбещания, сАдрес, чНеДольше, сНазвание, лЖурнал, оЗаголовки = null, сМетод = 'GET') {
-		return Загрузить(оОтменаОбещания, сМетод, сАдрес, чНеДольше, оЗаголовки, null, сНазвание, лЖурнал, 'json');
+	function loadJson(promiseCancellation, address, maxDuration, title, isLogging, headers = null, method = 'GET') {
+		return load(promiseCancellation, method, address, maxDuration, headers, null, title, isLogging, 'json');
 	}
-	function Загрузить(оОтменаОбещания, сМетод, сАдрес, чНеДольше, оЗаголовки, пТело, сНазвание, лЖурнал, пТипДанных) {
-		if (г_лРаботаЗавершена) {
+	function load(promiseCancellation, method, address, maxDuration, headers, bodyValue, title, isLogging, dataType) {
+		if (globalIsWorkFinished) {
 			throw void 0;
 		}
-		Проверить(сМетод === 'GET' || сМетод === 'PUT' || сМетод === 'DELETE' || сМетод === 'POST');
-		Проверить(typeof сАдрес == 'string');
-		Проверить(Number.isFinite(чНеДольше) && (чНеДольше === 0 || чНеДольше > 1e3));
-		Проверить(пТело === null || сМетод !== 'GET' && (пТело instanceof URLSearchParams || typeof пТело == 'string' && оЗаголовки && ЭтоНепустаяСтрока(оЗаголовки['Content-Type'])));
-		Проверить(typeof оЗаголовки == 'object' && typeof сНазвание == 'string' && typeof лЖурнал == 'boolean');
-		Проверить(пТипДанных === 'none' || пТипДанных === 'text' || пТипДанных === 'json' || Number.isFinite(пТипДанных));
-		if (оОтменаОбещания && оОтменаОбещания.лОтменено) {
-			return Promise.reject(ОтменаОбещания.ПРИЧИНА);
+		assert(method === 'GET' || method === 'PUT' || method === 'DELETE' || method === 'POST');
+		assert(typeof address == 'string');
+		assert(Number.isFinite(maxDuration) && (maxDuration === 0 || maxDuration > 1e3));
+		assert(bodyValue === null || method !== 'GET' && (bodyValue instanceof URLSearchParams || typeof bodyValue == 'string' && headers && isNonEmptyString(headers['Content-Type'])));
+		assert(typeof headers == 'object' && typeof title == 'string' && typeof isLogging == 'boolean');
+		assert(dataType === 'none' || dataType === 'text' || dataType === 'json' || Number.isFinite(dataType));
+		if (promiseCancellation && promiseCancellation.isCancelled) {
+			return Promise.reject(cancelPromise.reason);
 		}
-		м_Журнал.Вот(`[Загрузчик] ${сМетод} ${сНазвание} не дольше ${м_Журнал.F0(чНеДольше)}мс`);
-		м_Twitch.проверитьДоступностьАдреса(сАдрес);
-		const оЗапрос = new XMLHttpRequest();
-		оЗапрос._сМетод = сМетод;
-		оЗапрос._сАдрес = сАдрес;
-		оЗапрос._чНеДольше = чНеДольше;
-		оЗапрос._оЗаголовки = оЗаголовки;
-		оЗапрос._пТело = пТело;
-		оЗапрос._сНазвание = сНазвание;
-		оЗапрос._лЖурнал = лЖурнал;
-		оЗапрос._пТипДанных = пТипДанных;
-		оЗапрос._кОсталосьПопыток = typeof пТипДанных == 'number' ? 1 : МАКС_КОЛИЧЕСТВО_ПОПЫТОК;
-		оЗапрос._чВремяОтправкиЗапроса = performance.now();
-		оЗапрос._чОжиданиеОтвета = NaN;
-		оЗапрос.addEventListener('timeout', ОбработатьОшибку);
-		оЗапрос.addEventListener('error', ОбработатьОшибку);
-		оЗапрос.addEventListener('abort', ОбработатьОшибку);
-		оЗапрос.addEventListener('load', ОбработатьОкончаниеЗагрузки);
-		if (лЖурнал && typeof пТипДанных == 'number') {
-			оЗапрос.addEventListener('readystatechange', ОбработатьПолучениеОтвета);
+		log.logInfo(`[Loader] ${method} ${title} within ${log.F0(maxDuration)}ms`);
+		Twitch.checkUrlAvailability(address);
+		const request = new XMLHttpRequest();
+		request._method = method;
+		request._url = address;
+		request._maxDuration = maxDuration;
+		request._headers = headers;
+		request._body = bodyValue;
+		request._name = title;
+		request._shouldLog = isLogging;
+		request._dataType = dataType;
+		request._attemptsLeft = typeof dataType == 'number' ? 1 : MAX_ATTEMPTS;
+		request._requestSentAt = performance.now();
+		request._responseWaitTimeout = NaN;
+		request.addEventListener('timeout', handleError);
+		request.addEventListener('error', handleError);
+		request.addEventListener('abort', handleError);
+		request.addEventListener('load', handleLoadEnd);
+		if (isLogging && typeof dataType == 'number') {
+			request.addEventListener('readystatechange', handleResponseReceived);
 		}
-		return new Promise((фВыполнить, фОтказаться) => {
-			оЗапрос._фВыполнить = фВыполнить;
-			оЗапрос._фОтказаться = фОтказаться;
-			if (оОтменаОбещания) {
-				оЗапрос._оОтменаОбещания = оОтменаОбещания;
-				оОтменаОбещания.ЗаменитьОбработчик(ПолучитьОбработчикОтменыОбещания(оЗапрос));
+		return new Promise((execute, reject) => {
+			request._resolveCallback = execute;
+			request._rejectCallback = reject;
+			if (promiseCancellation) {
+				request._promiseCancellation = promiseCancellation;
+				promiseCancellation.replaceHandler(getPromiseCancelHandler(request));
 			}
-			ПослатьЗапрос(оЗапрос, false);
+			sendRequest2(request, false);
 		});
 	}
-	function ПослатьЗапрос(оЗапрос, лПовторно) {
-		if (оЗапрос._кОсталосьПопыток === 0) {
+	function sendRequest2(request, isRetry) {
+		if (request._attemptsLeft === 0) {
 			return false;
 		}
-		if (лПовторно) {
-			м_Журнал.Ой(`[Загрузчик] Повторно загружаю ${оЗапрос._сНазвание}`);
+		if (isRetry) {
+			log.logError(`[Loader] Retrying load of ${request._name}`);
 		}
-		оЗапрос._кОсталосьПопыток--;
-		оЗапрос.open(оЗапрос._сМетод, оЗапрос._сАдрес);
-		оЗапрос.responseType = typeof оЗапрос._пТипДанных == 'number' ? 'arraybuffer' : 'text';
-		оЗапрос.timeout = оЗапрос._чНеДольше;
-		if (оЗапрос._оЗаголовки) {
-			for (let сЗаголовок of Object.keys(оЗапрос._оЗаголовки)) {
-				оЗапрос.setRequestHeader(сЗаголовок, оЗапрос._оЗаголовки[сЗаголовок]);
+		request._attemptsLeft--;
+		request.open(request._method, request._url);
+		request.responseType = typeof request._dataType == 'number' ? 'arraybuffer' : 'text';
+		request.timeout = request._maxDuration;
+		if (request._headers) {
+			for (let heading of Object.keys(request._headers)) {
+				request.setRequestHeader(heading, request._headers[heading]);
 			}
 		}
-		if (оЗапрос._пТело instanceof URLSearchParams) {
-			оЗапрос.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-			оЗапрос.send(оЗапрос._пТело.toString());
+		if (request._body instanceof URLSearchParams) {
+			request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
+			request.send(request._body.toString());
 		} else {
-			оЗапрос.send(оЗапрос._пТело);
+			request.send(request._body);
 		}
 		return true;
 	}
-	function ПолучитьОбработчикОтменыОбещания(оЗапрос) {
+	function getPromiseCancelHandler(request) {
 		return () => {
-			м_Журнал.Вот(`[Загрузчик] Отменяю загрузку ${оЗапрос._сНазвание} readyState=${оЗапрос.readyState}`);
-			оЗапрос.removeEventListener('abort', ОбработатьОшибку);
-			оЗапрос.abort();
-			оЗапрос._фОтказаться(ОтменаОбещания.ПРИЧИНА);
+			log.logInfo(`[Loader] Cancelling load of ${request._name} readyState=${request.readyState}`);
+			request.removeEventListener('abort', handleError);
+			request.abort();
+			request._rejectCallback(cancelPromise.reason);
 		};
 	}
-	const ОбработатьПолучениеОтвета = ДобавитьОбработчикИсключений(({target: оЗапрос}) => {
-		if (оЗапрос.readyState >= XMLHttpRequest.HEADERS_RECEIVED) {
-			оЗапрос.removeEventListener('readystatechange', ОбработатьПолучениеОтвета);
-			Проверить(Number.isNaN(оЗапрос._чОжиданиеОтвета));
-			оЗапрос._чОжиданиеОтвета = Math.round(performance.now() - оЗапрос._чВремяОтправкиЗапроса);
+	const handleResponseReceived = wrapErrors(({target: request}) => {
+		if (request.readyState >= XMLHttpRequest.HEADERS_RECEIVED) {
+			request.removeEventListener('readystatechange', handleResponseReceived);
+			assert(Number.isNaN(request._responseWaitTimeout));
+			request._responseWaitTimeout = Math.round(performance.now() - request._requestSentAt);
 		}
 	});
-	const ОбработатьОшибку = ДобавитьОбработчикИсключений(({target: оЗапрос, type: сТипСобытия}) => {
-		м_Журнал.Ой(`[Загрузчик] Не удалось загрузить ${оЗапрос._сНазвание}. Произошло событие ${сТипСобытия}` + ` readyState=${оЗапрос.readyState}` + (оЗапрос._лЖурнал && typeof оЗапрос._пТипДанных == 'number' ? ` ОжиданиеОтвета=${оЗапрос._чОжиданиеОтвета}мс` : ``));
-		if (сТипСобытия === 'abort' || !ПослатьЗапрос(оЗапрос, true)) {
-			if (оЗапрос.responseType === 'arraybuffer') {
-				м_Статистика.ЗагруженСегмент(NaN, NaN, NaN, оЗапрос._чОжиданиеОтвета);
+	const handleError = wrapErrors(({target: request, type: eventType}) => {
+		log.logError(`[Loader] Failed to load ${request._name}. Event ${eventType} occurred` + ` readyState=${request.readyState}` + (request._shouldLog && typeof request._dataType == 'number' ? ` ResponseWait=${request._responseWaitTimeout}ms` : ``));
+		if (eventType === 'abort' || !sendRequest2(request, true)) {
+			if (request.responseType === 'arraybuffer') {
+				stats.segmentLoaded(NaN, NaN, NaN, request._responseWaitTimeout);
 			}
-			оЗапрос._оОтменаОбещания && оЗапрос._оОтменаОбещания.ЗаменитьОбработчик(null);
-			оЗапрос._фОтказаться(`Произошло событие ${сТипСобытия}`);
+			request._promiseCancellation && request._promiseCancellation.replaceHandler(null);
+			request._rejectCallback(`Event ${eventType} occurred`);
 		}
 	});
-	const ОбработатьОкончаниеЗагрузки = ДобавитьОбработчикИсключений(({target: оЗапрос}) => {
-		Проверить(оЗапрос.readyState === XMLHttpRequest.DONE);
-		const чКод = оЗапрос.status;
-		if (чКод >= 200 && чКод <= 299 && (оЗапрос._пТипДанных === 'none' || оЗапрос.response !== null)) {
-			const чДлительностьЗагрузки = Math.round(performance.now() - оЗапрос._чВремяОтправкиЗапроса);
-			оЗапрос._оОтменаОбещания && оЗапрос._оОтменаОбещания.ЗаменитьОбработчик(null);
-			м_Журнал.Вот(`[Загрузчик] Загрузил ${оЗапрос._сНазвание} за ${чДлительностьЗагрузки}мс` + (оЗапрос._лЖурнал && typeof оЗапрос._пТипДанных == 'number' ? ` ОжиданиеОтвета=${оЗапрос._чОжиданиеОтвета}мс` : ``) + (typeof оЗапрос._пТипДанных == 'number' ? ` Отношение=${м_Журнал.F1(чДлительностьЗагрузки / оЗапрос._пТипДанных / 1e3)}` : ``) + (чКод === 200 ? `` : ` Код=${чКод} ${оЗапрос.statusText}`) + (оЗапрос._пТипДанных === 'none' ? '' : оЗапрос._лЖурнал && ЭтоНепустаяСтрока(оЗапрос.response) ? `\n${оЗапрос.response}` : оЗапрос.responseType === 'arraybuffer' ? ` Размер=${оЗапрос.response.byteLength}байт` : ` Размер=${оЗапрос.response.length}символов`));
-			if (оЗапрос._чНеДольше !== 0) {
-				м_Статистика.СкачаноНечто(ПолучитьРазмерОтвета(оЗапрос));
+	const handleLoadEnd = wrapErrors(({target: request}) => {
+		assert(request.readyState === XMLHttpRequest.DONE);
+		const code = request.status;
+		if (code >= 200 && code <= 299 && (request._dataType === 'none' || request.response !== null)) {
+			const loadDurationMs = Math.round(performance.now() - request._requestSentAt);
+			request._promiseCancellation && request._promiseCancellation.replaceHandler(null);
+			log.logInfo(`[Loader] Loaded ${request._name} in ${loadDurationMs}ms` + (request._shouldLog && typeof request._dataType == 'number' ? ` ResponseWait=${request._responseWaitTimeout}ms` : ``) + (typeof request._dataType == 'number' ? ` Ratio=${log.F1(loadDurationMs / request._dataType / 1e3)}` : ``) + (code === 200 ? `` : ` Code=${code} ${request.statusText}`) + (request._dataType === 'none' ? '' : request._shouldLog && isNonEmptyString(request.response) ? `\n${request.response}` : request.responseType === 'arraybuffer' ? ` Size=${request.response.byteLength}bytes` : ` Size=${request.response.length}chars`));
+			if (request._maxDuration !== 0) {
+				stats.someDataDownloaded(getResponseSize(request));
 			}
-			switch (оЗапрос._пТипДанных) {
+			switch (request._dataType) {
 			  case 'none':
-				оЗапрос._фВыполнить();
+				request._resolveCallback();
 				break;
 
 			  case 'text':
-				оЗапрос._фВыполнить(оЗапрос.response);
+				request._resolveCallback(request.response);
 				break;
 
 			  case 'json':
 				try {
-					оЗапрос._фВыполнить(JSON.parse(оЗапрос.response));
-				} catch (пИсключение) {
-					м_Журнал.Ой(`[Загрузчик] Не удалось разобрать ${оЗапрос._сНазвание}. ${пИсключение}`);
-					оЗапрос._фОтказаться('Не удалось разобрать JSON');
+					request._resolveCallback(JSON.parse(request.response));
+				} catch (exception) {
+					log.logError(`[Loader] Failed to parse ${request._name}. ${exception}`);
+					request._rejectCallback('Failed to parse JSON');
 				}
 				break;
 
 			  default:
-				м_Статистика.ЗагруженСегмент(оЗапрос.response.byteLength, оЗапрос._пТипДанных, чДлительностьЗагрузки, оЗапрос._чОжиданиеОтвета);
-				оЗапрос._фВыполнить(оЗапрос.response);
+				stats.segmentLoaded(request.response.byteLength, request._dataType, loadDurationMs, request._responseWaitTimeout);
+				request._resolveCallback(request.response);
 			}
 		} else {
-			м_Журнал.Ой(`[Загрузчик] Не удалось загрузить ${оЗапрос._сНазвание}. ${КОД_ОТВЕТА + чКод} ${оЗапрос.statusText}` + (оЗапрос._лЖурнал && typeof оЗапрос._пТипДанных == 'number' ? ` ОжиданиеОтвета=${оЗапрос._чОжиданиеОтвета}мс` : ``) + (ЭтоНепустаяСтрока(оЗапрос.response) ? `\n${оЗапрос.response}` : оЗапрос.response === null ? ' response=null' : оЗапрос.responseType === 'arraybuffer' ? ` Размер=${оЗапрос.response.byteLength}байт` : ` Размер=${оЗапрос.response.length}символов`));
-			if (чКод >= 400 && чКод <= 499 || оЗапрос.response === null || !ПослатьЗапрос(оЗапрос, true)) {
-				if (оЗапрос.responseType === 'arraybuffer') {
-					м_Статистика.ЗагруженСегмент(NaN, NaN, NaN, оЗапрос._чОжиданиеОтвета);
+			log.logError(`[Loader] Failed to load ${request._name}. ${responseCode + code} ${request.statusText}` + (request._shouldLog && typeof request._dataType == 'number' ? ` ResponseWait=${request._responseWaitTimeout}ms` : ``) + (isNonEmptyString(request.response) ? `\n${request.response}` : request.response === null ? ' response=null' : request.responseType === 'arraybuffer' ? ` Size=${request.response.byteLength}bytes` : ` Size=${request.response.length}chars`));
+			if (code >= 400 && code <= 499 || request.response === null || !sendRequest2(request, true)) {
+				if (request.responseType === 'arraybuffer') {
+					stats.segmentLoaded(NaN, NaN, NaN, request._responseWaitTimeout);
 				}
-				оЗапрос._оОтменаОбещания && оЗапрос._оОтменаОбещания.ЗаменитьОбработчик(null);
-				оЗапрос._фОтказаться(КОД_ОТВЕТА + чКод);
+				request._promiseCancellation && request._promiseCancellation.replaceHandler(null);
+				request._rejectCallback(responseCode + code);
 			}
 		}
 	});
-	function ПолучитьРазмерОтвета(оЗапрос) {
-		let кбРазмерЗаголовков = 17 + оЗапрос.statusText.length + оЗапрос.getAllResponseHeaders().length;
-		if (ЭтоHTTP2(оЗапрос)) {
-			кбРазмерЗаголовков = Math.round(кбРазмерЗаголовков * .5);
+	function getResponseSize(request) {
+		let headersSizeKb = 17 + request.statusText.length + request.getAllResponseHeaders().length;
+		if (isHTTP2(request)) {
+			headersSizeKb = Math.round(headersSizeKb * .5);
 		}
-		let кбРазмерТела;
-		let сЗаголовок = оЗапрос.getResponseHeader('Content-Length');
-		if (сЗаголовок) {
-			кбРазмерТела = Number.parseInt(сЗаголовок, 10);
-		} else if (оЗапрос.responseType === 'arraybuffer') {
-			кбРазмерТела = оЗапрос.response.byteLength;
+		let bodySizeBytes;
+		let heading = request.getResponseHeader('Content-Length');
+		if (heading) {
+			bodySizeBytes = Number.parseInt(heading, 10);
+		} else if (request.responseType === 'arraybuffer') {
+			bodySizeBytes = request.response.byteLength;
 		} else {
-			кбРазмерТела = оЗапрос.response.length;
-			сЗаголовок = оЗапрос.getResponseHeader('Content-Encoding');
-			if (сЗаголовок && сЗаголовок !== 'identity') {
-				кбРазмерТела = Math.round(кбРазмерТела * .35);
+			bodySizeBytes = request.response.length;
+			heading = request.getResponseHeader('Content-Encoding');
+			if (heading && heading !== 'identity') {
+				bodySizeBytes = Math.round(bodySizeBytes * .35);
 			}
 		}
-		return кбРазмерЗаголовков + кбРазмерТела;
+		return headersSizeKb + bodySizeBytes;
 	}
-	function ЭтоHTTP2(оЗапрос) {
-		return оЗапрос.statusText.length === 0;
+	function isHTTP2(request) {
+		return request.statusText.length === 0;
 	}
-	function ЗагрузитьСледующийСегмент() {
-		let ч = г_моОчередь.length - 1;
-		if (ч >= 0 && г_моОчередь[ч].пДанные === СОСТОЯНИЕ_СМЕНА_ВАРИАНТА && г_моОчередь[ч].чОбработка === ОБРАБОТКА_ЗАГРУЖЕН) {
-			г_моОчередь.ПоказатьСостояние();
-			while (--ч >= 0 && г_моОчередь[ч].чОбработка <= ОБРАБОТКА_ЗАГРУЖЕН) {
-				if (typeof г_моОчередь[ч].пДанные != 'number') {
-					г_моОчередь.Удалить(ч);
+	function loadNextSegment() {
+		let counter = globalQueue.length - 1;
+		if (counter >= 0 && globalQueue[counter].dataValue === variantChangeState && globalQueue[counter].processingCount === processingLoaded) {
+			globalQueue.showState();
+			while (--counter >= 0 && globalQueue[counter].processingCount <= processingLoaded) {
+				if (typeof globalQueue[counter].dataValue != 'number') {
+					globalQueue.remove(counter);
 				}
 			}
-			г_моОчередь.ПоказатьСостояние();
+			globalQueue.showState();
 		} else {
-			let кОдновременныхЗагрузок = м_Настройки.Получить('кОдновременныхЗагрузок');
-			let чДлительностьВсехЗагрузок = 0;
-			for (let оСегмент of г_моОчередь) {
-				if (оСегмент.чОбработка <= ОБРАБОТКА_ЗАГРУЖЕН) {
-					чДлительностьВсехЗагрузок += оСегмент.чДлительность;
-					if (оСегмент.чОбработка <= ОБРАБОТКА_ЗАГРУЖАЕТСЯ) {
-						--кОдновременныхЗагрузок;
-						if (оСегмент.чОбработка === ОБРАБОТКА_ЖДЕТ_ЗАГРУЗКИ && кОдновременныхЗагрузок >= 0) {
-							ЗагрузитьСегмент(оСегмент);
+			let concurrentLoadCount = settings.get('concurrentLoadCount');
+			let allLoadsDuration = 0;
+			for (let segment of globalQueue) {
+				if (segment.processingCount <= processingLoaded) {
+					allLoadsDuration += segment.duration;
+					if (segment.processingCount <= processingLoading) {
+						--concurrentLoadCount;
+						if (segment.processingCount === processingAwaitingLoad && concurrentLoadCount >= 0) {
+							loadSegment(segment);
 						}
 					}
 				}
 			}
-			const чПереполнениеОчереди = м_Настройки.Получить('чМаксРазмерБуфера') + м_Настройки.Получить('чРастягиваниеБуфера');
-			if (чДлительностьВсехЗагрузок > чПереполнениеОчереди) {
-				м_Журнал.Ой(`[Загрузчик] Длительность всех загрузок в очереди ${м_Журнал.F1(чДлительностьВсехЗагрузок)}с > ${м_Журнал.F1(чПереполнениеОчереди)}с`);
-				ОбработатьНеудачнуюЗагрузкуСегмента(null);
-				ЗагрузитьСледующийСегмент();
+			const queueOverflow = settings.get('maxBufferSizeSetting') + settings.get('bufferStretchMs');
+			if (allLoadsDuration > queueOverflow) {
+				log.logError(`[Loader] Total duration of queued loads ${log.F1(allLoadsDuration)}s > ${log.F1(queueOverflow)}s`);
+				handleSegmentLoadFailure(null);
+				loadNextSegment();
 				return;
 			}
 		}
-		м_Преобразователь.ПреобразоватьСледующийСегмент();
+		converterModule.convertNextSegment();
 	}
-	function ЗагрузитьСегмент(оСегмент) {
-		const сАдрес = оСегмент.пДанные;
-		оСегмент.пДанные = new ОтменаОбещания();
-		оСегмент.чОбработка = ОБРАБОТКА_ЗАГРУЖАЕТСЯ;
-		Загрузить(оСегмент.пДанные, 'GET', сАдрес, ЗагружатьСегментНеДольше(оСегмент), null, null, `сегмент ${оСегмент.чНомер}`, м_Статистика.ОкноОткрыто(), оСегмент.чДлительность).then(буфДанные => {
-			Проверить(г_моОчередь.includes(оСегмент));
-			оСегмент.пДанные = буфДанные;
-			оСегмент.чОбработка = ОБРАБОТКА_ЗАГРУЖЕН;
-			ЗагрузитьСледующийСегмент();
-		}).catch(ДобавитьОбработчикИсключений(пПричина => {
-			if (typeof пПричина == 'string' && оСегмент.чОбработка === ОБРАБОТКА_ЗАГРУЖАЕТСЯ) {
-				Проверить(г_моОчередь.includes(оСегмент));
-				ОбработатьНеудачнуюЗагрузкуСегмента(пПричина.сПричина === КОД_ОТВЕТА + 404 || пПричина.сПричина === КОД_ОТВЕТА + 410 ? null : оСегмент);
-				Проверить(!г_моОчередь.includes(оСегмент));
-				ЗагрузитьСледующийСегмент();
-			} else if (пПричина === ОтменаОбещания.ПРИЧИНА) {
-				м_Журнал.Вот(`[Загрузчик] Отменена загрузка сегмента ${оСегмент.чНомер}`);
-				Проверить(!г_моОчередь.includes(оСегмент));
+	function loadSegment(segment) {
+		const address = segment.dataValue;
+		segment.dataValue = new cancelPromise();
+		segment.processingCount = processingLoading;
+		load(segment.dataValue, 'GET', address, segmentLoadTimeout(segment), null, null, `segment ${segment.number}`, stats.isWindowOpen(), segment.duration).then(bufferData => {
+			assert(globalQueue.includes(segment));
+			segment.dataValue = bufferData;
+			segment.processingCount = processingLoaded;
+			loadNextSegment();
+		}).catch(wrapErrors(reasonValue => {
+			if (typeof reasonValue == 'string' && segment.processingCount === processingLoading) {
+				assert(globalQueue.includes(segment));
+				handleSegmentLoadFailure(reasonValue.reasonText === responseCode + 404 || reasonValue.reasonText === responseCode + 410 ? null : segment);
+				assert(!globalQueue.includes(segment));
+				loadNextSegment();
+			} else if (reasonValue === cancelPromise.reason) {
+				log.logInfo(`[Loader] Segment ${segment.number} load cancelled`);
+				assert(!globalQueue.includes(segment));
 			} else {
-				throw пПричина;
+				throw reasonValue;
 			}
 		}));
 	}
-	function ЗагружатьСегментНеДольше(оСегмент) {
-		const чПеременная = оСегмент.чДлительность * м_Настройки.Получить('кОдновременныхЗагрузок') * 1.15;
-		const чПостоянная = 8;
-		return (чПеременная + чПостоянная) * 1e3;
+	function segmentLoadTimeout(segment) {
+		const variable = segment.duration * settings.get('concurrentLoadCount') * 1.15;
+		const constant = 8;
+		return (variable + constant) * 1e3;
 	}
-	function ОбработатьНеудачнуюЗагрузкуСегмента(оНезагруженныйСегмент) {
-		г_моОчередь.ПоказатьСостояние();
-		const кВОчереди = г_моОчередь.length;
-		if (оНезагруженныйСегмент) {
-			г_моОчередь.Удалить(оНезагруженныйСегмент);
+	function handleSegmentLoadFailure(unloadedSegmentObj) {
+		globalQueue.showState();
+		const queuedCount = globalQueue.length;
+		if (unloadedSegmentObj) {
+			globalQueue.remove(unloadedSegmentObj);
 		} else {
-			let чРазмерБуфера = м_Настройки.Получить('чРазмерБуфера');
-			for (let оСегмент, ы = кВОчереди; оСегмент = г_моОчередь[--ы]; ) {
-				if (оСегмент.чОбработка === ОБРАБОТКА_ЖДЕТ_ЗАГРУЗКИ) {
-					if (чРазмерБуфера > 0) {
-						чРазмерБуфера -= оСегмент.чДлительность;
+			let bufferSize = settings.get('bufferSize');
+			for (let segment, yMarker = queuedCount; segment = globalQueue[--yMarker]; ) {
+				if (segment.processingCount === processingAwaitingLoad) {
+					if (bufferSize > 0) {
+						bufferSize -= segment.duration;
 					} else {
-						г_моОчередь.Удалить(ы);
+						globalQueue.remove(yMarker);
 					}
-				} else if (оСегмент.чОбработка === ОБРАБОТКА_ЗАГРУЖАЕТСЯ) {
-					г_моОчередь.Удалить(ы);
+				} else if (segment.processingCount === processingLoading) {
+					globalQueue.remove(yMarker);
 				}
 			}
 		}
-		г_моОчередь.ПоказатьСостояние();
-		м_Статистика.НеЗагруженыСегменты(кВОчереди - г_моОчередь.length);
+		globalQueue.showState();
+		stats.segmentsNotLoaded(queuedCount - globalQueue.length);
 	}
-	const обработатьИзменениеСети = ДобавитьОбработчикИсключений(оСобытие => {
-		м_Журнал.Ой(`[Загрузчик] Событие ${оСобытие.type} navigator.onLine=${navigator.onLine} connection.type=${navigator.connection && navigator.connection.type}`);
+	const handleNetworkChange = wrapErrors(event => {
+		log.logError(`[Loader] Event ${event.type} navigator.onLine=${navigator.onLine} connection.type=${navigator.connection && navigator.connection.type}`);
 	});
 	if (navigator.connection) {
-		navigator.connection.addEventListener('onchange' in navigator.connection ? 'change' : 'typechange', обработатьИзменениеСети);
+		navigator.connection.addEventListener('onchange' in navigator.connection ? 'change' : 'typechange', handleNetworkChange);
 	} else {
-		window.addEventListener('online', обработатьИзменениеСети);
-		window.addEventListener('offline', обработатьИзменениеСети);
+		window.addEventListener('online', handleNetworkChange);
+		window.addEventListener('offline', handleNetworkChange);
 	}
 	if (!navigator.onLine) {
-		м_Журнал.Ой('[Загрузчик] navigator.onLine=false');
+		log.logError('[Loader] navigator.onLine=false');
 	}
 	return {
-		Загрузить,
-		ЗагрузитьТекст,
-		ЗагрузитьJson,
-		ЗагрузитьСледующийСегмент
+		load,
+		loadText,
+		loadJson,
+		loadNextSegment
 	};
 })();
 
-const м_Twitch = (() => {
-	const ИНТЕРВАЛ_ОБНОВЛЕНИЯ_МЕТАДАННЫХ_ТРАНСЛЯЦИИ = 6e4;
-	const ИНТЕРВАЛ_СЛЕЖЕНИЯ_ЗА_ПРОСМОТРОМ = 6e4;
-	let _сАдресСлеженияЗаПросмотром = 'https://spade.twitch.tv/track';
-	let _сКодКанала = '';
-	let _сИдКанала = '';
-	let _сИдТрансляции = '';
-	let _сАдресЗаписи = '';
-	let _сИдУстройства = '';
-	let _сИдЗрителя = '';
-	let _сКодЗрителя = '';
-	let _сТокенЗрителя = '';
-	let _сИмяЗрителя = '';
-	let _сТокенGql = '';
-	let _чТокенGqlПротухнетПосле = 0;
+const Twitch = (() => {
+	const streamMetadataUpdateInterval = 6e4;
+	const WATCH_TRACKING_INTERVAL = 6e4;
+	let _viewTrackingUrl = 'https://spade.twitch.tv/track';
+	let _channelCode = '';
+	let _channelId = '';
+	let _streamId = '';
+	let _recordUrl = '';
+	let _deviceId = '';
+	let _viewerId = '';
+	let _viewerCode = '';
+	let _viewerToken = '';
+	let _viewerName = '';
+	let _gqlToken = '';
+	let _gqlTokenExpiresAt = 0;
 	let _sPlaySessionID = '';
-	let _оОтменаОбновленияМетаданных = null;
-	let _чТаймерСлеженияЗаПросмотром = 0;
-	let _лРейдОбработан = false;
-	function перейтиНаКаналРейда(сКодКанала) {
-		if (_лРейдОбработан || !ЭтоНепустаяСтрока(сКодКанала) || !м_Настройки.Получить('лСледоватьЗаРейдами') || сКодКанала === _сКодКанала) {
+	let _metadataUpdateCancel = null;
+	let _watchTrackingTimerId = 0;
+	let _isRaidHandled = false;
+	function goToRaidChannel(channelCode) {
+		if (_isRaidHandled || !isNonEmptyString(channelCode) || !settings.get('followRaids') || channelCode === _channelCode) {
 			return;
 		}
-		_лРейдОбработан = true;
-		м_Журнал.Окак(`[Twitch] Рейд на канал ${сКодКанала}, переключаю проигрыватель`);
-		location.replace(ПолучитьАдресНашегоПроигрывателя(сКодКанала));
+		_isRaidHandled = true;
+		log.logOk(`[Twitch] Raid on channel ${channelCode}, switching player`);
+		location.replace(getPlayerUrl(channelCode));
 	}
-	document.addEventListener('tw5-raid', ДобавитьОбработчикИсключений(оСобытие => {
-		перейтиНаКаналРейда(цепочка(oSobyтие.detail, 'channel'));
+	document.addEventListener('tw5-raid', wrapErrors(event => {
+		goToRaidChannel(chain(event2.detail, 'channel'));
 	}));
-	function ОчиститьДанныеТрансляции() {
-		_сИдТрансляции = _сАдресЗаписи = '';
+	function clearStreamData() {
+		_streamId = _recordUrl = '';
 	}
-	function ПолучитьАдресКанала(лНеПеренаправлять) {
-		return лНеПеренаправлять ? `https://www.twitch.tv/${encodeURIComponent(_сКодКанала)}?${АДРЕС_НЕ_ПЕРЕНАПРАВЛЯТЬ}` : `https://www.twitch.tv/${encodeURIComponent(_сКодКанала)}`;
+	function getChannelUrl(shouldNotRedirect) {
+		return shouldNotRedirect ? `https://www.twitch.tv/${encodeURIComponent(_channelCode)}?${urlNoRedirect}` : `https://www.twitch.tv/${encodeURIComponent(_channelCode)}`;
 	}
-	function ПолучитьАдресПанелиЧата() {
-		if (м_Настройки.Получить('лПолноценныйЧат')) {
-			return `https://www.twitch.tv/popout/${encodeURIComponent(_сКодКанала)}/chat?no-mobile-redirect=true&popout=`;
+	function getChatPanelUrl() {
+		if (settings.get('isFullChat')) {
+			return `https://www.twitch.tv/popout/${encodeURIComponent(_channelCode)}/chat?no-mobile-redirect=true&popout=`;
 		}
-		return `https://www.twitch.tv/embed/${encodeURIComponent(_сКодКанала)}/chat?${м_Настройки.Получить('лЗатемнитьЧат') ? 'darkpopout&' : ''}parent=localhost`;
+		return `https://www.twitch.tv/embed/${encodeURIComponent(_channelCode)}/chat?${settings.get('shouldDimChat') ? 'darkpopout&' : ''}parent=localhost`;
 	}
-	function ПолучитьАдресЗаписи(сИдЗаписи) {
-		Проверить(ЭтоНепустаяСтрока(сИдЗаписи));
-		return `https://www.twitch.tv/videos/${encodeURIComponent(сИдЗаписи)}`;
+	function getRecordingUrl(recordId) {
+		assert(isNonEmptyString(recordId));
+		return `https://www.twitch.tv/videos/${encodeURIComponent(recordId)}`;
 	}
-	function получитьАдресКатегории(сИмяКатегории) {
-		Проверить(ЭтоНепустаяСтрока(сИмяКатегории));
-		return `https://www.twitch.tv/directory/category/${encodeURIComponent(сИмяКатегории)}`;
+	function getCategoryUrl(categoryName) {
+		assert(isNonEmptyString(categoryName));
+		return `https://www.twitch.tv/directory/category/${encodeURIComponent(categoryName)}`;
 	}
-	function получитьАдресКоманды(сИмяКоманды) {
-		Проверить(ЭтоНепустаяСтрока(сИмяКоманды));
-		return `https://www.twitch.tv/team/${encodeURIComponent(сИмяКоманды)}`;
+	function getCommandUrl(commandName) {
+		assert(isNonEmptyString(commandName));
+		return `https://www.twitch.tv/team/${encodeURIComponent(commandName)}`;
 	}
-	function проверитьДоступностьАдреса(сАдрес) {
-		if (сАдрес.startsWith('https://coolcmd.github.io/')) {
+	function checkUrlAvailability(address) {
+		if (address.startsWith('https://coolcmd.github.io/')) {
 			return;
 		}
-		if (!/^https?:\/\/(?:[^/]+\.)?(?:twitch\.tv|twitchcdn\.net|ttvnw\.net|jtvnw\.net|live-video\.net|akamaized\.net|cloudfront\.net)\//.test(сАдрес)) {
-			throw new Error(`Неизвестный адрес: ${сАдрес}`);
+		if (!/^https?:\/\/(?:[^/]+\.)?(?:twitch\.tv|twitchcdn\.net|ttvnw\.net|jtvnw\.net|live-video\.net|akamaized\.net|cloudfront\.net)\//.test(address)) {
+			throw new Error(`Unknown URL: ${address}`);
 		}
 	}
-	function создатьУникальныйИдентификатор(кДлина) {
-		Проверить(Number.isInteger(кДлина) && кДлина > 0);
-		const сДопустимыеСимволы = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-		let сРезультат = '';
-		while (сРезультат.length !== кДлина) {
-			сРезультат += сДопустимыеСимволы[Math.floor(Math.random() * сДопустимыеСимволы.length)];
+	function createUniqueId(lengthCount) {
+		assert(Number.isInteger(lengthCount) && lengthCount > 0);
+		const allowedChars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+		let resultText = '';
+		while (resultText.length !== lengthCount) {
+			resultText += allowedChars[Math.floor(Math.random() * allowedChars.length)];
 		}
-		return сРезультат;
+		return resultText;
 	}
-	получитьТокенGql._оОбещание = null;
-	получитьТокенGql.фИзменилсяТокенGql = null;
-	function получитьТокенGql() {
-		const ЖДАТЬ_ПОЛУЧЕНИЯ_ТОКЕНА = 3e4;
-		if (получитьТокенGql._оОбещание === null) {
-			получитьТокенGql._оОбещание = new Promise((фВыполнить, фОтказаться) => {
-				м_Журнал.Окак('[Twitch] Вставляю фрейм для перехвата токена GQL');
-				const элФрейм = document.createElement('iframe');
-				элФрейм.src = 'https://www.twitch.tv/popout/';
-				элФрейм.id = 'токенgql';
-				элФрейм.hidden = true;
-				Проверить(!document.getElementById(элФрейм.id));
-				document.body.appendChild(элФрейм);
-				const чТаймер = setTimeout(ДобавитьОбработчикИсключений(() => {
-					м_Журнал.Ой('[Twitch] Истекло время получения токена GQL');
-					элФрейм.remove();
-					получитьТокенGql._оОбещание = получитьТокенGql.фИзменилсяТокенGql = null;
-					фОтказаться('ОТКАЗАНО_В_ДОСТУПЕ');
-				}), ЖДАТЬ_ПОЛУЧЕНИЯ_ТОКЕНА);
-				получитьТокенGql.фИзменилсяТокенGql = (() => {
-					if (_сТокенGql !== '') {
-						clearTimeout(чТаймер);
-						элФрейм.remove();
-						получитьТокенGql._оОбещание = получитьТокенGql.фИзменилсяТокенGql = null;
-						фВыполнить(_сТокенGql);
+	getGqlToken._promise = null;
+	getGqlToken.onGqlTokenChanged = null;
+	function getGqlToken() {
+		const WAIT_FOR_TOKEN = 3e4;
+		if (getGqlToken._promise === null) {
+			getGqlToken._promise = new Promise((execute, reject) => {
+				log.logOk('[Twitch] Inserting frame to intercept GQL token');
+				const frame = document.createElement('iframe');
+				frame.src = 'https://www.twitch.tv/popout/';
+				frame.id = 'gql-token';
+				frame.hidden = true;
+				assert(!document.getElementById(frame.id));
+				document.body.appendChild(frame);
+				const timerId = setTimeout(wrapErrors(() => {
+					log.logError('[Twitch] Timed out waiting for GQL token');
+					frame.remove();
+					getGqlToken._promise = getGqlToken.onGqlTokenChanged = null;
+					reject('ОТКАЗАНО_В_ДОСТУПЕ');
+				}), WAIT_FOR_TOKEN);
+				getGqlToken.onGqlTokenChanged = (() => {
+					if (_gqlToken !== '') {
+						clearTimeout(timerId);
+						frame.remove();
+						getGqlToken._promise = getGqlToken.onGqlTokenChanged = null;
+						execute(_gqlToken);
 					}
 				});
 			});
 		}
-		return получитьТокенGql._оОбещание;
+		return getGqlToken._promise;
 	}
-	function отправитьЗапросGql(оОтменаОбещания, сЗапрос, оПеременные, лПосылатьТокенЗрителя, лПосылатьТокенGql, лПовторятьЗапрос, сНазваниеЗагрузки, чЗагружатьНеДольше = ЗАГРУЖАТЬ_МЕТАДАННЫЕ_НЕ_ДОЛЬШЕ) {
-		const ПОВТОРЯТЬ_ЗАПРОС_ЧЕРЕЗ = 5e3;
-		Проверить(ЭтоНепустаяСтрока(_сИдУстройства));
-		if (оПеременные !== null) {
-			сЗапрос = создатьТелоЗапросаGql(сЗапрос, оПеременные);
+	function sendGqlRequest(promiseCancellation, requestText, variables, shouldSendViewerToken, shouldSendGqlToken, shouldRetryRequest, downloadName, maxLoadDuration = metadataLoadMaxDuration) {
+		const retryRequestDelay = 5e3;
+		assert(isNonEmptyString(_deviceId));
+		if (variables !== null) {
+			requestText = createGqlRequestBody(requestText, variables);
 		}
-		const оЗаголовкиЗапроса = {
+		const requestHeaders = {
 			'Accept-Language': 'en-US',
 			'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko',
 			'Content-Type': 'text/plain; charset=UTF-8',
-			'X-Device-ID': _сИдУстройства
+			'X-Device-ID': _deviceId
 		};
-		if (лПосылатьТокенЗрителя && _сТокенЗрителя) {
-			оЗаголовкиЗапроса.Authorization = `OAuth ${_сТокенЗрителя}`;
+		if (shouldSendViewerToken && _viewerToken) {
+			requestHeaders.Authorization = `OAuth ${_viewerToken}`;
 		}
-		let лСвежийТокен = false;
-		let оОбещание;
-		if (лПосылатьТокенGql) {
-			if (_сТокенGql !== '' && _чТокенGqlПротухнетПосле > Date.now()) {
-				м_Журнал.Вот(`[Twitch] Токен GQL протухнет через ${м_Журнал.F0((_чТокенGqlПротухнетПосле - Date.now()) / 1e3)}с`);
-				оЗаголовкиЗапроса['Client-Integrity'] = _сТокенGql;
-				оОбещание = Promise.resolve();
+		let isFreshToken = false;
+		let promise;
+		if (shouldSendGqlToken) {
+			if (_gqlToken !== '' && _gqlTokenExpiresAt > Date.now()) {
+				log.logInfo(`[Twitch] GQL token expires in ${log.F0((_gqlTokenExpiresAt - Date.now()) / 1e3)}s`);
+				requestHeaders['Client-Integrity'] = _gqlToken;
+				promise = Promise.resolve();
 			} else {
-				лСвежийТокен = true;
-				оОбещание = получитьТокенGql().then(сТокен => {
-					оЗаголовкиЗапроса['Client-Integrity'] = сТокен;
+				isFreshToken = true;
+				promise = getGqlToken().then(token => {
+					requestHeaders['Client-Integrity'] = token;
 				});
 			}
 		} else {
-			оОбещание = Promise.resolve();
+			promise = Promise.resolve();
 		}
-		return оОбещание.then(() => м_Загрузчик.Загрузить(оОтменаОбещания, 'POST', 'https://gql.twitch.tv/gql', чЗагружатьНеДольше, оЗаголовкиЗапроса, сЗапрос, сНазваниеЗагрузки, true, 'json')).then(оРезультат => {
-			if (!оРезультат.errors) {
-				return оРезультат;
+		return promise.then(() => loader.load(promiseCancellation, 'POST', 'https://gql.twitch.tv/gql', maxLoadDuration, requestHeaders, requestText, downloadName, true, 'json')).then(result => {
+			if (!result.errors) {
+				return result;
 			}
-			let оОбещание;
-			if (оРезультат.errors.some(({message}) => message === 'failed integrity check')) {
-				м_Журнал.Ой('[Twitch] Серверу не понравился токен GQL');
-				if (оЗаголовкиЗапроса['Client-Integrity'] === _сТокенGql && _сТокенGql !== '') {
-					очиститьТокенGql();
+			let promise;
+			if (result.errors.some(({message}) => message === 'failed integrity check')) {
+				log.logError('[Twitch] Server rejected GQL token');
+				if (requestHeaders['Client-Integrity'] === _gqlToken && _gqlToken !== '') {
+					clearGqlToken();
 				}
-				if (!лПосылатьТокенGql || лСвежийТокен) {
+				if (!shouldSendGqlToken || isFreshToken) {
 					throw 'ОТКАЗАНО_В_ДОСТУПЕ';
 				}
-				if (оЗаголовкиЗапроса['Client-Integrity'] !== _сТокенGql && _сТокенGql !== '') {
-					оЗаголовкиЗапроса['Client-Integrity'] = _сТокенGql;
-					оОбещание = Promise.resolve();
+				if (requestHeaders['Client-Integrity'] !== _gqlToken && _gqlToken !== '') {
+					requestHeaders['Client-Integrity'] = _gqlToken;
+					promise = Promise.resolve();
 				} else {
-					оОбещание = получитьТокенGql().then(сТокен => {
-						оЗаголовкиЗапроса['Client-Integrity'] = сТокен;
+					promise = getGqlToken().then(token => {
+						requestHeaders['Client-Integrity'] = token;
 					});
 				}
-			} else if (оРезультат.errors.some(({message}) => message === 'service timeout')) {
-				if (!лПовторятьЗапрос) {
-					м_Журнал.Ой('[Twitch] Сервер GQL занят');
-					return оРезультат;
+			} else if (result.errors.some(({message}) => message === 'service timeout')) {
+				if (!shouldRetryRequest) {
+					log.logError('[Twitch] GQL server busy');
+					return result;
 				}
-				const повторитьЧерез = ПОВТОРЯТЬ_ЗАПРОС_ЧЕРЕЗ + ПОВТОРЯТЬ_ЗАПРОС_ЧЕРЕЗ / 2 * Math.random();
-				м_Журнал.Ой(`[Twitch] Сервер GQL занят. Запрос будет повторно отправлен через ${повторитьЧерез.toFixed()}мс`);
-				оОбещание = Ждать(оОтменаОбещания, повторитьЧерез);
+				const retryAfter = retryRequestDelay + retryRequestDelay / 2 * Math.random();
+				log.logError(`[Twitch] GQL server busy. Request will be retried in ${retryAfter.toFixed()}ms`);
+				promise = wait(promiseCancellation, retryAfter);
 			} else {
-				м_Журнал.Ой('[Twitch] В ответе GQL есть неизвестные ошибки');
-				return оРезультат;
+				log.logError('[Twitch] Unknown errors in GQL response');
+				return result;
 			}
-			return оОбещание.then(() => м_Загрузчик.Загрузить(оОтменаОбещания, 'POST', 'https://gql.twitch.tv/gql', чЗагружатьНеДольше, оЗаголовкиЗапроса, сЗапрос, сНазваниеЗагрузки, true, 'json')).then(оРезультат => {
-				if (оРезультат.errors) {
-					if (оРезультат.errors.some(({message}) => message === 'failed integrity check')) {
-						м_Журнал.Ой('[Twitch] Серверу не понравился токен GQL');
-						if (оЗаголовкиЗапроса['Client-Integrity'] === _сТокенGql && _сТокенGql !== '') {
-							очиститьТокенGql();
+			return promise.then(() => loader.load(promiseCancellation, 'POST', 'https://gql.twitch.tv/gql', maxLoadDuration, requestHeaders, requestText, downloadName, true, 'json')).then(result => {
+				if (result.errors) {
+					if (result.errors.some(({message}) => message === 'failed integrity check')) {
+						log.logError('[Twitch] Server rejected GQL token');
+						if (requestHeaders['Client-Integrity'] === _gqlToken && _gqlToken !== '') {
+							clearGqlToken();
 						}
 						throw 'ОТКАЗАНО_В_ДОСТУПЕ';
 					}
-					м_Журнал.Ой(оРезультат.errors.some(({message}) => message === 'service timeout') ? '[Twitch] Сервер GQL занят' : '[Twitch] В ответе GQL есть неизвестные ошибки');
+					log.logError(result.errors.some(({message}) => message === 'service timeout') ? '[Twitch] GQL server busy' : '[Twitch] Unknown errors in GQL response');
 				}
-				return оРезультат;
+				return result;
 			});
 		});
 	}
-	function ИзменитьПодпискуЗрителяНаКанал(чПодписка) {
-		Проверить(_сИдКанала && _сИдЗрителя && _сТокенЗрителя);
-		Проверить(_сИдКанала !== _сИдЗрителя);
-		switch (чПодписка) {
-		  case ПОДПИСКА_НЕОФОРМЛЕНА:
-			неОтслеживатьКанал();
+	function changeViewerSubscriptionToChannel(subscriptionCount) {
+		assert(_channelId && _viewerId && _viewerToken);
+		assert(_channelId !== _viewerId);
+		switch (subscriptionCount) {
+		  case subscriptionNotSubscribed:
+			unwatchChannel();
 			break;
 
-		  case ПОДПИСКА_НЕУВЕДОМЛЯТЬ:
-		  case ПОДПИСКА_УВЕДОМЛЯТЬ:
-			отслеживатьКанал(чПодписка);
+		  case subscriptionDoNotNotify:
+		  case subscriptionNotify:
+			watchChannel(subscriptionCount);
 			break;
 
 		  default:
-			Проверить(false);
+			assert(false);
 		}
 	}
-	function неОтслеживатьКанал() {
-		отправитьЗапросGql(null, `mutation($input: UnfollowUserInput!) {\n\t\t\t\tunfollowUser(input: $input) {\n\t\t\t\t\t__typename\n\t\t\t\t}\n\t\t\t}`, {
+	function unwatchChannel() {
+		sendGqlRequest(null, `mutation($input: UnfollowUserInput!) {\n\t\t\t\tunfollowUser(input: $input) {\n\t\t\t\t\t__typename\n\t\t\t\t}\n\t\t\t}`, {
 			input: {
-				targetID: _сИдКанала
+				targetID: _channelId
 			}
-		}, true, true, true, 'не отслеживать канал').then(оРезультат => {
-			if (оРезультат.errors || !оРезультат.data || !оРезультат.data.unfollowUser) {
-				throw 'Сервер не смог выполнить операцию';
+		}, true, true, true, 'unfollow channel').then(result => {
+			if (result.errors || !result.data || !result.data.unfollowUser) {
+				throw 'Server could not complete the operation';
 			}
-			м_События.ПослатьСобытие('twitch-полученыметаданныезрителя', {
-				чПодписка: ПОДПИСКА_НЕОФОРМЛЕНА
+			events.sendEvent('twitch-viewer-metadata-received', {
+				subscriptionCount: subscriptionNotSubscribed
 			});
-		}).catch(пПричина => {
-			if (typeof пПричина == 'string') {
-				м_Журнал.Ой(`[Twitch] Не удалось не отслеживать канал. ${пПричина}`);
-				м_Уведомление.ПоказатьЖопу();
-				м_События.ПослатьСобытие('twitch-полученыметаданныезрителя', {
-					чПодписка: ПОДПИСКА_НЕДОСТУПНА
+		}).catch(reasonValue => {
+			if (typeof reasonValue == 'string') {
+				log.logError(`[Twitch] Failed to unfollow channel. ${reasonValue}`);
+				notification.showButt();
+				events.sendEvent('twitch-viewer-metadata-received', {
+					subscriptionCount: subscriptionUnavailable
 				});
 			} else {
-				м_Отладка.ПойманоИсключение(пПричина);
+				debug.exceptionCaught(reasonValue);
 			}
 		});
 	}
-	function отслеживатьКанал(чПодписка) {
-		отправитьЗапросGql(null, `mutation($input: FollowUserInput!) {
+	function watchChannel(subscriptionCount) {
+		sendGqlRequest(null, `mutation($input: FollowUserInput!) {
 				followUser(input: $input) {
 					error {
 						code
@@ -5849,89 +5945,89 @@ const м_Twitch = (() => {
 				}
 			}`, {
 			input: {
-				disableNotifications: чПодписка === ПОДПИСКА_НЕУВЕДОМЛЯТЬ,
-				targetID: _сИдКанала
+				disableNotifications: subscriptionCount === subscriptionDoNotNotify,
+				targetID: _channelId
 			}
-		}, true, true, true, 'отслеживать канал').then(оРезультат => {
-			if (оРезультат.errors || !оРезультат.data || !оРезультат.data.followUser || !оРезультат.data.followUser.follow || !оРезультат.data.followUser.follow.user || оРезультат.data.followUser.error) {
-				throw 'Сервер не смог выполнить операцию';
+		}, true, true, true, 'follow channel').then(result => {
+			if (result.errors || !result.data || !result.data.followUser || !result.data.followUser.follow || !result.data.followUser.follow.user || result.data.followUser.error) {
+				throw 'Server could not complete the operation';
 			}
-			м_События.ПослатьСобытие('twitch-полученыметаданныезрителя', {
-				чПодписка
+			events.sendEvent('twitch-viewer-metadata-received', {
+				subscriptionCount
 			});
-		}).catch(пПричина => {
-			if (typeof пПричина == 'string') {
-				м_Журнал.Ой(`[Twitch] Не удалось отслеживать канал. ${пПричина}`);
-				м_Уведомление.ПоказатьЖопу();
-				м_События.ПослатьСобытие('twitch-полученыметаданныезрителя', {
-					чПодписка: ПОДПИСКА_НЕДОСТУПНА
+		}).catch(reasonValue => {
+			if (typeof reasonValue == 'string') {
+				log.logError(`[Twitch] Failed to follow channel. ${reasonValue}`);
+				notification.showButt();
+				events.sendEvent('twitch-viewer-metadata-received', {
+					subscriptionCount: subscriptionUnavailable
 				});
 			} else {
-				м_Отладка.ПойманоИсключение(пПричина);
+				debug.exceptionCaught(reasonValue);
 			}
 		});
 	}
-	function этоРекламныйСегмент(сИмяСегмента) {
-		return сИмяСегмента !== '' && сИмяСегмента !== 'live';
+	function isAdSegment(segmentName) {
+		return segmentName !== '' && segmentName !== 'live';
 	}
-	let _оНужноОтправить = null;
-	function отправитьДанныеСлеженияЗаРекламой(оСписокСегментов) {
-		if (_оНужноОтправить !== null && (оСписокСегментов === null || _оНужноОтправить.сТокенРекламы !== оСписокСегментов.сТокенРекламы)) {
-			отправитьПросмотрРекламногоБлока(_оНужноОтправить);
-			_оНужноОтправить = null;
+	let _shouldSend = null;
+	function sendAdTrackingData(segmentList) {
+		if (_shouldSend !== null && (segmentList === null || _shouldSend.adToken !== segmentList.adToken)) {
+			sendAdBlockView(_shouldSend);
+			_shouldSend = null;
 		}
-		if (_оНужноОтправить === null && оСписокСегментов !== null && оСписокСегментов.сТипРекламы) {
-			_оНужноОтправить = оСписокСегментов;
+		if (_shouldSend === null && segmentList !== null && segmentList.adType) {
+			_shouldSend = segmentList;
 		}
 	}
-	function отправитьПросмотрРекламногоБлока(оСписокСегментов) {
-		Ждать(null, 3e3).then(() => {
-			return отправитьЗапросGql(null, объединитьЗапросыGql([ создатьСобытиеРекламы('video_ad_impression', оСписокСегментов), создатьСобытиеРекламы('video_ad_quartile_complete', оСписокСегментов, 1), создатьСобытиеРекламы('video_ad_quartile_complete', оСписокСегментов, 2), создатьСобытиеРекламы('video_ad_quartile_complete', оСписокСегментов, 3), создатьСобытиеРекламы('video_ad_quartile_complete', оСписокСегментов, 4), создатьСобытиеРекламы('video_ad_pod_complete', оСписокСегментов) ]), null, true, false, false, `${оСписокСегментов.сТипРекламы} ${оСписокСегментов.сТокенРекламы.slice(-10)}`, 3e4);
-		}).then(моРезультаты => {
-			for (const оРезультат of моРезультаты) {
-				if (оРезультат.errors || !оРезультат.data || !оРезультат.data.recordAdEvent || оРезультат.data.recordAdEvent.error) {
-					throw `Сервер не смог выполнить операцию: ${м_Журнал.O(оРезультат)}`;
+	function sendAdBlockView(segmentList) {
+		wait(null, 3e3).then(() => {
+			return sendGqlRequest(null, mergeGqlRequests([ createAdEvent('video_ad_impression', segmentList), createAdEvent('video_ad_quartile_complete', segmentList, 1), createAdEvent('video_ad_quartile_complete', segmentList, 2), createAdEvent('video_ad_quartile_complete', segmentList, 3), createAdEvent('video_ad_quartile_complete', segmentList, 4), createAdEvent('video_ad_pod_complete', segmentList) ]), null, true, false, false, `${segmentList.adType} ${segmentList.adToken.slice(-10)}`, 3e4);
+		}).then(resultsMap => {
+			for (const result of resultsMap) {
+				if (result.errors || !result.data || !result.data.recordAdEvent || result.data.recordAdEvent.error) {
+					throw `Server could not complete the operation: ${log.O(result)}`;
 				}
 			}
-		}).catch(пПричина => {
-			if (typeof пПричина == 'string') {
-				м_Журнал.Ой(`[Twitch] Не удалось отправить данные слежения за рекламой. ${пПричина}`);
+		}).catch(reasonValue => {
+			if (typeof reasonValue == 'string') {
+				log.logError(`[Twitch] Failed to send ad tracking data. ${reasonValue}`);
 			} else {
-				м_Отладка.ПойманоИсключение(пПричина);
+				debug.exceptionCaught(reasonValue);
 			}
 		});
 	}
-	function создатьСобытиеРекламы(сИмяСобытия, оСписокСегментов, чНомерКвартеля) {
-		const оДетали = {
+	function createAdEvent(eventName2, segmentList, quarterNumber) {
+		const details = {
 			stitched: true,
 			player_mute: true,
 			player_volume: .5,
 			visible: true,
-			roll_type: оСписокСегментов.сТипРекламы.toLowerCase()
+			roll_type: segmentList.adType.toLowerCase()
 		};
-		switch (сИмяСобытия) {
+		switch (eventName2) {
 		  case 'video_ad_quartile_complete':
-			оДетали.quartile = чНомерКвартеля;
+			details.quartile = quarterNumber;
 
 		  case 'video_ad_impression':
-			оДетали.total_ads = оСписокСегментов.кРоликов;
-			оДетали.ad_position = оСписокСегментов.чНомерРолика + 1;
-			оДетали.duration = Math.round(оСписокСегментов.чПродолжительностьРолика);
-			оДетали.ad_id = оСписокСегментов.сИдРолика1;
-			оДетали.creative_id = оСписокСегментов.сИдРолика2;
-			оДетали.line_item_id = оСписокСегментов.сИдРолика3;
-			оДетали.order_id = оСписокСегментов.сИдРолика4;
+			details.total_ads = segmentList.clipCount;
+			details.ad_position = segmentList.clipNumber + 1;
+			details.duration = Math.round(segmentList.clipDuration);
+			details.ad_id = segmentList.clipId1;
+			details.creative_id = segmentList.clipId2;
+			details.line_item_id = segmentList.clipId3;
+			details.order_id = segmentList.clipId4;
 			break;
 
 		  case 'video_ad_pod_complete':
-			оДетали.ad_session_id = оСписокСегментов.сИдРолика5;
-			оДетали.format_name = оСписокСегментов.сИдРолика6;
+			details.ad_session_id = segmentList.clipId5;
+			details.format_name = segmentList.clipId6;
 			break;
 
 		  default:
-			Проверить(false);
+			assert(false);
 		}
-		return создатьТелоЗапросаGql(`mutation($input: RecordAdEventInput!) {
+		return createGqlRequestBody(`mutation($input: RecordAdEventInput!) {
 				recordAdEvent(input: $input) {
 					error {
 						code
@@ -5939,24 +6035,24 @@ const м_Twitch = (() => {
 				}
 			}`, {
 			input: {
-				eventName: сИмяСобытия,
-				eventPayload: JSON.stringify(оДетали),
-				radToken: оСписокСегментов.сТокенРекламы
+				eventName: eventName2,
+				eventPayload: JSON.stringify(details),
+				radToken: segmentList.adToken
 			}
 		});
 	}
-	ПолучитьАбсолютныйАдресСпискаВариантов._чПротухнетПосле = -1;
-	ПолучитьАбсолютныйАдресСпискаВариантов._сАдрес = '';
-	function ПолучитьАбсолютныйАдресСпискаВариантов(оОтменаОбещания, лБезHttps, лБезРекламы) {
-		const ТОКЕН_ПРОТУХНЕТ_ЧЕРЕЗ = 15 * 60 * 1e3;
-		if (!лБезРекламы) {
-			const чПротухнетЧерез = ПолучитьАбсолютныйАдресСпискаВариантов._чПротухнетПосле - performance.now();
-			if (чПротухнетЧерез > 0) {
-				м_Журнал.Вот(`[Twitch] До протухания токена трансляции осталось ${м_Журнал.F0(чПротухнетЧерез / 1e3)}с`);
-				return Promise.resolve(ПолучитьАбсолютныйАдресСпискаВариантов._сАдрес);
+	getAbsoluteOptionListUrl._expiresAt = -1;
+	getAbsoluteOptionListUrl._url = '';
+	function getAbsoluteOptionListUrl(promiseCancellation, isHttpsDisabled, isAdFree) {
+		const TOKEN_EXPIRES_IN = 15 * 60 * 1e3;
+		if (!isAdFree) {
+			const expiresIn = getAbsoluteOptionListUrl._expiresAt - performance.now();
+			if (expiresIn > 0) {
+				log.logInfo(`[Twitch] Stream token expires in ${log.F0(expiresIn / 1e3)}s`);
+				return Promise.resolve(getAbsoluteOptionListUrl._url);
 			}
 		}
-		return отправитьЗапросGql(оОтменаОбещания, `query(
+		return sendGqlRequest(promiseCancellation, `query(
 				$login: String!
 				$playerType: String!
 				$disableHTTPS: Boolean!
@@ -5974,56 +6070,56 @@ const м_Twitch = (() => {
 					signature
 				}
 			}`, {
-			login: _сКодКанала,
-			playerType: лБезРекламы ? 'picture-by-picture' : 'site',
-			disableHTTPS: лБезHttps
-		}, true, false, true, `токен трансляции ${+лБезРекламы}`).then(оРезультат => {
-			const сТокен = цепочка(оРезультат.data, 'streamPlaybackAccessToken', 'value');
-			const сПодпись = цепочка(оРезультат.data, 'streamPlaybackAccessToken', 'signature');
-			м_Отладка.сохранитьТокенТрансляции(`ИдУстройства=${_сИдУстройства} ТокенЗрителя=${Boolean(_сТокенЗрителя)}\n${сТокен}`, лБезРекламы);
-			if (!ЭтоНепустаяСтрока(сТокен) || !ЭтоНепустаяСтрока(сПодпись)) {
-				if (оРезультат.errors) {
-					throw 'Сервер не смог выполнить операцию';
+			login: _channelCode,
+			playerType: isAdFree ? 'picture-by-picture' : 'site',
+			disableHTTPS: isHttpsDisabled
+		}, true, false, true, `stream token ${+isAdFree}`).then(result => {
+			const token = chain(result.data, 'streamPlaybackAccessToken', 'value');
+			const signature = chain(result.data, 'streamPlaybackAccessToken', 'signature');
+			debug.saveStreamToken(`DeviceId=${_deviceId} ViewerToken=${Boolean(_viewerToken)}\n${token}`, isAdFree);
+			if (!isNonEmptyString(token) || !isNonEmptyString(signature)) {
+				if (result.errors) {
+					throw 'Server could not complete the operation';
 				}
-				м_Отладка.ЗавершитьРаботуИПоказатьСообщение('J0203');
+				debug.finishAndShowMessage('J0203');
 			}
-			const оТокен = JSON.parse(сТокен);
-			Проверить(оТокен.channel === _сКодКанала);
-			if (оТокен.ci_gb) {
-				м_Отладка.ЗавершитьРаботуИПоказатьСообщение('J0217');
+			const tokenData = JSON.parse(token);
+			assert(tokenData.channel === _channelCode);
+			if (tokenData.ci_gb) {
+				debug.finishAndShowMessage('J0217');
 			}
-			if (_сИдКанала === '') {
-				Проверить(оТокен.channel_id);
-				_сИдКанала = String(оТокен.channel_id);
-				setTimeout(ДобавитьОбработчикИсключений(обновитьМетаданныеЗрителяИКанала));
+			if (_channelId === '') {
+				assert(tokenData.channel_id);
+				_channelId = String(tokenData.channel_id);
+				setTimeout(wrapErrors(updateViewerAndChannelMetadata));
 			} else {
-				Проверить(_сИдКанала === String(оТокен.channel_id));
+				assert(_channelId === String(tokenData.channel_id));
 			}
-			let сАдрес = `${лБезHttps ? 'http' : 'https'}://usher.ttvnw.net/api/channel/hls/${encodeURIComponent(_сКодКанала)}.m3u8` + '?allow_source=true' + '&allow_audio_only=true' + '&cdm=wv' + '&fast_bread=true' + '&platform=web' + '&player_backend=mediaplayer' + '&playlist_include_framerate=true' + '&reassignments_supported=true' + '&supported_codecs=av1,h265,h264' + '&transcode_mode=cbr_v1' + `&p=${Math.floor(Math.random() * 9999999)}` + `&token=${encodeURIComponent(сТокен)}` + `&sig=${encodeURIComponent(сПодпись)}`;
-			if (!лБезРекламы) {
-				_sPlaySessionID = создатьУникальныйИдентификатор(32);
-				сАдрес += `&play_session_id=${_sPlaySessionID}`;
-				ПолучитьАбсолютныйАдресСпискаВариантов._сАдрес = сАдрес;
-				ПолучитьАбсолютныйАдресСпискаВариантов._чПротухнетПосле = performance.now() + ТОКЕН_ПРОТУХНЕТ_ЧЕРЕЗ;
+			let address = `${isHttpsDisabled ? 'http' : 'https'}://usher.ttvnw.net/api/channel/hls/${encodeURIComponent(_channelCode)}.m3u8` + '?allow_source=true' + '&allow_audio_only=true' + '&cdm=wv' + '&fast_bread=true' + '&platform=web' + '&player_backend=mediaplayer' + '&playlist_include_framerate=true' + '&reassignments_supported=true' + '&supported_codecs=av1,h265,h264' + '&transcode_mode=cbr_v1' + `&p=${Math.floor(Math.random() * 9999999)}` + `&token=${encodeURIComponent(token)}` + `&sig=${encodeURIComponent(signature)}`;
+			if (!isAdFree) {
+				_sPlaySessionID = createUniqueId(32);
+				address += `&play_session_id=${_sPlaySessionID}`;
+				getAbsoluteOptionListUrl._url = address;
+				getAbsoluteOptionListUrl._expiresAt = performance.now() + TOKEN_EXPIRES_IN;
 			}
-			return сАдрес;
+			return address;
 		});
 	}
-	function очиститьТокенGql() {
-		_сТокенGql = '';
-		удалитьПеченьку('tw5~gqltoken', 'https://www.twitch.tv/tw5~storage/').catch(м_Отладка.ПойманоИсключение);
+	function clearGqlToken() {
+		_gqlToken = '';
+		removeCookie('tw5~gqltoken', 'https://www.twitch.tv/tw5~storage/').catch(debug.exceptionCaught);
 	}
-	function получитьУникальныйИдентификаторУстройства() {
-		return '0000000000000000' + (м_Настройки.Получить('чСлучайноеЧисло') || .1).toFixed(16).slice(2);
+	function getUniqueDeviceId() {
+		return '0000000000000000' + (settings.get('randomNumber') || .1).toFixed(16).slice(2);
 	}
-	function разобратьПеченькуАвторизации(сПеченька) {
-		if (сПеченька) {
+	function parseAuthCookie(cookieString) {
+		if (cookieString) {
 			try {
-				const о = JSON.parse(decodeURIComponent(сПеченька));
-				Проверить(ЭтоОбъект(о) && ЭтоНепустаяСтрока(о.id) && ЭтоНепустаяСтрока(о.login) && ЭтоНепустаяСтрока(о.authToken));
-				return о;
+				const objectRef = JSON.parse(decodeURIComponent(cookieString));
+				assert(isObject(objectRef) && isNonEmptyString(objectRef.id) && isNonEmptyString(objectRef.login) && isNonEmptyString(objectRef.authToken));
+				return objectRef;
 			} catch (_) {}
-			м_Журнал.Ой(`[Twitch] Не удалось разобрать печеньку авторизации: ${сПеченька}`);
+			log.logError(`[Twitch] Failed to parse auth cookie: ${cookieString}`);
 		}
 		return {
 			id: '',
@@ -6032,72 +6128,72 @@ const м_Twitch = (() => {
 			displayName: ''
 		};
 	}
-	function разобратьПеченькуТокенаGql(сПеченька) {
-		if (сПеченька) {
+	function parseGqlTokenCookie(cookieString) {
+		if (cookieString) {
 			try {
-				const о = JSON.parse(decodeURIComponent(сПеченька));
-				Проверить(ЭтоНепустаяСтрока(о.сТокен) && Number.isSafeInteger(о.чПротухнетПосле));
-				return [ о.сТокен, о.чПротухнетПосле ];
+				const objectRef = JSON.parse(decodeURIComponent(cookieString));
+				assert(isNonEmptyString(objectRef.token) && Number.isSafeInteger(objectRef.expiresAfterMs));
+				return [ objectRef.token, objectRef.expiresAfterMs ];
 			} catch (_) {
-				м_Журнал.Ой(`[Twitch] Не удалось разобрать печеньку токена GQL: ${сПеченька}`);
+				log.logError(`[Twitch] Failed to parse GQL token cookie: ${cookieString}`);
 			}
 		}
 		return [ '', 0 ];
 	}
-	function разобратьПеченьку(чДействие, {name, domain, path, value}) {
-		if (чДействие === 3 || typeof value != 'string') {
+	function parseCookie(actionIndex, {name, domain, path, value}) {
+		if (actionIndex === 3 || typeof value != 'string') {
 			value = '';
 		}
 		switch (name) {
 		  case 'twilight-user':
 			if (domain === '.twitch.tv' && path === '/') {
-				const {id, login, authToken, displayName} = разобратьПеченькуАвторизации(value);
-				if (чДействие !== 1 && (_сИдЗрителя !== id || _сКодЗрителя !== login || _сТокенЗрителя !== authToken)) {
-					м_Отладка.ЗавершитьРаботуИПоказатьСообщение('J0222');
+				const {id, login, authToken, displayName} = parseAuthCookie(value);
+				if (actionIndex !== 1 && (_viewerId !== id || _viewerCode !== login || _viewerToken !== authToken)) {
+					debug.finishAndShowMessage('J0222');
 				}
-				_сИдЗрителя = id;
-				_сКодЗрителя = login;
-				_сТокенЗрителя = authToken;
-				_сИмяЗрителя = ЭтоНепустаяСтрока(displayName) ? displayName : login;
+				_viewerId = id;
+				_viewerCode = login;
+				_viewerToken = authToken;
+				_viewerName = isNonEmptyString(displayName) ? displayName : login;
 			}
 			break;
 
 		  case 'unique_id':
-			if (domain === '.twitch.tv' && path === '/' && чДействие === 1 && _сИдУстройства === '') {
-				_сИдУстройства = value;
+			if (domain === '.twitch.tv' && path === '/' && actionIndex === 1 && _deviceId === '') {
+				_deviceId = value;
 			}
 			break;
 
 		  case 'tw5~gqltoken':
 			if (domain === 'www.twitch.tv' && path === '/tw5~storage/') {
-				[_сТокенGql, _чТокенGqlПротухнетПосле] = разобратьПеченькуТокенаGql(value);
-				if (получитьТокенGql.фИзменилсяТокенGql) {
-					получитьТокенGql.фИзменилсяТокенGql();
+				[_gqlToken, _gqlTokenExpiresAt] = parseGqlTokenCookie(value);
+				if (getGqlToken.onGqlTokenChanged) {
+					getGqlToken.onGqlTokenChanged();
 				}
 			}
 		}
 	}
-	function запустить(сКодКанала) {
-		Проверить(ЭтоНепустаяСтрока(сКодКанала));
-		_сКодКанала = сКодКанала;
-		return получитьВсеПеченьки('https://www.twitch.tv/tw5~storage/').then(моПеченьки => {
-			for (const оПеченька of моПеченьки) {
-				разобратьПеченьку(1, оПеченька);
+	function startInternal(channelCode) {
+		assert(isNonEmptyString(channelCode));
+		_channelCode = channelCode;
+		return getAllCookies('https://www.twitch.tv/tw5~storage/').then(cookiesStorage => {
+			for (const cookie of cookiesStorage) {
+				parseCookie(1, cookie);
 			}
-			if (_сИдУстройства === '') {
-				м_Журнал.Ой('[Twitch] Не найден идентификатор устройства');
-				_сИдУстройства = получитьУникальныйИдентификаторУстройства();
+			if (_deviceId === '') {
+				log.logError('[Twitch] Device ID not found');
+				_deviceId = getUniqueDeviceId();
 			}
-			chrome.cookies.onChanged.addListener(ДобавитьОбработчикИсключений(({removed, cause, cookie}) => {
+			chrome.cookies.onChanged.addListener(wrapErrors(({removed, cause, cookie}) => {
 				if (!(removed && cause === 'overwrite')) {
-					разобратьПеченьку(removed ? 3 : 2, cookie);
+					parseCookie(removed ? 3 : 2, cookie);
 				}
 			}));
 		});
 	}
-	function обновитьМетаданныеЗрителяИКанала() {
-		Проверить(_сИдКанала);
-		отправитьЗапросGql(null, `query($login: String!, $skip: Boolean!) {
+	function updateViewerAndChannelMetadata() {
+		assert(_channelId);
+		sendGqlRequest(null, `query($login: String!, $skip: Boolean!) {
 				user(login: $login) {
 					broadcastSettings {
 						language
@@ -6125,63 +6221,63 @@ const м_Twitch = (() => {
 					}
 				}
 			}`, {
-			login: _сКодКанала,
-			skip: _сКодКанала === _сКодЗрителя
-		}, true, false, true, 'метаданные канала').then(оРезультат => {
-			if (!оРезультат.data) {
-				throw 'В ответе сервера нет метаданных';
+			login: _channelCode,
+			skip: _channelCode === _viewerCode
+		}, true, false, true, 'channel metadata').then(result => {
+			if (!result.data) {
+				throw 'No metadata in server response';
 			}
-			const oUser = оРезультат.data.user;
+			const oUser = result.data.user;
 			if (!oUser) {
-				м_Отладка.ЗавершитьРаботуИПоказатьСообщение('J0203');
+				debug.finishAndShowMessage('J0203');
 			}
-			Проверить(oUser.id === _сИдКанала);
-			const сКодЯзыка = цепочка(oUser.broadcastSettings, 'language');
-			const моКоманды = [];
+			assert(oUser.id === _channelId);
+			const languageCode = chain(oUser.broadcastSettings, 'language');
+			const commandsMap = [];
 			if (oUser.primaryTeam) {
-				моКоманды.push({
-					сАдрес: получитьАдресКоманды(oUser.primaryTeam.name),
-					сИмя: oUser.primaryTeam.displayName || oUser.primaryTeam.name
+				commandsMap.push({
+					address: getCommandUrl(oUser.primaryTeam.name),
+					name: oUser.primaryTeam.displayName || oUser.primaryTeam.name
 				});
 			}
-			const чПодписка = !цепочка(oUser.self, 'canFollow') ? ПОДПИСКА_НЕДОСТУПНА : !oUser.self.follower ? ПОДПИСКА_НЕОФОРМЛЕНА : oUser.self.follower.disableNotifications ? ПОДПИСКА_НЕУВЕДОМЛЯТЬ : ПОДПИСКА_УВЕДОМЛЯТЬ;
-			м_События.ПослатьСобытие('twitch-полученыметаданныеканала', {
-				сИмя: oUser.displayName || _сКодКанала,
-				сАватар: oUser.profileImageURL || 'player.svg#svg-missingavatar',
-				сОписание: oUser.description,
-				сКодЯзыка: сКодЯзыка && сКодЯзыка !== 'OTHER' ? сКодЯзыка : null,
-				кПодписчиков: цепочка(oUser.followers, 'totalCount'),
-				чКаналСоздан: Date.parse(oUser.createdAt),
-				моКоманды
+			const subscriptionCount = !chain(oUser.self, 'canFollow') ? subscriptionUnavailable : !oUser.self.follower ? subscriptionNotSubscribed : oUser.self.follower.disableNotifications ? subscriptionDoNotNotify : subscriptionNotify;
+			events.sendEvent('twitch-channel-metadata-received', {
+				name: oUser.displayName || _channelCode,
+				avatarUrl: oUser.profileImageURL || 'player.svg#svg-missingavatar',
+				descriptionText: oUser.description,
+				languageCode: languageCode && languageCode !== 'OTHER' ? languageCode : null,
+				subscriberCount: chain(oUser.followers, 'totalCount'),
+				channelCreatedAt: Date.parse(oUser.createdAt),
+				commandsMap
 			});
-			м_События.ПослатьСобытие('twitch-полученыметаданныезрителя', {
-				сИмя: _сИмяЗрителя,
-				чПодписка
+			events.sendEvent('twitch-viewer-metadata-received', {
+				name: _viewerName,
+				subscriptionCount
 			});
-		}).catch(пПричина => {
-			if (typeof пПричина == 'string') {
-				м_Журнал.Ой(`[Twitch] Не удалось получить метаданные канала. ${пПричина}`);
-				м_События.ПослатьСобытие('twitch-полученыметаданныеканала', {
-					сИмя: _сКодКанала,
-					сАватар: 'player.svg#svg-missingavatar',
-					сКодЯзыка: null,
-					кПодписчиков: null,
-					чКаналСоздан: null
+		}).catch(reasonValue => {
+			if (typeof reasonValue == 'string') {
+				log.logError(`[Twitch] Failed to get channel metadata. ${reasonValue}`);
+				events.sendEvent('twitch-channel-metadata-received', {
+					name: _channelCode,
+					avatarUrl: 'player.svg#svg-missingavatar',
+					languageCode: null,
+					subscriberCount: null,
+					channelCreatedAt: null
 				});
-				м_События.ПослатьСобытие('twitch-полученыметаданныезрителя', {
-					сИмя: _сИмяЗрителя,
-					чПодписка: ПОДПИСКА_НЕДОСТУПНА
+				events.sendEvent('twitch-viewer-metadata-received', {
+					name: _viewerName,
+					subscriptionCount: subscriptionUnavailable
 				});
 			} else {
-				м_Отладка.ПойманоИсключение(пПричина);
+				debug.exceptionCaught(reasonValue);
 			}
 		});
 	}
-	function ОбновитьМетаданныеТрансляции(оОтменаОбещания, чЧерез) {
-		Проверить(_сИдКанала);
-		м_Журнал.Вот(`[Twitch] Загрузка метаданных трансляции начнется через ${м_Журнал.F0(чЧерез)}мс`);
-		Ждать(оОтменаОбещания, чЧерез).then(() => {
-			return отправитьЗапросGql(оОтменаОбещания, `query($id: ID!, $all: Boolean!) {
+	function updateStreamMetadata(promiseCancellation, delay) {
+		assert(_channelId);
+		log.logInfo(`[Twitch] Stream metadata loading will start in ${log.F0(delay)}ms`);
+		wait(promiseCancellation, delay).then(() => {
+			return sendGqlRequest(promiseCancellation, `query($id: ID!, $all: Boolean!) {
 					user(id: $id) {
 						broadcastSettings {
 							game {
@@ -6202,143 +6298,143 @@ const м_Twitch = (() => {
 						}
 					}
 				}`, {
-				id: _сИдКанала,
-				all: _сИдТрансляции === ''
-			}, false, false, true, 'метаданные трансляции');
-		}).then(оРезультат => {
-			const oUser = цепочка(оРезультат.data, 'user');
-			const сКодКанала = цепочка(oUser, 'login');
-			if (сКодКанала !== _сКодКанала && ЭтоНепустаяСтрока(сКодКанала)) {
-				м_Журнал.Ой(`[Twitch] Новый код канала ${сКодКанала}`);
-				location.replace(`?channel=${encodeURIComponent(сКодКанала)}`);
+				id: _channelId,
+				all: _streamId === ''
+			}, false, false, true, 'stream metadata');
+		}).then(result => {
+			const oUser = chain(result.data, 'user');
+			const channelCode = chain(oUser, 'login');
+			if (channelCode !== _channelCode && isNonEmptyString(channelCode)) {
+				log.logError(`[Twitch] New channel code ${channelCode}`);
+				location.replace(`?channel=${encodeURIComponent(channelCode)}`);
 				return;
 			}
-			const оМетаданные = {
-				кЗрителей: цепочка(oUser, 'stream', 'viewersCount')
+			const metadata = {
+				viewerCount: chain(oUser, 'stream', 'viewersCount')
 			};
-			const сИдТрансляции = цепочка(oUser, 'stream', 'id');
-			if (_сИдТрансляции === '' && ЭтоНепустаяСтрока(сИдТрансляции)) {
-				м_Журнал.Окак(`[Twitch] Идентификатор трансляции ${сИдТрансляции}`);
-				_сИдТрансляции = сИдТрансляции;
-				начатьСлежениеЗаПросмотром();
-				const сИдЗаписи = цепочка(oUser, 'stream', 'archiveVideo', 'id');
-				_сАдресЗаписи = ЭтоНепустаяСтрока(сИдЗаписи) ? ПолучитьАдресЗаписи(сИдЗаписи) : '';
-				const сТипТрансляции = цепочка(oUser, 'stream', 'type');
-				оМетаданные.сТипТрансляции = сТипТрансляции === 'live' ? 'прямая' : сТипТрансляции === 'rerun' ? 'повтор' : null;
+			const streamId = chain(oUser, 'stream', 'id');
+			if (_streamId === '' && isNonEmptyString(streamId)) {
+				log.logOk(`[Twitch] Stream ID ${streamId}`);
+				_streamId = streamId;
+				startWatchingView();
+				const recordId = chain(oUser, 'stream', 'archiveVideo', 'id');
+				_recordUrl = isNonEmptyString(recordId) ? getRecordingUrl(recordId) : '';
+				const streamType = chain(oUser, 'stream', 'type');
+				metadata.streamType = streamType === 'live' ? 'live' : streamType === 'rerun' ? 'replay' : null;
 			}
-			if (_сИдТрансляции === '' || _сИдТрансляции === сИдТрансляции) {
-				const сНазваниеТрансляции = цепочка(oUser, 'broadcastSettings', 'title');
-				if (typeof сНазваниеТрансляции == 'string') {
-					оМетаданные.сНазваниеТрансляции = сНазваниеТрансляции.trim() || Текст('J0103');
+			if (_streamId === '' || _streamId === streamId) {
+				const streamTitle = chain(oUser, 'broadcastSettings', 'title');
+				if (typeof streamTitle == 'string') {
+					metadata.streamTitle = streamTitle.trim() || getMessageText('J0103');
 				}
-				оМетаданные.сНазваниеИгры = цепочка(oUser, 'broadcastSettings', 'game', 'displayName');
-				const сАдресИгры = цепочка(oUser, 'broadcastSettings', 'game', 'slug');
-				if (сАдресИгры) {
-					оМетаданные.сАдресИгры = получитьАдресКатегории(сАдресИгры);
+				metadata.gameTitle = chain(oUser, 'broadcastSettings', 'game', 'displayName');
+				const gameAddress = chain(oUser, 'broadcastSettings', 'game', 'slug');
+				if (gameAddress) {
+					metadata.gameAddress = getCategoryUrl(gameAddress);
 				}
-				оМетаданные.чДлительностьТрансляции = performance.now() + г_чТочноеВремя - Date.parse(цепочка(oUser, 'stream', 'createdAt'));
+				metadata.streamDuration = performance.now() + globalExactTimeMs - Date.parse(chain(oUser, 'stream', 'createdAt'));
 			}
-			м_События.ПослатьСобытие('twitch-полученыметаданныетрансляции', оМетаданные);
-			ОбновитьМетаданныеТрансляции(оОтменаОбещания, ИНТЕРВАЛ_ОБНОВЛЕНИЯ_МЕТАДАННЫХ_ТРАНСЛЯЦИИ);
-		}).catch(ДобавитьОбработчикИсключений(пПричина => {
-			if (typeof пПричина == 'string') {
-				м_Журнал.Ой(`[Twitch] Не удалось загрузить метаданные трансляции. ${пПричина}`);
-				ОбновитьМетаданныеТрансляции(оОтменаОбещания, ИНТЕРВАЛ_ОБНОВЛЕНИЯ_МЕТАДАННЫХ_ТРАНСЛЯЦИИ / 2);
-			} else if (пПричина === ОтменаОбещания.ПРИЧИНА) {
-				м_Журнал.Вот('[Twitch] Отменено обновление метаданных трансляции');
+			events.sendEvent('twitch-stream-metadata-received', metadata);
+			updateStreamMetadata(promiseCancellation, streamMetadataUpdateInterval);
+		}).catch(wrapErrors(reasonValue => {
+			if (typeof reasonValue == 'string') {
+				log.logError(`[Twitch] Failed to load stream metadata. ${reasonValue}`);
+				updateStreamMetadata(promiseCancellation, streamMetadataUpdateInterval / 2);
+			} else if (reasonValue === cancelPromise.reason) {
+				log.logInfo('[Twitch] Stream metadata update cancelled');
 			} else {
-				throw пПричина;
+				throw reasonValue;
 			}
 		}));
 	}
-	function НачатьСборМетаданныхТрансляции() {
-		ОчиститьДанныеТрансляции();
-		Проверить(!_оОтменаОбновленияМетаданных);
-		_оОтменаОбновленияМетаданных = new ОтменаОбещания();
-		ОбновитьМетаданныеТрансляции(_оОтменаОбновленияМетаданных, 0);
+	function startCollectingStreamMetadata() {
+		clearStreamData();
+		assert(!_metadataUpdateCancel);
+		_metadataUpdateCancel = new cancelPromise();
+		updateStreamMetadata(_metadataUpdateCancel, 0);
 	}
-	function ЗавершитьСборМетаданныхТрансляции(лТрансляцияЗавершена) {
-		if (лТрансляцияЗавершена) {
-			ОчиститьДанныеТрансляции();
+	function finishStreamMetadataCollection(isStreamEnded) {
+		if (isStreamEnded) {
+			clearStreamData();
 		}
-		if (_оОтменаОбновленияМетаданных) {
-			м_Журнал.Вот(`[Twitch] Отменяю цепочку обновления метаданных трансляции ТрансляцияЗавершена=${лТрансляцияЗавершена}`);
-			_оОтменаОбновленияМетаданных.Отменить();
-			_оОтменаОбновленияМетаданных = null;
+		if (_metadataUpdateCancel) {
+			log.logInfo(`[Twitch] Cancelling stream metadata update chain StreamEnded=${isStreamEnded}`);
+			_metadataUpdateCancel.cancel();
+			_metadataUpdateCancel = null;
 		}
-		завершитьСлежениеЗаПросмотром();
+		stopWatchingView();
 	}
-	function начатьСлежениеЗаПросмотром() {
-		if (_сИдЗрителя !== '') {
-			м_Журнал.Вот('[Twitch] Начинаю слежение за просмотром');
-			Проверить(_чТаймерСлеженияЗаПросмотром === 0);
-			_чТаймерСлеженияЗаПросмотром = setInterval(отправитьДанныеСлеженияЗаПросмотром, ИНТЕРВАЛ_СЛЕЖЕНИЯ_ЗА_ПРОСМОТРОМ);
-			отправитьДанныеСлеженияЗаПросмотром();
-		}
-	}
-	function завершитьСлежениеЗаПросмотром() {
-		if (_чТаймерСлеженияЗаПросмотром !== 0) {
-			м_Журнал.Вот('[Twitch] Завершаю слежение за просмотром');
-			clearInterval(_чТаймерСлеженияЗаПросмотром);
-			_чТаймерСлеженияЗаПросмотром = 0;
+	function startWatchingView() {
+		if (_viewerId !== '') {
+			log.logInfo('[Twitch] Starting view tracking');
+			assert(_watchTrackingTimerId === 0);
+			_watchTrackingTimerId = setInterval(sendViewTrackingData, WATCH_TRACKING_INTERVAL);
+			sendViewTrackingData();
 		}
 	}
-	const отправитьДанныеСлеженияЗаПросмотром = ДобавитьОбработчикИсключений(() => {
-		Проверить(_сИдТрансляции && _сИдКанала && _сИдЗрителя);
-		const оОтправить = new URLSearchParams();
-		оОтправить.set('data', btoa(JSON.stringify([ {
+	function stopWatchingView() {
+		if (_watchTrackingTimerId !== 0) {
+			log.logInfo('[Twitch] Stopping view tracking');
+			clearInterval(_watchTrackingTimerId);
+			_watchTrackingTimerId = 0;
+		}
+	}
+	const sendViewTrackingData = wrapErrors(() => {
+		assert(_streamId && _channelId && _viewerId);
+		const sendOptions = new URLSearchParams();
+		sendOptions.set('data', btoa(JSON.stringify([ {
 			event: 'minute-watched',
 			properties: {
-				broadcast_id: _сИдТрансляции,
-				channel_id: _сИдКанала,
-				user_id: Number(_сИдЗрителя),
+				broadcast_id: _streamId,
+				channel_id: _channelId,
+				user_id: Number(_viewerId),
 				player: 'site'
 			}
 		} ])));
-		м_Загрузчик.Загрузить(null, 'POST', _сАдресСлеженияЗаПросмотром, ЗАГРУЖАТЬ_МЕТАДАННЫЕ_НЕ_ДОЛЬШЕ, null, оОтправить, 'слежение за просмотром', false, 'none').catch(пПричина => {
-			if (typeof пПричина == 'string') {
-				м_Журнал.Ой(`[Twitch] Не удалось отправить данные слежения за просмотром. ${пПричина}`);
+		loader.load(null, 'POST', _viewTrackingUrl, metadataLoadMaxDuration, null, sendOptions, 'view tracking', false, 'none').catch(reasonValue => {
+			if (typeof reasonValue == 'string') {
+				log.logError(`[Twitch] Failed to send view tracking data. ${reasonValue}`);
 			} else {
-				м_Отладка.ПойманоИсключение(пПричина);
+				debug.exceptionCaught(reasonValue);
 			}
 		});
 	});
-	function ПолучитьАдресЗаписиДляТекущейПозиции() {
-		if (_сАдресЗаписи === '') {
-			м_Журнал.Ой('[Twitch] Адрес записи не известен');
+	function getRecordUrlForCurrentPosition() {
+		if (_recordUrl === '') {
+			log.logError('[Twitch] Recording URL unknown');
 			return '';
 		}
-		const чПозиция = м_Проигрыватель.ПолучитьПозициюВоспроизведенияТрансляции(false);
-		if (чПозиция === -1) {
-			м_Журнал.Вот('[Twitch] Адрес записи создан без позиции воспроизведения');
-			return _сАдресЗаписи;
+		const positionNumber = player.getStreamPlaybackPosition(false);
+		if (positionNumber === -1) {
+			log.logInfo('[Twitch] Recording URL created without playback position');
+			return _recordUrl;
 		}
-		return `${_сАдресЗаписи}?t=${Math.floor(чПозиция / 60 / 60)}h${Math.floor(чПозиция / 60 % 60)}m${Math.floor(чПозиция % 60)}s`;
+		return `${_recordUrl}?t=${Math.floor(positionNumber / 60 / 60)}h${Math.floor(positionNumber / 60 % 60)}m${Math.floor(positionNumber % 60)}s`;
 	}
-	function СоздатьКлип() {
-		const чПозиция = м_Проигрыватель.ПолучитьПозициюВоспроизведенияТрансляции(true);
-		if (_сИдТрансляции === '' || чПозиция <= 0) {
-			м_Журнал.Ой(`[Twitch] Недостаточно данных для создания клипа ИдТрансляции=${_сИдТрансляции} Позиция=${чПозиция}`);
-			м_Уведомление.ПоказатьЖопу();
+	function createClip() {
+		const positionNumber = player.getStreamPlaybackPosition(true);
+		if (_streamId === '' || positionNumber <= 0) {
+			log.logError(`[Twitch] Insufficient data to create clip StreamId=${_streamId} Position=${positionNumber}`);
+			notification.showButt();
 		} else {
-			м_Журнал.Окак(`[Twitch] Создаю клип ИдТрансляции=${_сИдТрансляции} Позиция=${чПозиция} ИдЗрителя=${_сИдЗрителя}`);
-			м_Уведомление.Показать('svg-cut', false);
-			ОткрытьАдресВНовойВкладке(`https://clips.twitch.tv/create?${new URLSearchParams({
-				broadcastID: _сИдТрансляции,
-				broadcasterLogin: _сКодКанала,
-				offsetSeconds: Math.ceil(чПозиция)
+			log.logOk(`[Twitch] Creating clip StreamId=${_streamId} Position=${positionNumber} ViewerId=${_viewerId}`);
+			notification.show('svg-cut', false);
+			openAddressInNewTab(`https://clips.twitch.tv/create?${new URLSearchParams({
+				broadcastID: _streamId,
+				broadcasterLogin: _channelCode,
+				offsetSeconds: Math.ceil(positionNumber)
 			})}`);
 		}
 	}
-	function ПолучитьАбсолютныйАдресСпискаСегментов(сАбсолютныйАдресСпискаСегментов) {
-		return сАбсолютныйАдресСпискаСегментов;
+	function getAbsoluteSegmentListUrl(absoluteSegmentListUrl) {
+		return absoluteSegmentListUrl;
 	}
-	function сортироватьСписокВариантов(оСписокВариантов) {
-		if (оСписокВариантов.сАдресСлеженияЗаПросмотром) {
-			_сАдресСлеженияЗаПросмотром = оСписокВариантов.сАдресСлеженияЗаПросмотром;
+	function sortVariantList(optionList) {
+		if (optionList.watchTrackingUrl) {
+			_viewTrackingUrl = optionList.watchTrackingUrl;
 		}
-		оСписокВариантов.моВарианты.sort((оВариант1, оВариант2) => {
-			switch (оВариант1.сИдентификатор) {
+		optionList.options.sort((variant1Obj, variant2) => {
+			switch (variant1Obj.identifier) {
 			  case 'chunked':
 				return -1;
 
@@ -6346,42 +6442,44 @@ const м_Twitch = (() => {
 				return 1;
 
 			  default:
-				return оВариант2.чБитрейт - оВариант1.чБитрейт;
+				return variant2.bitrateKbps - variant1Obj.bitrateKbps;
 			}
 		});
-		return оСписокВариантов;
+		return optionList;
 	}
-	const обработатьСообщениеЧата = ДобавитьОбработчикИсключений((оСообщение, оОтправитель, фОтветить) => {
-		// console.log('[player.js] Message received:', оСообщение, 'Sender:', оОтправитель);
-		if (оСообщение.сЗапрос !== 'ВставитьСторонниеРасширения' && оСообщение.сЗапрос !== 'Рейд') {
+	const handleChatMessage = wrapErrors((message, senderObject, replyCallback) => {
+		// console.log('[player.js] Message received:', message, 'Sender:', senderObject);
+		const isInsertRequest = message.requestText === 'ВставитьСторонниеРасширения' || message.requestText === 'InsertThirdPartyExtensions';
+		const isRaidRequest = message.requestText === 'Рейд' || message.requestText === 'Raid';
+		if (!isInsertRequest && !isRaidRequest) {
 			return false;
 		}
-		if ((оОтправитель.tab ? оОтправитель.tab.id : chrome.tabs.TAB_ID_NONE) !== получитьТекущуюВкладку.чИдВкладки) {
+		if ((senderObject.tab ? senderObject.tab.id : chrome.tabs.TAB_ID_NONE) !== getCurrentTab.tabId) {
 			// console.log('[player.js] Tab ID mismatch, ignoring');
 			return false;
 		}
-		if (оСообщение.сЗапрос === 'Рейд') {
-			перейтиНаКаналРейда(оСообщение.сКодКанала);
+		if (isRaidRequest) {
+			goToRaidChannel(message.channelCode);
 			return false;
 		}
-		м_Журнал.Вот('[Twitch] Получен запрос на вставку сторонних расширений');
-		chrome.management.getAll(ДобавитьОбработчикИсключений(моРасширения => {
+		log.logInfo('[Twitch] Received request to insert third-party extensions');
+		chrome.management.getAll(wrapErrors(extensionsMap => {
 			if (chrome.runtime.lastError) {
-				throw new Error(`Не удалось получить список расширений: ${chrome.runtime.lastError.message}`);
+				throw new Error(`Failed to get extension list: ${chrome.runtime.lastError.message}`);
 			}
 		//! Debug: log all extensions (enabled and disabled)
-			// console.log('[player.js] All extensions (enabled):', моРасширения.filter(e => e.enabled).map(e => ({name: e.name, id: e.id})));
-			// console.log('[player.js] All extensions (disabled):', моРасширения.filter(e => !e.enabled).map(e => ({name: e.name, id: e.id})));
+			// console.log('[player.js] All extensions (enabled):', extensionsMap.filter(e => e.enabled).map(e => ({name: e.name, id: e.id})));
+			// console.log('[player.js] All extensions (disabled):', extensionsMap.filter(e => !e.enabled).map(e => ({name: e.name, id: e.id})));
 			
 			//! Send to content script a list of known browser extensions that are currently installed and enabled in the browser.
-			//! These extensions will be loaded into <iframe>. See вставитьСторонниеРасширения() in content.js.
+			//! These extensions will be loaded into <iframe>. See insertThirdPartyExtensions() in content.js.
 			//! Chrome itself cannot load installed extensions into another extension.
 			//! See https://bugs.chromium.org/p/chromium/issues/detail?id=599167
-						оСообщение.сСторонниеРасширения = '';
-			for (let оРасширение of моРасширения) {
-				if (оРасширение.enabled) {
-					// console.log('[player.js] Checking extension:', оРасширение.name, оРасширение.id);
-					switch (оРасширение.id) {
+						message.thirdPartyExtensions = '';
+			for (let extensionObject of extensionsMap) {
+				if (extensionObject.enabled) {
+					// console.log('[player.js] Checking extension:', extensionObject.name, extensionObject.id);
+					switch (extensionObject.id) {
 					  case /*! Chrome */ 'ajopnjidmegmdimjlfnijceegpefgped':
 					  case /*! Opera  */ 'deofbbdfofnmppcjbhjibgodpcdchjii':
 					  case /*! Edge   */ 'icllegkipkooaicfmdfaloehobmglglb':
@@ -6389,7 +6487,7 @@ const м_Twitch = (() => {
 						//! BetterTTV browser extension
 						//! https://betterttv.com/
 						//! https://chrome.google.com/webstore/detail/ajopnjidmegmdimjlfnijceegpefgped
-						оСообщение.сСторонниеРасширения += 'BTTV ';
+						message.thirdPartyExtensions += 'BTTV ';
 						break;
 
 					  case /*! Chrome */ 'fadndhdgpmmaapbmfcknlfgcflmmmieb':
@@ -6398,102 +6496,106 @@ const м_Twitch = (() => {
 						//! FrankerFaceZ browser extension
 						//! https://www.frankerfacez.com/
 						//! https://chrome.google.com/webstore/detail/fadndhdgpmmaapbmfcknlfgcflmmmieb
-						оСообщение.сСторонниеРасширения += 'FFZ ';
+						message.thirdPartyExtensions += 'FFZ ';
 					}
 				}
 			}
-			м_Журнал.Вот(`[Twitch] Посылаю ответ на вставку сторонних расширений: ${оСообщение.сСторонниеРасширения}`);
+			log.logInfo(`[Twitch] Sending response to third-party extension insertion: ${message.thirdPartyExtensions}`);
 			try {
-				фОтветить(оСообщение);
-			} catch (пИсключение) {
-				м_Журнал.Ой(`[Twitch] Ошибка при посылке ответа: ${пИсключение}`);
+				replyCallback(message);
+			} catch (exception) {
+				log.logError(`[Twitch] Error sending response: ${exception}`);
 			}
 		}));
 		return true;
 	});
-	function открытьЧат() {
-		chrome.runtime.onMessage.addListener(обработатьСообщениеЧата);
-		return ПолучитьАдресПанелиЧата();
+	function openChat() {
+		chrome.runtime.onMessage.addListener(handleChatMessage);
+		return getChatPanelUrl();
 	}
-	function закрытьЧат() {
-		chrome.runtime.onMessage.removeListener(обработатьСообщениеЧата);
+	function closeChat() {
+		chrome.runtime.onMessage.removeListener(handleChatMessage);
 	}
 	return {
-		этоРекламныйСегмент,
-		отправитьДанныеСлеженияЗаРекламой,
-		ПолучитьАбсолютныйАдресСпискаВариантов,
-		ПолучитьАбсолютныйАдресСпискаСегментов,
-		ПолучитьАдресКанала,
-		проверитьДоступностьАдреса,
-		НачатьСборМетаданныхТрансляции,
-		ЗавершитьСборМетаданныхТрансляции,
-		ИзменитьПодпискуЗрителяНаКанал,
-		ПолучитьАдресЗаписиДляТекущейПозиции,
-		СоздатьКлип,
-		сортироватьСписокВариантов,
-		открытьЧат,
-		закрытьЧат,
-		запустить
+		isAdSegment,
+		sendAdTrackingData,
+		getAbsoluteOptionListUrl,
+		getAbsoluteSegmentListUrl,
+		getChannelUrl,
+		checkUrlAvailability,
+		startCollectingStreamMetadata,
+		finishStreamMetadataCollection,
+		changeViewerSubscriptionToChannel,
+		getRecordUrlForCurrentPosition,
+		createClip,
+		sortVariantList,
+		openChat,
+		closeChat,
+		startInternal
 	};
 })();
 
-function ЗавершитьРаботу(лБыстро) {
+function finishWork(isFast) {
 	try {
-		г_лРаботаЗавершена = true;
-		м_Журнал.Окак('[Запускалка] Завершаю работу');
+		globalIsWorkFinished = true;
+		log.logOk('[Launcher] Finishing work');
 		window.stop();
-		if (!лБыстро) {
-			м_Преобразователь.Остановить();
-			м_Проигрыватель.Остановить();
-			м_Помойка.Сжечь();
+		if (!isFast) {
+			converterModule.stop();
+			player.stop();
+			trashModule.burn();
 		}
-		м_Журнал.Окак('[Запускалка] Работа завершена');
+		log.logOk('[Launcher] Work finished');
 	} catch (_) {}
 }
 
-ДобавитьОбработчикИсключений(() => {
-	function ЭтотКаналУжеОткрыт(сКанал) {
-		Проверить(ЭтоНепустаяСтрока(сКанал));
+wrapErrors(() => {
+	function isChannelAlreadyOpen(channelName) {
+		assert(isNonEmptyString(channelName));
 		chrome.runtime.sendMessage({
-			сЗапрос: 'ЭтотКаналУжеОткрыт',
-			сКанал
-		}, пОтвет => {
-			if (пОтвет === true) {
-				м_Отладка.ЗавершитьРаботуИПоказатьСообщение('J0211');
+			requestText: 'ThisChannelIsAlreadyOpen',
+			channelName
+		}, response => {
+			if (response === true) {
+				debug.finishAndShowMessage('J0211');
 			}
 		});
-		chrome.runtime.onMessage.addListener(ДобавитьОбработчикИсключений((оСообщение, _, фОтветить) => {
-			if (оСообщение.сЗапрос === 'ЭтотКаналУжеОткрыт') {
-				м_Журнал.Ой(`[Запускалка] В другой вкладке открыт канал ${оСообщение.сКанал}`);
-				if (оСообщение.сКанал === сКанал) {
-					фОтветить(true);
+		chrome.runtime.onMessage.addListener(wrapErrors((message, _, replyCallback) => {
+			if (message.requestText === 'ЭтотКаналУжеОткрыт' || message.requestText === 'ThisChannelIsAlreadyOpen') {
+				log.logError(`[Launcher] Channel ${message.channelName} is open in another tab`);
+				if (message.channelName === channelName) {
+					replyCallback(true);
 				}
 			}
 		}));
 	}
-	function ОбработатьВыгрузкуСтраницы(оСобытие) {
-		м_Журнал.Окак(`[Запускалка] window.on${оСобытие.type}`);
-		ЗавершитьРаботу(true);
+	function handlePageUnload(event) {
+		log.logOk(`[Launcher] window.on${event.type}`);
+		finishWork(true);
 	}
-	function НачатьРаботу() {
-		Проверить(!г_лРаботаЗавершена);
-		м_Журнал.Вот(`[Запускалка] Начало работы ${performance.now().toFixed()}мс`);
-		window.addEventListener('unload', ОбработатьВыгрузкуСтраницы);
-		м_Управление.Запустить();
-		if (м_Проигрыватель.Запустить()) {
-			м_Список.Запустить();
+	function startWork() {
+		assert(!globalIsWorkFinished);
+		log.logInfo(`[Launcher] Start of work ${performance.now().toFixed()}ms`);
+		window.addEventListener('unload', handlePageUnload);
+		control.start();
+		if (player.start()) {
+			listModule.start();
 		} else {
-			м_Управление.ОстановитьПросмотрТрансляции();
+			control.stopWatchingStream();
 		}
-		м_Статистика.Запустить();
+		stats.start();
 	}
 	if (window.top !== window) {
 		return;
 	}
 	if (navigator.userAgent.includes('Gecko/')) {
-		м_Отладка.ЗавершитьРаботуИПоказатьСообщение('J0204');
+		debug.finishAndShowMessage('J0204');
 	}
-	const сКанал = (new URLSearchParams(location.search.slice(1)).get('channel') || 'channel').toLowerCase();
-	ЭтотКаналУжеОткрыт(сКанал);
-	Promise.all([ проверитьРазрешенияРасширения(), м_Настройки.Восстановить(), получитьТекущуюВкладку() ]).then(() => м_Twitch.запустить(сКанал)).then(НачатьРаботу).catch(м_Отладка.ПойманоИсключение);
+	const channelName = (new URLSearchParams(location.search.slice(1)).get('channel') || 'channel').toLowerCase();
+	isChannelAlreadyOpen(channelName);
+	Promise.all([ assertExtensionPermissions(), settings.restore(), getCurrentTab() ])
+		.then(() => i18n.prepare(settings.get('interfaceLanguage')))
+		.then(() => Twitch.startInternal(channelName))
+		.then(startWork)
+		.catch(debug.exceptionCaught);
 })();

@@ -1,29 +1,29 @@
 'use strict';
 
 {
-	function перехватитьФункцию() {
-		const оригинальнаяФункция = window.fetch;
-		window.fetch = function(адрес, параметры) {
-			const обещание = оригинальнаяФункция(адрес, параметры);
-			if (адрес === 'https://gql.twitch.tv/integrity' && параметры && параметры.method && параметры.method.toUpperCase() === 'POST' && параметры.headers && параметры.headers.Authorization) {
-				обещание.then(ответ => {
-					if (ответ.ok && ответ.status === 200) {
-						return ответ.clone().json().then(({token: сТокен, expiration: чПротухнетПосле}) => {
-							if (typeof сТокен == 'string' && сТокен && Number.isSafeInteger(чПротухнетПосле)) {
-								const текущееВремя = Date.now();
-								чПротухнетПосле = Math.min(Math.max(чПротухнетПосле - 3 * 60 * 1e3, текущееВремя + 1 * 60 * 60 * 1e3), текущееВремя + 24 * 60 * 60 * 1e3);
+	function interceptFunction() {
+		const originalFunction = window.fetch;
+		window.fetch = function(addressValue, params2) {
+			const promise2 = originalFunction(addressValue, params2);
+			if (addressValue === 'https://gql.twitch.tv/integrity' && params2 && params2.method && params2.method.toUpperCase() === 'POST' && params2.headers && params2.headers.Authorization) {
+				promise2.then(reply => {
+					if (reply.ok && reply.status === 200) {
+						return reply.clone().json().then(({token: token, expiration: expiresAfterMs}) => {
+							if (typeof token == 'string' && token && Number.isSafeInteger(expiresAfterMs)) {
+								const currentTime2 = Date.now();
+								expiresAfterMs = Math.min(Math.max(expiresAfterMs - 3 * 60 * 1e3, currentTime2 + 1 * 60 * 60 * 1e3), currentTime2 + 24 * 60 * 60 * 1e3);
 								document.cookie = `tw5~gqltoken=${encodeURIComponent(JSON.stringify({
-									сТокен,
-									чПротухнетПосле
+									token,
+									expiresAfterMs
 								}))}; path=/tw5~storage/; samesite=none; secure; max-age=86400`;
 							}
 						});
 					}
-				}).catch(причина => {});
+				}).catch(reason2 => {});
 			}
-			return обещание;
+			return promise2;
 		};
 	}
 	// MV3 fix: Call function directly instead of injecting inline script (CSP violation)
-	перехватитьФункцию();
+	interceptFunction();
 }
