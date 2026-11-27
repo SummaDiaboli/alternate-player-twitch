@@ -350,8 +350,12 @@ test('Twitch site dark theme is bridged to the player chat', () => {
 	const twitch = read('src/player/twitch.js');
 	const chat = read('src/player/chat.js');
 	assert.match(chatTheme, /tw-root--theme-dark/);
+	assert.match(chatTheme, /tw-root--theme-light/);
 	assert.match(chatTheme, /tw5~chat-theme/);
 	assert.match(chatTheme, /domain=\.twitch\.tv/);
+	assert.match(chatTheme, /chrome\.storage\.local\.set/);
+	assert.match(chatTheme, /chrome\.storage\.onChanged\.addListener/);
+	assert.match(chatTheme, /chatPathPattern\.test\(location\.pathname\)/);
 	assert.match(read(CONTENT_ENTRY_JS), /chatTheme\.start\(\);/);
 	assert.match(twitch, /let _isSiteDarkTheme = false;/);
 	assert.match(twitch, /case 'tw5~chat-theme':/);
